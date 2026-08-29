@@ -1,0 +1,207 @@
+/* FigJam Bottom Toolbar — dark floating pill */
+.floating-toolbar-container {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+}
+
+.floating-toolbar {
+  background-color: var(--bg-toolbar);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  position: relative;
+}
+
+.toolbar-item-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-on-dark-secondary);
+  background: transparent;
+  transition: background-color 100ms ease, color 100ms ease;
+  white-space: nowrap;
+  position: relative;
+}
+
+.toolbar-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-on-dark);
+}
+
+.toolbar-btn.primary {
+  background-color: var(--accent-blue);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.toolbar-btn.primary:hover {
+  background-color: #007be5;
+}
+
+.toolbar-btn.active-popover {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: var(--text-on-dark);
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 18px;
+  background-color: rgba(255, 255, 255, 0.12);
+  margin: 0 4px;
+}
+
+.badge-count {
+  background-color: var(--accent-red);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: var(--radius-full);
+  min-width: 16px;
+  text-align: center;
+}
+
+/* Absolute dot so it never shifts the button's layout */
+.filter-active-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--accent-blue);
+  pointer-events: none;
+}
+
+/* ───────────────────────────────────────────────────
+   FIGJAM-STYLE FILTER POPOVER (STABLE, NO JANK)
+   ─────────────────────────────────────────────────── */
+.toolbar-popover {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 270px;
+  background-color: var(--bg-surface);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 12px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-sizing: border-box;
+  animation: popoverBottomUpIn 120ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toolbar-popover.is-closing {
+  animation: popoverBottomUpOut 110ms ease forwards;
+}
+
+.toolbar-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 16px;
+}
+
+.toolbar-popover-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.toolbar-clear-btn {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent-blue-text);
+  background: transparent;
+  padding: 0;
+  transition: opacity 100ms ease;
+}
+
+.toolbar-clear-btn:hover {
+  text-decoration: underline;
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-input-icon {
+  position: absolute;
+  left: 8px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.toolbar-search-input {
+  width: 100%;
+  padding: 6px 8px 6px 28px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.toolbar-search-input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px rgba(13, 153, 255, 0.15);
+}
+
+.toolbar-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toolbar-filter-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-tertiary);
+}
+
+.toolbar-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.toolbar-select:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px rgba(13, 153, 255, 0.15);
+}
