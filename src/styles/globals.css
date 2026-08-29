@@ -1,0 +1,324 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap');
+
+:root {
+  /* FigJam Exact Palette — 100% true Figma Design Tokens */
+  --bg-canvas: #f5f5f5;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: rgba(0, 0, 0, 0.04);
+  --bg-surface-active: rgba(0, 0, 0, 0.08);
+  --bg-toolbar: #2c2c2c;
+
+  --border-default: rgba(0, 0, 0, 0.08);
+  --border-light: rgba(0, 0, 0, 0.04);
+  --border-focus: #0d99ff;
+
+  --text-primary: #1e1e1e;
+  --text-secondary: #757575;
+  --text-tertiary: #b3b3b3;
+  --text-on-dark: #ffffff;
+  --text-on-dark-secondary: rgba(255, 255, 255, 0.7);
+
+  /* Exact Figma Accent Tokens */
+  --accent-blue: #0d99ff;
+  --accent-blue-light: rgba(13, 153, 255, 0.1);
+  --accent-blue-text: #0c8ce9;
+
+  --accent-green: #14ae5c;
+  --accent-green-light: rgba(20, 174, 92, 0.1);
+  --accent-green-text: #0d8244;
+
+  --accent-amber: #ffa629;
+  --accent-amber-light: rgba(255, 166, 41, 0.12);
+  --accent-amber-text: #c77700;
+
+  --accent-orange: #ff7262;
+  --accent-orange-light: rgba(255, 114, 98, 0.12);
+  --accent-orange-text: #d94838;
+
+  --accent-red: #f24822;
+  --accent-red-light: rgba(242, 72, 34, 0.1);
+  --accent-red-text: #d12c06;
+
+  --accent-purple: #9747ff;
+  --accent-purple-light: rgba(151, 71, 255, 0.1);
+  --accent-purple-text: #7b2cbf;
+
+  /* Figma soft diffused shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 4px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-float: 0 2px 14px rgba(0, 0, 0, 0.08);
+  --shadow-drag: 0 12px 28px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.06);
+
+  /* Typography */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Radii — Compact, sharp Figma standard */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-full: 9999px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-family);
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  user-select: none;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+/* ==========================================================================
+   CRITICAL: DO NOT TOUCH OR MODIFY THE FIGJAM DOT GRID BACKGROUND BELOW!
+   ========================================================================== */
+.figjam-canvas {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  background-color: var(--bg-canvas);
+  background-image: radial-gradient(rgba(0, 0, 0, 0.13) 1px, transparent 1.6px);
+  background-size: 20px 20px;
+  background-position: 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Base resets */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: 13px;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  outline: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 100ms ease, color 100ms ease, opacity 100ms ease;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+.user-avatar-img,
+.avatar-fallback {
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  display: block;
+}
+
+.avatar-fallback {
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.2px;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.22);
+}
+
+/* ───────────────────────────────────────────────────
+   FIGMA MOTION & ANIMATION KEYFRAMES
+   ─────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+/* Modal Dialog / Card animations */
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes modalScaleOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes scaleDown {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+/* Dropdowns & Popovers animations (top-down) */
+@keyframes popoverIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes popoverOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+}
+
+/* Popover anchored bottom-up (like toolbar popovers) */
+@keyframes popoverBottomUpIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.96) translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1) translateY(0);
+  }
+}
+
+@keyframes popoverBottomUpOut {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) scale(1) translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.96) translateY(6px);
+  }
+}
+
+/* Slide panels */
+@keyframes panelSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes panelSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+}
+
+.is-closing {
+  pointer-events: none !important;
+}
+
+/* Form required asterisk */
+.required-star,
+.required-asterisk,
+.form-label .required-star,
+.form-label span.required {
+  color: var(--accent-red) !important;
+  font-weight: 700;
+  margin-left: 2px;
+  font-size: 12px;
+}

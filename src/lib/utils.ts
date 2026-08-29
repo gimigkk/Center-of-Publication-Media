@@ -1,0 +1,100 @@
+export type DeadlineUrgency = 'normal' | 'warning' | 'urgent' | 'overdue';
+
+export interface DeadlineStatus {
+  urgency: DeadlineUrgency;
+  daysRemaining: number;
+  hoursRemaining: number;
+  label: string;
+  isOverdue: boolean;
+}
+
+export function getDeadlineStatus(deadlineInput: string | Date): DeadlineStatus {
+  const deadline = new Date(deadlineInput);
+  const now = new Date();
+
+  const diffMs = deadline.getTime() - now.getTime();
+  const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  const isOverdue = diffMs < 0;
+
+  let urgency: DeadlineUrgency = 'normal';
+  let label = '';
+
+  if (isOverdue) {
+    urgency = 'overdue';
+    const overdueDays = Math.abs(diffDays);
+    label = overdueDays === 0 ? 'Hari ini' : `-${overdueDays} hari`;
+  } else if (diffHours <= 24) {
+    urgency = 'urgent';
+    label = diffHours <= 1 ? '<1 jam' : `${diffHours} jam`;
+  } else if (diffDays <= 3) {
+    urgency = 'warning';
+    label = `${diffDays} hari`;
+  } else {
+    urgency = 'normal';
+    label = `${diffDays} hari`;
+  }
+
+  return {
+    urgency,
+    daysRemaining: diffDays,
+    hoursRemaining: diffHours,
+    label,
+    isOverdue,
+  };
+}
+
+export function formatDate(dateInput: string | Date): string {
+  const date = new Date(dateInput);
+  return date.toLocaleDateString('id-ID', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+export function formatDateTime(dateInput: string | Date): string {
+  const date = new Date(dateInput);
+  return date.toLocaleDateString('id-ID', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+export function getInitials(name: string): string {
+  if (!name) return '??';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// FigJam cursor and avatar color palette
+const FIGJAM_COLORS = [
+  '#0D99FF', // Blue
+  '#9747FF', // Purple
+  '#FF7262', // Coral/Orange
+  '#14AE5C', // Green
+  '#FFA629', // Amber
+  '#F24822', // Red
+  '#10B981', // Emerald
+  '#6366F1', // Indigo
+  '#EC4899', // Pink
+  '#06B6D4', // Cyan
+];
+
+export function getAvatarColor(identifier: string): string {
+  if (!identifier) return FIGJAM_COLORS[0];
+  let hash = 0;
+  for (let i = 0; i < identifier.length; i++) {
+    hash = identifier.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % FIGJAM_COLORS.length;
+  return FIGJAM_COLORS[index];
+}
+
+export function cn(...classes: (string | boolean | undefined | null)[]): string {
+  return classes.filter(Boolean).join(' ');
+}
