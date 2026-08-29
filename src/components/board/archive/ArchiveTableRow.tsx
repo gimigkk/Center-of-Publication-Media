@@ -1,4 +1,5 @@
 import React from 'react';
+import { useDraggable } from '@dnd-kit/core';
 import { Job, Profile } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
 import { GoogleDocsIcon } from '@/components/ui/GoogleDocsIcon';
@@ -22,8 +23,20 @@ export const ArchiveTableRow = React.memo(function ArchiveTableRow({
         ? [job.designer]
         : [];
 
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: job.id,
+    data: { type: 'ArchivedJob', job },
+  });
+
   return (
-    <tr className="archive-tr" onClick={() => onCardClick(job)}>
+    <tr
+      ref={setNodeRef}
+      className={`archive-tr ${isDragging ? 'archive-tr--dragging' : ''}`}
+      onClick={() => !isDragging && onCardClick(job)}
+      {...listeners}
+      {...attributes}
+      title="Klik untuk detail, atau seret baris ini ke atas untuk memindahkan ke board"
+    >
       {/* Index */}
       <td
         className="archive-td"
@@ -109,7 +122,11 @@ export const ArchiveTableRow = React.memo(function ArchiveTableRow({
       </td>
 
       {/* Brief Link */}
-      <td className="archive-td" onClick={(e) => e.stopPropagation()}>
+      <td
+        className="archive-td"
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
         <a
           href={job.briefLink}
           target="_blank"

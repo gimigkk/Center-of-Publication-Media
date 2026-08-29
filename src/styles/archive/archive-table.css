@@ -270,3 +270,61 @@
 .archive-cards-mobile {
   display: none;
 }
+
+/* ==========================================================================
+   Drag & Drop — Archive ↔ Kanban
+   ========================================================================== */
+
+/* Archive row & mobile card while being dragged */
+.archive-tr {
+  cursor: grab;
+}
+
+.archive-tr:active {
+  cursor: grabbing;
+}
+
+.archive-mobile-card {
+  cursor: grab;
+}
+
+.archive-mobile-card:active {
+  cursor: grabbing;
+}
+
+.archive-tr--dragging {
+  opacity: 0.35;
+  background-color: rgba(59, 130, 246, 0.04);
+  pointer-events: none;
+}
+
+/* Archive section — becomes a drop zone when a Kanban card is being dragged */
+.archive-section-wrapper.archive-drag-target {
+  transition: box-shadow 120ms ease;
+}
+
+.archive-section-wrapper.archive-drag-target .archive-card {
+  border-color: rgba(59, 130, 246, 0.25);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12), var(--shadow-sm);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.archive-section-wrapper.archive-drag-over .archive-card {
+  border-color: rgba(59, 130, 246, 0.55);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22), var(--shadow-sm);
+}
+
+/* Kanban column — soft highlight when an archived card is being dragged over it */
+.kanban-column.archive-drag-ready {
+  outline: 1.5px dashed rgba(59, 130, 246, 0.25);
+  outline-offset: -1px;
+  border-radius: var(--radius-md);
+  background-color: rgba(59, 130, 246, 0.02);
+  transition: outline-color 120ms ease, background-color 120ms ease;
+}
+
+.kanban-column.drag-over {
+  outline: 2px solid rgba(59, 130, 246, 0.55);
+  outline-offset: -1px;
+  background-color: rgba(59, 130, 246, 0.06);
+}

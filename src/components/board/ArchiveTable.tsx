@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { Job, Profile, Division } from '@/types';
 import { Search, Layers } from 'lucide-react';
+import { useDroppable } from '@dnd-kit/core';
 import {
   ArchiveTableHeader,
   SortField,
@@ -10,23 +11,32 @@ import {
 } from './archive/ArchiveTableHeader';
 import { ArchiveTableRow } from './archive/ArchiveTableRow';
 import { ArchiveMobileCard } from './archive/ArchiveMobileCard';
+import { ARCHIVE_DROP_ZONE_ID } from './Board';
 
 interface ArchiveTableProps {
   archivedJobs: Job[];
   currentUser: Profile;
   divisions: Division[];
   onCardClick: (job: Job) => void;
+  /** True when a Kanban card is being dragged (show as drop target) */
+  isDropTarget?: boolean;
+  /** True when a Kanban card is hovering over this zone */
+  isOver?: boolean;
 }
 
 export const ArchiveTable = React.memo(function ArchiveTable({
   archivedJobs,
   divisions,
   onCardClick,
+  isDropTarget = false,
+  isOver = false,
 }: ArchiveTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDivision, setSelectedDivision] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('archivedAt');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+
+  const { setNodeRef } = useDroppable({ id: ARCHIVE_DROP_ZONE_ID });
 
   const sortedDivisions = useMemo(() => {
     return [...divisions].sort((a, b) =>
@@ -94,7 +104,11 @@ export const ArchiveTable = React.memo(function ArchiveTable({
   };
 
   return (
-    <section className="archive-section-wrapper" aria-label="COPM Archive Table">
+    <section
+      ref={setNodeRef}
+      className={`archive-section-wrapper ${isDropTarget ? 'archive-drag-target' : ''} ${isOver ? 'archive-drag-over' : ''}`}
+      aria-label="COPM Archive Table"
+    >
       {/* Top Header Bar */}
       <div className="archive-top-bar">
         <div className="archive-title-group">
@@ -194,7 +208,7 @@ export const ArchiveTable = React.memo(function ArchiveTable({
             Menampilkan {sortedJobs.length} dari {archivedJobs.length} data arsip
           </span>
           <span style={{ color: 'var(--text-tertiary)' }}>
-            Klik baris/kartu untuk melihat detail dan riwayat lengkap
+            Seret baris ke atas untuk memindahkan ke board · Klik untuk detail
           </span>
         </div>
       </div>

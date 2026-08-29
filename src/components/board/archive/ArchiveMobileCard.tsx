@@ -1,4 +1,5 @@
 import React from 'react';
+import { useDraggable } from '@dnd-kit/core';
 import { Job, Profile } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
 import { GoogleDocsIcon } from '@/components/ui/GoogleDocsIcon';
@@ -21,8 +22,19 @@ export const ArchiveMobileCard = React.memo(function ArchiveMobileCard({
         ? [job.designer]
         : [];
 
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: job.id,
+    data: { type: 'ArchivedJob', job },
+  });
+
   return (
-    <div className="archive-mobile-card" onClick={() => onCardClick(job)}>
+    <div
+      ref={setNodeRef}
+      className={`archive-mobile-card ${isDragging ? 'archive-tr--dragging' : ''}`}
+      onClick={() => !isDragging && onCardClick(job)}
+      {...listeners}
+      {...attributes}
+    >
       {/* Header Row: Title + Division Badge */}
       <div className="archive-mobile-card-header">
         <span className="archive-mobile-card-title">{job.title}</span>
@@ -77,7 +89,10 @@ export const ArchiveMobileCard = React.memo(function ArchiveMobileCard({
           <span>{formatDate(job.deadline)}</span>
         </div>
 
-        <div onClick={(e) => e.stopPropagation()}>
+        <div
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
           <a
             href={job.briefLink}
             target="_blank"

@@ -22,6 +22,8 @@ import { ArchiveTable } from './ArchiveTable';
 import { ChevronRight } from 'lucide-react';
 import { CardDropEvent } from '@/hooks/useRealtimeBoard';
 
+export const ARCHIVE_DROP_ZONE_ID = 'archive-drop-zone';
+
 interface BoardProps {
   jobs: Job[];
   currentUser: Profile;
@@ -50,22 +52,33 @@ const COLUMNS: { status: JobStatus; title: string }[] = [
   { status: 'done', title: 'Selesai' },
 ];
 
-// Smart drop collision detection: partitions the kanban board horizontally into column lanes
-// This guarantees 100% drop accuracy regardless of height differences between empty/full columns
+// Smart drop collision detection: partitions the canvas into Kanban columns (top) and Archive zone (bottom & under table)
+// This guarantees 100% drop accuracy regardless of height differences or dragging under the table
 const smartColumnCollision: CollisionDetection = (args) => {
   const { droppableContainers, pointerCoordinates, collisionRect } = args;
   if (!droppableContainers || droppableContainers.length === 0) return [];
 
-  // Determine reference X coordinate (cursor pointer X if available, else dragged card center X)
+  // Determine reference X and Y coordinates (cursor pointer if available, else dragged card center)
   const refX = pointerCoordinates
     ? pointerCoordinates.x
     : collisionRect
     ? collisionRect.left + collisionRect.width / 2
     : null;
 
-  if (refX !== null) {
+  const refY = pointerCoordinates
+    ? pointerCoordinates.y
+    : collisionRect
+    ? collisionRect.top + collisionRect.height / 2
+    : null;
+
+  if (refX !== null && refY !== null) {
+    const archiveZone = droppableContainers.find(
+      (c) => c.id === ARCHIVE_DROP_ZONE_ID
+    );
+
     // Collect and sort droppable columns by their horizontal screen position (left to right)
     const columns = droppableContainers
+      .filter((c) => c.id !== ARCHIVE_DROP_ZONE_ID)
       .map((container) => ({
         container,
         rect: container.rect.current,
@@ -73,8 +86,25 @@ const smartColumnCollision: CollisionDetection = (args) => {
       .filter((item): item is { container: typeof droppableContainers[0]; rect: DOMRect } => !!item.rect)
       .sort((a, b) => a.rect.left - b.rect.left);
 
+    // Calculate vertical boundary between Kanban board and Archive area
+    const kanbanBottom = columns.length > 0
+      ? Math.max(...columns.map((c) => c.rect.bottom))
+      : 0;
+    const archiveTop = archiveZone?.rect.current
+      ? archiveZone.rect.current.top
+      : kanbanBottom + 40;
+
+    const verticalSplit = (kanbanBottom + archiveTop) / 2;
+
+    // If pointer / dragged item is at or below the vertical split (inside or under the table), target Archive!
+    if (refY >= verticalSplit) {
+      if (archiveZone) {
+        return [{ id: ARCHIVE_DROP_ZONE_ID }];
+      }
+    }
+
+    // Otherwise, we are in the Kanban board area (top half) -> choose column by horizontal lane
     if (columns.length > 0) {
-      // Find the column lane where refX falls between the midpoints of adjacent columns
       for (let i = 0; i < columns.length; i++) {
         const curr = columns[i];
         const prev = columns[i - 1];
@@ -108,7 +138,8 @@ const smartColumnCollision: CollisionDetection = (args) => {
 };
 
 // Snaps the dragged card so the mouse cursor is anchored precisely at the top-center
-const snapTopCenterToCursor: Modifier = ({ transform, activeNodeRect, activatorEvent }) => {
+// Uses overlayNodeRect width (fallback 266px) so that dragging from a wide table row (1200px) or card (266px) always centers perfectly on cursor
+const snapTopCenterToCursor: Modifier = ({ transform, activeNodeRect, overlayNodeRect, activatorEvent }) => {
   if (!activeNodeRect || !activatorEvent) {
     return transform;
   }
@@ -120,11 +151,13 @@ const snapTopCenterToCursor: Modifier = ({ transform, activeNodeRect, activatorE
     return transform;
   }
 
+  // The actual rendered overlay card width (standard 266px)
+  const overlayWidth = overlayNodeRect?.width || 266;
   const grabOffsetX = clientX - activeNodeRect.left;
   const grabOffsetY = clientY - activeNodeRect.top;
 
-  // Center horizontally and anchor 10px below cursor pointer
-  const deltaX = grabOffsetX - (activeNodeRect.width / 2);
+  // Center horizontally relative to overlay card width, and anchor 10px below cursor pointer
+  const deltaX = grabOffsetX - (overlayWidth / 2);
   const deltaY = grabOffsetY - 10;
 
   return {
@@ -152,6 +185,8 @@ export const Board = memo(function Board({
 }: BoardProps) {
   const [activeJob, setActiveJob] = useState<Job | null>(null);
   const [localDropEvent, setLocalDropEvent] = useState<CardDropEvent | null>(null);
+  // Track whether the drag is hovering the archive zone
+  const [isDraggingOverArchive, setIsDraggingOverArchive] = useState(false);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const savedTiltRef = useRef<number>(0);
   const lastPointerXRef = useRef<number | null>(null);
@@ -188,6 +223,7 @@ export const Board = memo(function Board({
 
   const handleDragStart = (event: DragStartEvent) => {
     setLocalDropEvent(null);
+    setIsDraggingOverArchive(false);
     savedTiltRef.current = 0;
     const { active } = event;
     const job = jobs.find((j) => j.id === active.id);
@@ -230,6 +266,10 @@ export const Board = memo(function Board({
       }
       lastPointerXRef.current = currentX;
     }
+
+    // Update archive hover state
+    const overId = event.over?.id;
+    setIsDraggingOverArchive(overId === ARCHIVE_DROP_ZONE_ID);
   };
 
   const getReleaseWorldCoords = (event: DragEndEvent | DragCancelEvent) => {
@@ -255,6 +295,7 @@ export const Board = memo(function Board({
     const { active, over } = event;
     const finalTilt = savedTiltRef.current;
     setActiveJob(null);
+    setIsDraggingOverArchive(false);
     onDragStateChange?.(null);
     savedTiltRef.current = 0;
     lastPointerXRef.current = null;
@@ -265,10 +306,24 @@ export const Board = memo(function Board({
     if (!sourceJob) return;
 
     const { releaseWorldX, releaseWorldY } = getReleaseWorldCoords(event);
-
     const overId = over?.id as string | undefined;
-    let targetStatus: JobStatus | null = null;
 
+    // === Case 1: Kanban card dropped INTO archive zone ===
+    if (overId === ARCHIVE_DROP_ZONE_ID && !sourceJob.isArchived && onArchiveJob) {
+      await onArchiveJob(activeJobId);
+      return;
+    }
+
+    // === Case 2: Archived row dropped INTO a Kanban column ===
+    if (sourceJob.isArchived && overId && COLUMNS.some((col) => col.status === overId)) {
+      const targetStatus = overId as JobStatus;
+      if (onUnarchiveJob) await onUnarchiveJob(activeJobId);
+      await onMoveJob(activeJobId, targetStatus, { worldX: releaseWorldX, worldY: releaseWorldY });
+      return;
+    }
+
+    // === Case 3: Normal Kanban card moved between columns ===
+    let targetStatus: JobStatus | null = null;
     if (overId) {
       if (COLUMNS.some((col) => col.status === overId)) {
         targetStatus = overId as JobStatus;
@@ -303,6 +358,7 @@ export const Board = memo(function Board({
     const { active } = event;
     const finalTilt = savedTiltRef.current;
     setActiveJob(null);
+    setIsDraggingOverArchive(false);
     onDragStateChange?.(null);
     savedTiltRef.current = 0;
     lastPointerXRef.current = null;
@@ -324,32 +380,33 @@ export const Board = memo(function Board({
   };
 
   const effectiveDropEvent = localDropEvent || lastDropEvent;
+  const isDraggingArchivedCard = activeJob?.isArchived === true;
 
   return (
     <div className="board-container">
       <div className="board-canvas-flow">
-        {/* Kanban Board Section with Figma-styled Header */}
-        <section className="kanban-section-wrapper" aria-label="Kanban Pipeline COPM">
-          {/* Top Header Bar */}
-          <div className="kanban-top-bar">
-            <div className="kanban-title-group">
-              <h3 className="kanban-main-title">Kanban Pipeline COPM</h3>
-              <span className="kanban-count-badge">
-                {filteredJobs.length !== activeJobs.length
-                  ? `${filteredJobs.length} dari ${activeJobs.length} request`
-                  : `${activeJobs.length} request`}
-              </span>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={smartColumnCollision}
+          onDragStart={handleDragStart}
+          onDragMove={handleDragMove}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
+        >
+          {/* Kanban Board Section with Figma-styled Header */}
+          <section className="kanban-section-wrapper" aria-label="Kanban Pipeline COPM">
+            {/* Top Header Bar */}
+            <div className="kanban-top-bar">
+              <div className="kanban-title-group">
+                <h3 className="kanban-main-title">Kanban Pipeline COPM</h3>
+                <span className="kanban-count-badge">
+                  {filteredJobs.length !== activeJobs.length
+                    ? `${filteredJobs.length} dari ${activeJobs.length} request`
+                    : `${activeJobs.length} request`}
+                </span>
+              </div>
             </div>
-          </div>
 
-          <DndContext
-            sensors={sensors}
-            collisionDetection={smartColumnCollision}
-            onDragStart={handleDragStart}
-            onDragMove={handleDragMove}
-            onDragEnd={handleDragEnd}
-            onDragCancel={handleDragCancel}
-          >
             <div className="kanban-board">
               {COLUMNS.map((col, index) => (
                 <React.Fragment key={col.status}>
@@ -364,6 +421,7 @@ export const Board = memo(function Board({
                     onArchiveAllDone={onArchiveAllDone}
                     remotelyDraggedJobIds={remotelyDraggedJobIds}
                     lastDropEvent={effectiveDropEvent}
+                    isDragActive={isDraggingArchivedCard}
                   />
                   {index < COLUMNS.length - 1 && (
                     <div className="pipeline-connector" aria-hidden="true">
@@ -373,41 +431,42 @@ export const Board = memo(function Board({
                 </React.Fragment>
               ))}
             </div>
+          </section>
 
-            <DragOverlay
-              modifiers={[snapTopCenterToCursor]}
-              dropAnimation={null}
-            >
-              {activeJob ? (
-                <div
-                  ref={overlayRef}
-                  className="local-dragged-card-overlay"
-                  style={{
-                    '--card-tilt': '0deg',
-                  } as React.CSSProperties}
-                >
-                  <JobCard
-                    job={activeJob}
-                    currentUser={currentUser}
-                    onCardClick={() => { }}
-                    onAssignClick={() => { }}
-                    isDraggable={false}
-                  />
-                </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
-        </section>
+          {/* Figma Native Archive Table below Kanban Board */}
+          <ArchiveTable
+            archivedJobs={archivedJobs}
+            currentUser={currentUser}
+            divisions={divisions}
+            onCardClick={onCardClick}
+            isDropTarget={!!activeJob && !activeJob.isArchived}
+            isOver={isDraggingOverArchive}
+          />
 
-        {/* Figma Native Archive Table below Kanban Board */}
-        <ArchiveTable
-          archivedJobs={archivedJobs}
-          currentUser={currentUser}
-          divisions={divisions}
-          onCardClick={onCardClick}
-        />
+          <DragOverlay
+            modifiers={[snapTopCenterToCursor]}
+            dropAnimation={null}
+          >
+            {activeJob ? (
+              <div
+                ref={overlayRef}
+                className="local-dragged-card-overlay"
+                style={{
+                  '--card-tilt': '0deg',
+                } as React.CSSProperties}
+              >
+                <JobCard
+                  job={activeJob}
+                  currentUser={currentUser}
+                  onCardClick={() => { }}
+                  onAssignClick={() => { }}
+                  isDraggable={false}
+                />
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       </div>
     </div>
   );
 });
-

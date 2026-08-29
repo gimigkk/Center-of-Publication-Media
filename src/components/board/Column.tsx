@@ -18,6 +18,8 @@ interface ColumnProps {
   onArchiveAllDone?: () => Promise<void>;
   remotelyDraggedJobIds?: Set<string>;
   lastDropEvent?: CardDropEvent | null;
+  /** True when an archived card is being dragged (highlight columns as restore targets) */
+  isDragActive?: boolean;
 }
 
 export const Column = memo(function Column({
@@ -31,6 +33,7 @@ export const Column = memo(function Column({
   onArchiveAllDone,
   remotelyDraggedJobIds,
   lastDropEvent,
+  isDragActive = false,
 }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: status,
@@ -53,7 +56,7 @@ export const Column = memo(function Column({
   };
 
   return (
-    <div ref={setNodeRef} className={`kanban-column ${isOver ? 'drag-over' : ''}`}>
+    <div ref={setNodeRef} className={`kanban-column ${isOver ? 'drag-over' : ''} ${isDragActive && !isOver ? 'archive-drag-ready' : ''}`}>
       <div className="column-header">
         <div className="column-title-group">
           <h3 className="column-title">{title}</h3>
