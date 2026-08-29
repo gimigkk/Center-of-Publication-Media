@@ -98,22 +98,29 @@ async function seed() {
     console.log(`✅ Updated existing profile to Superadmin: ${ADMIN_EMAIL}`);
   }
 
-  // 2. Seed 1 Placeholder Division
-  const existingDivisions = await db.select().from(schema.divisions);
-  let defaultDivisionId: string;
+  // 2. Seed Official Divisions
+  const divisionsList = [
+    'Badan Pengurus Harian',
+    'Partnership',
+    'Business Development',
+    'Information',
+    'Project & Competition',
+    'Academic & Publication',
+    'Internal Humaniores',
+    'Recruitment & Retention',
+    'Creative & Marketing',
+  ];
 
-  if (existingDivisions.length === 0) {
-    const [insertedDiv] = await db
-      .insert(schema.divisions)
-      .values({
-        name: 'General',
-      })
-      .returning();
-    defaultDivisionId = insertedDiv.id;
-    console.log(`✅ Seeded 1 placeholder division: "${insertedDiv.name}"`);
-  } else {
-    defaultDivisionId = existingDivisions[0].id;
-    console.log(`ℹ️ Divisions table already contains ${existingDivisions.length} division(s).`);
+  for (const divName of divisionsList) {
+    const existing = await db
+      .select()
+      .from(schema.divisions)
+      .where(eq(schema.divisions.name, divName));
+
+    if (existing.length === 0) {
+      await db.insert(schema.divisions).values({ name: divName });
+      console.log(`✅ Seeded Division: ${divName}`);
+    }
   }
 
   // 3. Seed 1 Default Page
