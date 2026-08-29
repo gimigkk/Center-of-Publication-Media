@@ -27,6 +27,7 @@ export const MOCK_USERS: Profile[] = [
     divisionId: 'div-4',
     divisionName: 'Creative & Marketing',
     isApproved: true,
+    lastSeenAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 mins ago
     createdAt: '2026-02-01T00:00:00.000Z',
     updatedAt: '2026-08-30T00:00:00.000Z',
   },
@@ -40,6 +41,7 @@ export const MOCK_USERS: Profile[] = [
     divisionId: 'div-4',
     divisionName: 'Creative & Marketing',
     isApproved: true,
+    lastSeenAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
     createdAt: '2026-02-15T00:00:00.000Z',
     updatedAt: '2026-08-30T00:00:00.000Z',
   },
@@ -53,8 +55,37 @@ export const MOCK_USERS: Profile[] = [
     divisionId: 'div-2',
     divisionName: 'Badan Pengurus Harian',
     isApproved: true,
+    lastSeenAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
     createdAt: '2026-03-01T00:00:00.000Z',
     updatedAt: '2026-08-30T00:00:00.000Z',
+  },
+  {
+    id: 'mock-user-bunga',
+    email: 'bunga@ipb.ac.id',
+    fullName: 'bunga',
+    phoneNumber: null,
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    role: 'designer',
+    divisionId: 'div-4',
+    divisionName: 'Creative & Marketing',
+    isApproved: true,
+    lastSeenAt: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString(), // 4 months ago
+    createdAt: '2025-10-01T00:00:00.000Z',
+    updatedAt: '2026-04-20T00:00:00.000Z',
+  },
+  {
+    id: 'mock-user-faisal',
+    email: 'faisalmzhdtt@ipb.ac.id',
+    fullName: 'faisalmzhdtt',
+    phoneNumber: null,
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    role: 'requestor',
+    divisionId: 'div-1',
+    divisionName: 'Academic & Publication',
+    isApproved: true,
+    lastSeenAt: new Date(Date.now() - 270 * 24 * 60 * 60 * 1000).toISOString(), // 9 months ago
+    createdAt: '2025-05-15T00:00:00.000Z',
+    updatedAt: '2025-11-10T00:00:00.000Z',
   },
   {
     id: 'mock-user-pending-1',

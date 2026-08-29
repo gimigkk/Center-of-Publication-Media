@@ -129,6 +129,7 @@ export default function Home() {
         pages={pages}
         currentPage={currentPage}
         currentUser={currentUser}
+        allUsers={allUsers}
         onlineUsers={onlineUsers}
         notifications={notifications}
         onMarkAsRead={operations.handleMarkAsRead}

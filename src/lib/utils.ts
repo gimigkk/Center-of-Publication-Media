@@ -64,6 +64,30 @@ export function formatDateTime(dateInput: string | Date): string {
   });
 }
 
+export function getRelativeTime(dateInput: string | Date | undefined | null): string {
+  if (!dateInput) return 'Pernah aktif';
+  const date = new Date(dateInput);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+
+  if (diffMs < 0 || isNaN(diffMs)) return 'Baru saja';
+
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+  const diffMonth = Math.floor(diffDay / 30);
+  const diffYear = Math.floor(diffDay / 365);
+
+  if (diffSec < 45) return 'Baru saja';
+  if (diffMin < 60) return `${diffMin} menit lalu`;
+  if (diffHour < 24) return `${diffHour} jam lalu`;
+  if (diffDay === 1) return 'Kemarin';
+  if (diffDay < 30) return `${diffDay} hari lalu`;
+  if (diffMonth < 12) return `${diffMonth} bulan lalu`;
+  return `${diffYear} tahun lalu`;
+}
+
 export function getInitials(name: string): string {
   if (!name) return '??';
   const parts = name.trim().split(/\s+/);

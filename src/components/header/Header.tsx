@@ -1,18 +1,20 @@
 'use client';
 
-import React, { useState, useRef, useEffect, memo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, memo } from 'react';
 import { Page, Profile, OnlineUser, AppNotification } from '@/types';
 import { PageSwitcher } from './PageSwitcher';
 import { NotificationInbox } from './NotificationInbox';
 import { Avatar } from '@/components/ui/Avatar';
 import { useSafeZone } from '@/hooks/useSafeZone';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
-import { User, LogOut } from 'lucide-react';
+import { getRelativeTime } from '@/lib/utils';
+import { User, LogOut, Headphones, Radio } from 'lucide-react';
 
 interface HeaderProps {
   pages: Page[];
   currentPage: Page;
   currentUser: Profile;
+  allUsers?: Profile[];
   onlineUsers: OnlineUser[];
   notifications?: AppNotification[];
   onMarkAsRead?: (notificationId: string) => void;
@@ -32,7 +34,8 @@ export const Header = memo(function Header({
   pages,
   currentPage,
   currentUser,
-  onlineUsers,
+  allUsers = [],
+  onlineUsers = [],
   notifications = [],
   onMarkAsRead,
   onMarkAllAsRead,
@@ -46,8 +49,8 @@ export const Header = memo(function Header({
   onOpenEditProfile,
   onDropdownChange,
 }: HeaderProps) {
-
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isSpotlightActive, setIsSpotlightActive] = useState(false);
   const profileButtonRef = useRef<HTMLButtonElement>(null);
   const profileCardRef = useRef<HTMLDivElement>(null);
 
@@ -72,7 +75,41 @@ export const Header = memo(function Header({
     },
   });
 
-  const otherCollaborators = (onlineUsers || []).filter((u) => u.userId !== currentUser.id);
+  const otherCollaborators = useMemo(() => {
+    return (onlineUsers || []).filter((u) => u.userId !== currentUser.id);
+  }, [onlineUsers, currentUser.id]);
+
+  // Derive other users / previously viewed collaborators
+  const previouslyViewedUsers = useMemo(() => {
+    const onlineMap = new Map((onlineUsers || []).map((u) => [u.userId, u]));
+
+    // Use allUsers if provided, otherwise fallback to online users
+    const candidateUsers = allUsers.length > 0
+      ? allUsers.filter((u) => u.id !== currentUser.id && u.isApproved !== false)
+      : otherCollaborators.map((ou) => ({
+          id: ou.userId,
+          email: '',
+          fullName: ou.userName,
+          avatarUrl: ou.userAvatar,
+          role: ou.role,
+          divisionId: null,
+          isApproved: true,
+          lastSeenAt: ou.onlineAt,
+          createdAt: ou.onlineAt,
+          updatedAt: ou.onlineAt,
+        }));
+
+    return [...candidateUsers].sort((a, b) => {
+      const aIsOnline = onlineMap.has(a.id);
+      const bIsOnline = onlineMap.has(b.id);
+      if (aIsOnline && !bIsOnline) return -1;
+      if (!aIsOnline && bIsOnline) return 1;
+
+      const timeA = a.lastSeenAt ? new Date(a.lastSeenAt).getTime() : new Date(a.updatedAt).getTime();
+      const timeB = b.lastSeenAt ? new Date(b.lastSeenAt).getTime() : new Date(b.updatedAt).getTime();
+      return timeB - timeA;
+    });
+  }, [allUsers, currentUser.id, onlineUsers, otherCollaborators]);
 
   return (
     <header className="figjam-header">
@@ -145,39 +182,112 @@ export const Header = memo(function Header({
               </div>
             </button>
 
+            {/* Figma-Native Collaborator & Account Dropdown Popover */}
             {shouldRenderUserMenu && (
               <div
                 ref={profileCardRef}
-                className={`figjam-pages-card ${isUserMenuClosing ? 'is-closing' : ''}`}
-                style={{ right: 0, left: 'auto', width: '220px' }}
+                className={`figma-profile-popover ${isUserMenuClosing ? 'is-closing' : ''}`}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-light)' }}>
-                  <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>
-                    {currentUser.fullName}
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                    {currentUser.email}
-                  </div>
-                  <div style={{ marginTop: '4px' }}>
-                    <span className={`role-badge ${currentUser.role}`} style={{ fontSize: '10px' }}>
-                      {currentUser.role.toUpperCase()}
+                {/* Current User Row */}
+                <div className="figma-profile-me-row">
+                  <Avatar
+                    src={currentUser.avatarUrl}
+                    name={currentUser.fullName}
+                    size={28}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                    <div className="figma-profile-me-name">
+                      {currentUser.fullName} <span style={{ opacity: 0.7, fontWeight: 400 }}>(You)</span>
+                    </div>
+                    <span className="figma-profile-me-email">
+                      {currentUser.email}
                     </span>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '4px' }}>
+                {/* Spotlight Me Action Button */}
+                <div className="figma-spotlight-container">
+                  <button
+                    type="button"
+                    className={`figma-spotlight-btn ${isSpotlightActive ? 'active' : ''}`}
+                    onClick={() => setIsSpotlightActive(!isSpotlightActive)}
+                    title={isSpotlightActive ? 'Spotlight aktif' : 'Spotlight tampilan Anda'}
+                  >
+                    {isSpotlightActive ? (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Radio size={14} className="animate-pulse" />
+                        <span>Spotlighting you</span>
+                      </span>
+                    ) : (
+                      'Spotlight me'
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className="figma-headphone-btn"
+                    title="Audio & Collaborative Feed"
+                    onClick={() => setIsSpotlightActive(!isSpotlightActive)}
+                  >
+                    <Headphones size={15} />
+                  </button>
+                </div>
+
+                <div className="figma-profile-divider" />
+
+                {/* Previously Viewed / Collaborators Section */}
+                <div className="figma-collab-section">
+                  <span className="figma-collab-section-title">Previously viewed</span>
+                  <div className="figma-collab-list no-scrollbar">
+                    {previouslyViewedUsers.length > 0 ? (
+                      previouslyViewedUsers.map((user) => {
+                        const isOnline = (onlineUsers || []).some((ou) => ou.userId === user.id);
+                        return (
+                          <div
+                            key={user.id}
+                            className="figma-collab-row"
+                            title={`${user.fullName} (${user.email || user.role})`}
+                          >
+                            <div className="figma-collab-avatar-slot">
+                              <Avatar
+                                src={user.avatarUrl}
+                                name={user.fullName}
+                                size={28}
+                              />
+                              {isOnline && <span className="figma-collab-online-badge" />}
+                            </div>
+
+                            <div className="figma-collab-info">
+                              <span className="figma-collab-name">{user.fullName}</span>
+                              <span className={`figma-collab-status ${isOnline ? 'online' : ''}`}>
+                                {isOnline ? 'Online sekarang' : getRelativeTime(user.lastSeenAt || user.updatedAt || user.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <span style={{ fontSize: '11px', color: '#6b7280', padding: '6px 8px' }}>
+                        Belum ada kolaborator lain
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="figma-profile-divider" />
+
+                {/* Actions: Edit Profile & Sign Out */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   {onOpenEditProfile && (
                     <button
                       type="button"
-                      className="persona-row-item"
+                      className="figma-profile-action-item"
                       onClick={() => {
                         setShowUserMenu(false);
                         onOpenEditProfile();
                       }}
-                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 8px', borderRadius: 'var(--radius-sm)' }}
                     >
-                      <User size={14} color="var(--text-secondary)" />
+                      <User size={14} color="#9ca3af" />
                       <span>Edit Profil</span>
                     </button>
                   )}
@@ -185,32 +295,22 @@ export const Header = memo(function Header({
                   {onSignOut && (
                     <button
                       type="button"
-                      className="persona-row-item"
+                      className="figma-profile-action-item logout"
                       onClick={() => {
                         setShowUserMenu(false);
                         onSignOut();
                       }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '7px 8px',
-                        borderRadius: 'var(--radius-sm)',
-                        color: 'var(--accent-red-text)',
-                      }}
                     >
-                      <LogOut size={14} color="var(--accent-red)" />
+                      <LogOut size={14} />
                       <span>Keluar</span>
                     </button>
                   )}
                 </div>
               </div>
-
             )}
           </div>
         </div>
       </div>
     </header>
   );
-
 });

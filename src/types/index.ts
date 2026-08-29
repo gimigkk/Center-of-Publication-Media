@@ -28,6 +28,7 @@ export interface Profile {
   divisionId: string | null;
   divisionName?: string | null;
   isApproved: boolean;
+  lastSeenAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
