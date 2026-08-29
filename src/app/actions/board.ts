@@ -82,12 +82,15 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
       updatedAt: r.updatedAt.toISOString(),
     }));
 
-    const divisions: Division[] = divisionsRecords.map((d) => ({
-      id: d.id,
-      name: d.name,
-      createdAt: d.createdAt.toISOString(),
-      updatedAt: d.updatedAt.toISOString(),
-    }));
+    const divisions: Division[] = divisionsRecords
+      .map((d) => ({
+        id: d.id,
+        name: d.name,
+        createdAt: d.createdAt.toISOString(),
+        updatedAt: d.updatedAt.toISOString(),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
+
 
 
     const currentPage = pages[0] || null;

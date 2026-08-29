@@ -31,6 +31,11 @@ export const ArchiveTable = React.memo(function ArchiveTable({
   const [sortField, setSortField] = useState<SortField>('archivedAt');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
+  const sortedDivisions = useMemo(() => {
+    return [...divisions].sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
+  }, [divisions]);
+
+
   // Filter archived jobs
   const filteredJobs = useMemo(() => {
     return archivedJobs.filter((job) => {
@@ -122,7 +127,7 @@ export const ArchiveTable = React.memo(function ArchiveTable({
             className="archive-select"
           >
             <option value="all">Semua Divisi</option>
-            {divisions.map((d) => (
+            {sortedDivisions.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
               </option>
@@ -130,6 +135,7 @@ export const ArchiveTable = React.memo(function ArchiveTable({
           </select>
         </div>
       </div>
+
 
       {/* Main Table Card (Zero Internal Scrolling) */}
       <div className="archive-card">

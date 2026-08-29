@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+
+
 import { Division, Page, Profile } from '@/types';
 import { GOOGLE_DOCS_REGEX } from '@/lib/validations';
 import { GoogleDocsIcon } from '@/components/ui/GoogleDocsIcon';
@@ -51,6 +53,10 @@ export function JobFormModal({
   );
   const [publicationMedia, setPublicationMedia] = useState('');
   const [deadline, setDeadline] = useState(defaultDeadlineDate.toISOString().split('T')[0]);
+  const sortedDivisions = useMemo(() => {
+    return [...divisions].sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
+  }, [divisions]);
+
   const [hasAgreedToRules, setHasAgreedToRules] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -309,12 +315,13 @@ export function JobFormModal({
                     onChange={(e) => setDivisionId(e.target.value)}
                     required
                   >
-                    {divisions.map((d) => (
+                    {sortedDivisions.map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.name}
                       </option>
                     ))}
                   </select>
+
                 </div>
 
                 <div className="form-group">

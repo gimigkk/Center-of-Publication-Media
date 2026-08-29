@@ -27,10 +27,12 @@ export default function SignupPage() {
 
   useEffect(() => {
     getDivisionsAction().then((divs) => {
-      setDivisions(divs);
-      if (divs.length > 0) setDivisionId(divs[0].id);
+      const sorted = [...divs].sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
+      setDivisions(sorted);
+      if (sorted.length > 0) setDivisionId(sorted[0].id);
     });
   }, []);
+
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

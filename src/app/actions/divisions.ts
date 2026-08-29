@@ -1,20 +1,25 @@
 'use server';
 
 import { db, schema } from '@/lib/db';
-import { eq } from 'drizzle-orm';
+import { eq, asc } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { Division } from '@/types';
 
 export async function getDivisionsAction(): Promise<Division[]> {
   if (!db) return [];
   try {
-    const records = await db.select().from(schema.divisions);
+    const records = await db
+      .select()
+      .from(schema.divisions)
+      .orderBy(asc(schema.divisions.name));
+
     return records.map((r) => ({
       id: r.id,
       name: r.name,
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
     }));
+
   } catch (e) {
     console.error('Failed to get divisions:', e);
     return [];
