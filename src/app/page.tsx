@@ -455,14 +455,37 @@ export default function Home() {
 
   if (isLoading || !currentUser || !currentPage) {
     return (
-      <div className="app-loading-screen">
-        <div className="app-loading-card">
-          <div className="app-loading-spinner spin" />
-          <span className="app-loading-text">Memuat Ruang Kerja...</span>
+      <div className="figjam-loading-screen">
+        <div className="figjam-loader-container">
+          <div className="figjam-loader-icon-wrapper">
+            <svg
+              className="figjam-spinner-svg"
+              viewBox="0 0 50 50"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle
+                className="spinner-track"
+                cx="25"
+                cy="25"
+                r="20"
+                strokeWidth="3.5"
+              />
+              <circle
+                className="spinner-head"
+                cx="25"
+                cy="25"
+                r="20"
+                strokeWidth="3.5"
+              />
+            </svg>
+          </div>
+          <span className="figjam-loader-text">Memuat papan kerja...</span>
         </div>
       </div>
     );
   }
+
 
   return (
     <div className="figjam-canvas">

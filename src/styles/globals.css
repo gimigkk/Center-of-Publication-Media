@@ -339,7 +339,40 @@ textarea:focus-visible {
   flex-shrink: 0;
 }
 
-.app-loading-screen {
+/* ==========================================================================
+   Authentic Figma / FigJam Loading Screen
+   ========================================================================== */
+@keyframes figmaRotate {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes figmaDash {
+  0% {
+    stroke-dasharray: 1, 150;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -35;
+  }
+  100% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -124;
+  }
+}
+
+@keyframes figmaPulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.figjam-loading-screen {
   position: fixed;
   inset: 0;
   width: 100vw;
@@ -352,31 +385,45 @@ textarea:focus-visible {
   background-image: radial-gradient(rgba(0, 0, 0, 0.13) 1px, transparent 1.6px);
   background-size: 20px 20px;
   z-index: 9999;
+  user-select: none;
 }
 
-.app-loading-card {
+.figjam-loader-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  background-color: var(--bg-surface);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-float);
-  padding: 24px 32px;
+  gap: 16px;
 }
 
-.app-loading-spinner {
-  width: 28px;
-  height: 28px;
-  border: 2.5px solid rgba(0, 0, 0, 0.08);
-  border-top-color: var(--accent-blue);
-  border-radius: 50%;
+.figjam-loader-icon-wrapper {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.app-loading-text {
-  font-size: 13px;
+.figjam-spinner-svg {
+  animation: figmaRotate 1.4s linear infinite;
+  width: 36px;
+  height: 36px;
+}
+
+.figjam-spinner-svg .spinner-track {
+  stroke: rgba(0, 0, 0, 0.07);
+}
+
+.figjam-spinner-svg .spinner-head {
+  stroke: #7b2cbf; /* FigJam Signature Purple */
+  stroke-linecap: round;
+  animation: figmaDash 1.4s ease-in-out infinite;
+}
+
+.figjam-loader-text {
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--text-secondary);
-  letter-spacing: -0.1px;
+  letter-spacing: -0.15px;
+  animation: figmaPulse 2s ease-in-out infinite;
 }
