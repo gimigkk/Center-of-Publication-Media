@@ -23,10 +23,12 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
   try {
     const supabase = await createServerSupabaseClient();
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
 
+    const user = session?.user;
     if (!user) return null;
+
 
     // Run ALL independent queries in parallel in 1 roundtrip
     const [
