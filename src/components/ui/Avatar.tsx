@@ -8,10 +8,12 @@ interface AvatarProps {
   name: string;
   size?: number;
   className?: string;
+  style?: React.CSSProperties;
   title?: string;
 }
 
-export function Avatar({ src, name, size = 28, className = '', title }: AvatarProps) {
+export function Avatar({ src, name, size = 28, className = '', style, title }: AvatarProps) {
+
   const [imgError, setImgError] = useState(false);
   const color = getAvatarColor(name);
   const initials = getInitials(name);
@@ -35,6 +37,7 @@ export function Avatar({ src, name, size = 28, className = '', title }: AvatarPr
           borderRadius: '50%',
           objectFit: 'cover',
           display: 'block',
+          ...style,
         }}
       />
     );
@@ -55,9 +58,11 @@ export function Avatar({ src, name, size = 28, className = '', title }: AvatarPr
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        ...style,
       }}
       title={displayTitle}
     >
+
       {initials}
     </div>
   );

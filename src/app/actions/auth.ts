@@ -62,6 +62,58 @@ export async function signOutAction(): Promise<{ success: boolean }> {
   }
 }
 
+export async function updateProfileAction(
+  userId: string,
+  data: {
+    fullName?: string;
+    avatarUrl?: string;
+    phoneNumber?: string | null;
+  }
+): Promise<{ success: boolean; profile?: Profile; error?: string }> {
+  if (!db) return { success: false, error: 'Database belum terhubung' };
+
+  try {
+    const updateData: Partial<typeof schema.profiles.$inferInsert> = {
+      updatedAt: new Date(),
+    };
+    if (data.fullName !== undefined) updateData.fullName = data.fullName.trim();
+    if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl.trim();
+    if (data.phoneNumber !== undefined) updateData.phoneNumber = data.phoneNumber?.trim() || null;
+
+    const [updated] = await db
+      .update(schema.profiles)
+      .set(updateData)
+      .where(eq(schema.profiles.id, userId))
+      .returning();
+
+    if (!updated) return { success: false, error: 'Profil tidak ditemukan' };
+
+    const divs = await db.select().from(schema.divisions);
+    const div = divs.find((d) => d.id === updated.divisionId);
+
+    revalidatePath('/');
+    return {
+      success: true,
+      profile: {
+        id: updated.id,
+        email: updated.email,
+        fullName: updated.fullName,
+        phoneNumber: updated.phoneNumber,
+        avatarUrl: updated.avatarUrl,
+        role: updated.role,
+        divisionId: updated.divisionId,
+        divisionName: div?.name,
+        isApproved: updated.isApproved,
+        createdAt: updated.createdAt.toISOString(),
+        updatedAt: updated.updatedAt.toISOString(),
+      },
+    };
+  } catch (e: unknown) {
+    return { success: false, error: e instanceof Error ? e.message : 'Gagal memperbarui profil' };
+  }
+}
+
+
 export async function getAllUsersAction(): Promise<Profile[]> {
   if (!db) return [];
   try {

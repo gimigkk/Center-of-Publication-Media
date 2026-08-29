@@ -7,6 +7,7 @@ import { NotificationInbox } from './NotificationInbox';
 import { Avatar } from '@/components/ui/Avatar';
 import { useSafeZone } from '@/hooks/useSafeZone';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
+import { User, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   pages: Page[];
@@ -23,9 +24,9 @@ interface HeaderProps {
   onDeletePage?: (pageId: string) => Promise<void>;
   onRenamePage?: (pageId: string, name: string) => Promise<void>;
   onSignOut?: () => void;
+  onOpenEditProfile?: () => void;
   onDropdownChange?: (state: string | null) => void;
 }
-
 
 export const Header = memo(function Header({
   pages,
@@ -42,8 +43,10 @@ export const Header = memo(function Header({
   onDeletePage,
   onRenamePage,
   onSignOut,
+  onOpenEditProfile,
   onDropdownChange,
 }: HeaderProps) {
+
   const [showUserMenu, setShowUserMenu] = useState(false);
   const profileButtonRef = useRef<HTMLButtonElement>(null);
   const profileCardRef = useRef<HTMLDivElement>(null);
@@ -163,19 +166,46 @@ export const Header = memo(function Header({
                   </div>
                 </div>
 
-                {onSignOut && (
-                  <button
-                    className="persona-row-item"
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      onSignOut();
-                    }}
-                    style={{ color: 'var(--accent-red-text)', margin: '4px' }}
-                  >
-                    <span>Keluar</span>
-                  </button>
-                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '4px' }}>
+                  {onOpenEditProfile && (
+                    <button
+                      type="button"
+                      className="persona-row-item"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        onOpenEditProfile();
+                      }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 8px', borderRadius: 'var(--radius-sm)' }}
+                    >
+                      <User size={14} color="var(--text-secondary)" />
+                      <span>Edit Profil</span>
+                    </button>
+                  )}
+
+                  {onSignOut && (
+                    <button
+                      type="button"
+                      className="persona-row-item"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        onSignOut();
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '7px 8px',
+                        borderRadius: 'var(--radius-sm)',
+                        color: 'var(--accent-red-text)',
+                      }}
+                    >
+                      <LogOut size={14} color="var(--accent-red)" />
+                      <span>Keluar</span>
+                    </button>
+                  )}
+                </div>
               </div>
+
             )}
           </div>
         </div>

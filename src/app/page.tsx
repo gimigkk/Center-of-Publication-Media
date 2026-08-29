@@ -40,6 +40,7 @@ import {
   approveUserAction,
   rejectUserAction,
   signOutAction,
+  updateProfileAction,
 } from '@/app/actions/auth';
 import { getInitialBoardDataAction } from '@/app/actions/board';
 import {
@@ -62,6 +63,8 @@ import { JobDetailModal } from '@/components/forms/JobDetailModal';
 import { CreatePageModal } from '@/components/forms/CreatePageModal';
 import { DivisionManagerModal } from '@/components/admin/DivisionManagerModal';
 import { ApprovalPanelModal } from '@/components/admin/ApprovalPanelModal';
+import { EditProfileModal } from '@/components/forms/EditProfileModal';
+
 
 export default function Home() {
   const router = useRouter();
@@ -89,11 +92,13 @@ export default function Home() {
   const [isCreatePageOpen, setIsCreatePageOpen] = useState(false);
   const [isDivisionsOpen, setIsDivisionsOpen] = useState(false);
   const [isApprovalsOpen, setIsApprovalsOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [activeDropdownState, setActiveDropdownState] = useState<string | null>(null);
   const [detailDropdownState, setDetailDropdownState] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeDraggedJob, setActiveDraggedJob] = useState<Job | null>(null);
+
 
   // Load initial dataset in 1 single fast roundtrip
   const loadData = useCallback(async () => {
@@ -429,6 +434,20 @@ export default function Home() {
     }
   }, [jobs, activePageId]);
 
+  const handleUpdateProfile = useCallback(
+    async (data: { fullName: string; avatarUrl: string; phoneNumber?: string | null }) => {
+      if (!currentUser) return { success: false, error: 'Pengguna tidak ditemukan' };
+      const res = await updateProfileAction(currentUser.id, data);
+      if (res.success && res.profile) {
+        setCurrentUser(res.profile);
+        setAllUsers((prev) => prev.map((u) => (u.id === res.profile!.id ? res.profile! : u)));
+        return { success: true };
+      }
+      return { success: false, error: res.error || 'Gagal menyimpan profil' };
+    },
+    [currentUser]
+  );
+
   const handleSignOut = useCallback(async () => {
     await signOutAction();
     router.push('/login');
@@ -444,7 +463,6 @@ export default function Home() {
       </div>
     );
   }
-
 
   return (
     <div className="figjam-canvas">
@@ -467,8 +485,10 @@ export default function Home() {
         onDeletePage={handleDeletePage}
         onRenamePage={handleRenamePage}
         onSignOut={handleSignOut}
+        onOpenEditProfile={() => setIsEditProfileOpen(true)}
         onDropdownChange={setActiveDropdownState}
       />
+
 
 
 
@@ -566,7 +586,15 @@ export default function Home() {
         onApprove={handleApproveUser}
         onReject={handleRejectUser}
       />
+
+      <EditProfileModal
+        isOpen={isEditProfileOpen}
+        onClose={() => setIsEditProfileOpen(false)}
+        currentUser={currentUser}
+        onUpdateProfile={handleUpdateProfile}
+      />
     </div>
   );
 }
+
 
