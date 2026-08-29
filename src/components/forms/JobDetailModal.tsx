@@ -15,7 +15,9 @@ import {
   RotateCcw,
   Send,
   Archive,
+  ArrowRight,
 } from 'lucide-react';
+
 
 interface JobDetailModalProps {
   isOpen: boolean;
@@ -322,8 +324,26 @@ export function JobDetailModal({
               Dibuat pada {formatDate(activeJob.createdAt)}
             </span>
 
-            {/* Action buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* Action buttons on bottom right */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {/* Admin quick stage switcher */}
+              {currentUser.role === 'admin' && !activeJob.isArchived && (
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <select
+                    className="modal-stage-select"
+                    value={activeJob.status}
+                    disabled={isSubmitting}
+                    onChange={(e) => handleAction(e.target.value as JobStatus, `Dipindahkan manual ke status ${e.target.value}`)}
+                    title="Pindahkan status kartu ini"
+                  >
+                    <option value="in_queue">Status: Antrian</option>
+                    <option value="wip">Status: Sedang Dikerjakan</option>
+                    <option value="revisions">Status: Revisi</option>
+                    <option value="done">Status: Selesai</option>
+                  </select>
+                </div>
+              )}
+
               {/* Archive / Restore actions */}
               {activeJob.isArchived && onUnarchive && (
                 <button
@@ -365,12 +385,26 @@ export function JobDetailModal({
                 </button>
               )}
 
-              {/* Designer submit for review */}
-              {isAssignedDesigner && activeJob.status === 'wip' && (
+              {/* In Queue -> Start Working (WIP) */}
+              {activeJob.status === 'in_queue' && (currentUser.role === 'admin' || currentUser.role === 'designer') && (
+                <button
+                  className="btn-primary"
+                  disabled={isSubmitting}
+                  onClick={() => handleAction('wip', 'Mulai dikerjakan')}
+                  title="Pindahkan ke Sedang Dikerjakan"
+                >
+                  <ArrowRight size={13} />
+                  <span>Mulai Kerjakan</span>
+                </button>
+              )}
+
+              {/* WIP -> Submit for review */}
+              {(isAssignedDesigner || currentUser.role === 'admin') && activeJob.status === 'wip' && (
                 <button
                   className="btn-primary"
                   disabled={isSubmitting}
                   onClick={() => handleAction('revisions', 'Draf siap untuk ditinjau Requester')}
+                  title="Kirim draf untuk ditinjau"
                 >
                   <Send size={13} />
                   <span>Kirim untuk Ditinjau</span>
@@ -385,6 +419,7 @@ export function JobDetailModal({
                       <button
                         className="btn-secondary"
                         onClick={() => setShowRevisionInput(true)}
+                        title="Minta perbaikan atau revisi"
                       >
                         <RotateCcw size={13} />
                         <span>Minta Revisi</span>
@@ -393,6 +428,7 @@ export function JobDetailModal({
                         className="btn-success"
                         disabled={isSubmitting}
                         onClick={() => handleAction('done', 'Diterima sebagai final')}
+                        title="Setujui dan tandai selesai"
                       >
                         <CheckCircle2 size={13} />
                         <span>Terima sebagai Final</span>
@@ -423,6 +459,7 @@ export function JobDetailModal({
             </div>
           </div>
         </div>
+
 
         {/* Permanent Editor panel: placed below the main modal panel for admins */}
         {currentUser.role === 'admin' && onAssign && (

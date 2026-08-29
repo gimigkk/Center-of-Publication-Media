@@ -768,7 +768,33 @@
   justify-content: space-between;
   min-height: 48px;
   gap: 8px;
+  flex-wrap: wrap;
 }
+
+.modal-stage-select {
+  height: 28px;
+  padding: 0 8px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  outline: none;
+  transition: all 120ms ease;
+}
+
+.modal-stage-select:hover {
+  border-color: rgba(0, 0, 0, 0.25);
+  color: var(--text-primary);
+}
+
+.modal-stage-select:focus {
+  border-color: var(--accent-purple);
+  box-shadow: 0 0 0 2px rgba(123, 44, 191, 0.12);
+}
+
 
 /* ───────────────────────────────────────────────────
    ASSIGN / REASSIGN DESIGNER DROPDOWN POPOVER
