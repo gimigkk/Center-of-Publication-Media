@@ -8,7 +8,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { useSafeZone } from '@/hooks/useSafeZone';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
 import { getRelativeTime } from '@/lib/utils';
-import { User, LogOut, Headphones, Radio } from 'lucide-react';
+import { User, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   pages: Page[];
@@ -50,7 +50,6 @@ export const Header = memo(function Header({
   onDropdownChange,
 }: HeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [isSpotlightActive, setIsSpotlightActive] = useState(false);
   const profileButtonRef = useRef<HTMLButtonElement>(null);
   const profileCardRef = useRef<HTMLDivElement>(null);
 
@@ -194,7 +193,7 @@ export const Header = memo(function Header({
                   <Avatar
                     src={currentUser.avatarUrl}
                     name={currentUser.fullName}
-                    size={28}
+                    size={30}
                   />
                   <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
                     <div className="figma-profile-me-name">
@@ -204,33 +203,41 @@ export const Header = memo(function Header({
                       {currentUser.email}
                     </span>
                   </div>
+                  <span className={`role-badge ${currentUser.role}`}>
+                    {currentUser.role.toUpperCase()}
+                  </span>
                 </div>
 
-                {/* Spotlight Me Action Button */}
-                <div className="figma-spotlight-container">
-                  <button
-                    type="button"
-                    className={`figma-spotlight-btn ${isSpotlightActive ? 'active' : ''}`}
-                    onClick={() => setIsSpotlightActive(!isSpotlightActive)}
-                    title={isSpotlightActive ? 'Spotlight aktif' : 'Spotlight tampilan Anda'}
-                  >
-                    {isSpotlightActive ? (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Radio size={14} className="animate-pulse" />
-                        <span>Spotlighting you</span>
-                      </span>
-                    ) : (
-                      'Spotlight me'
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    className="figma-headphone-btn"
-                    title="Audio & Collaborative Feed"
-                    onClick={() => setIsSpotlightActive(!isSpotlightActive)}
-                  >
-                    <Headphones size={15} />
-                  </button>
+                {/* Quick Action Buttons: Edit Akun & Keluar */}
+                <div className="figma-profile-top-actions">
+                  {onOpenEditProfile && (
+                    <button
+                      type="button"
+                      className="figma-profile-btn-secondary"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        onOpenEditProfile();
+                      }}
+                      title="Edit Profil Akun"
+                    >
+                      <User size={13} />
+                      <span>Edit Akun</span>
+                    </button>
+                  )}
+                  {onSignOut && (
+                    <button
+                      type="button"
+                      className="figma-profile-btn-danger"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        onSignOut();
+                      }}
+                      title="Keluar dari akun"
+                    >
+                      <LogOut size={13} />
+                      <span>Keluar</span>
+                    </button>
+                  )}
                 </div>
 
                 <div className="figma-profile-divider" />
@@ -272,39 +279,6 @@ export const Header = memo(function Header({
                       </span>
                     )}
                   </div>
-                </div>
-
-                <div className="figma-profile-divider" />
-
-                {/* Actions: Edit Profile & Sign Out */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  {onOpenEditProfile && (
-                    <button
-                      type="button"
-                      className="figma-profile-action-item"
-                      onClick={() => {
-                        setShowUserMenu(false);
-                        onOpenEditProfile();
-                      }}
-                    >
-                      <User size={14} color="#9ca3af" />
-                      <span>Edit Profil</span>
-                    </button>
-                  )}
-
-                  {onSignOut && (
-                    <button
-                      type="button"
-                      className="figma-profile-action-item logout"
-                      onClick={() => {
-                        setShowUserMenu(false);
-                        onSignOut();
-                      }}
-                    >
-                      <LogOut size={14} />
-                      <span>Keluar</span>
-                    </button>
-                  )}
                 </div>
               </div>
             )}

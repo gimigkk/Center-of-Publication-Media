@@ -3,6 +3,7 @@ import { Job, JobStatus, Profile } from '@/types';
 import { AssignDesignerDropdown } from '@/components/forms/AssignDesignerDropdown';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
 import { fetchGoogleDocTitleAction } from '@/app/actions/jobs';
+import { formatDate } from '@/lib/utils';
 import { JobDetailProperties } from './job-detail/JobDetailProperties';
 import { JobDetailBriefBox } from './job-detail/JobDetailBriefBox';
 import { JobDetailFooterActions } from './job-detail/JobDetailFooterActions';
@@ -38,11 +39,8 @@ export const JobDetailModal = React.memo(function JobDetailModal({
   onMoveStatus,
   onArchive,
   onUnarchive,
-  onDropdownChange,
 }: JobDetailModalProps) {
-  const [revisionNote, setRevisionNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showRevisionInput, setShowRevisionInput] = useState(false);
   const [dynamicBriefTitle, setDynamicBriefTitle] = useState<string | null>(null);
 
   // Cache last active job so exit animation has data even when parent resets job state
@@ -90,8 +88,6 @@ export const JobDetailModal = React.memo(function JobDetailModal({
     try {
       const res = await onMoveStatus(activeJob.id, toStatus, note);
       if (res.success) {
-        setRevisionNote('');
-        setShowRevisionInput(false);
         onClose();
       }
     } finally {
@@ -99,13 +95,8 @@ export const JobDetailModal = React.memo(function JobDetailModal({
     }
   };
 
-  const handleModalClose = () => {
-    setShowRevisionInput(false);
-    onClose();
-  };
-
   return (
-    <div className={`modal-backdrop ${isClosing ? 'is-closing' : ''}`} onClick={handleModalClose}>
+    <div className={`modal-backdrop ${isClosing ? 'is-closing' : ''}`} onClick={onClose}>
       <div
         className={`modal-dual-container ${isClosing ? 'is-closing' : ''}`}
         onClick={(e) => e.stopPropagation()}
@@ -137,18 +128,23 @@ export const JobDetailModal = React.memo(function JobDetailModal({
               </div>
             )}
 
-            <button className="modal-close-btn" onClick={handleModalClose} title="Tutup">
+            <button className="modal-close-btn" onClick={onClose} title="Tutup">
               <X size={15} />
             </button>
           </div>
 
           {/* 2. Body */}
           <div className="simple-modal-body">
-            {/* Title & Description */}
-            <h2 className="simple-modal-title">{activeJob.title}</h2>
-            {activeJob.description && (
-              <p className="simple-modal-desc">{activeJob.description}</p>
-            )}
+            {/* Title Group with Created At timestamp above Title & tight gap with Description */}
+            <div className="simple-modal-title-group">
+              <span className="simple-modal-created-at">
+                Dibuat pada {formatDate(activeJob.createdAt)}
+              </span>
+              <h2 className="simple-modal-title">{activeJob.title}</h2>
+              {activeJob.description && (
+                <p className="simple-modal-desc">{activeJob.description}</p>
+              )}
+            </div>
 
             {/* Properties List */}
             <JobDetailProperties
@@ -161,23 +157,6 @@ export const JobDetailModal = React.memo(function JobDetailModal({
               briefLink={activeJob.briefLink}
               displayTitle={displayBriefTitle}
             />
-
-            {/* Revision Feedback Box */}
-            {showRevisionInput && (
-              <div className="detail-revision-section">
-                <span className="revision-section-title">
-                  Tentukan Catatan / Masukan Revisi
-                </span>
-                <textarea
-                  className="form-textarea"
-                  placeholder="Jelaskan perbaikan atau penyesuaian yang diperlukan desainer..."
-                  value={revisionNote}
-                  onChange={(e) => setRevisionNote(e.target.value)}
-                  rows={3}
-                  autoFocus
-                />
-              </div>
-            )}
           </div>
 
           {/* 3. Footer Actions */}
@@ -186,10 +165,6 @@ export const JobDetailModal = React.memo(function JobDetailModal({
             currentUser={currentUser}
             isAssignedDesigner={isAssignedDesigner}
             isSubmitting={isSubmitting}
-            showRevisionInput={showRevisionInput}
-            revisionNote={revisionNote}
-            onSetShowRevisionInput={setShowRevisionInput}
-            onSetRevisionNote={setRevisionNote}
             onAction={handleAction}
             onArchive={onArchive}
             onUnarchive={onUnarchive}

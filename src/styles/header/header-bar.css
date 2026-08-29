@@ -191,7 +191,7 @@
 }
 
 /* ==========================================================================
-   Figma-Grade User Profile & Collaborator Popover
+   Figma-Grade User Profile & Collaborator Popover (White Panel Theme)
    ========================================================================== */
 .figma-profile-popover {
   position: absolute;
@@ -199,11 +199,11 @@
   right: 0;
   left: auto;
   width: 256px;
-  background-color: #222222;
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: #ffffff;
+  color: #0f172a;
+  border: 1px solid rgba(0, 0, 0, 0.09);
   border-radius: var(--radius-md);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.05);
   padding: 10px;
   z-index: 140;
   display: flex;
@@ -228,69 +228,73 @@
 .figma-profile-me-name {
   font-size: 12.5px;
   font-weight: 600;
-  color: #ffffff;
+  color: #0f172a;
   letter-spacing: -0.1px;
 }
 
 .figma-profile-me-email {
   font-size: 10.5px;
-  color: #9ca3af;
+  color: #64748b;
 }
 
-.figma-spotlight-container {
+.figma-profile-top-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin-top: 2px;
 }
 
-.figma-spotlight-btn {
+.figma-profile-btn-secondary {
   flex: 1;
-  height: 32px;
-  background-color: #0d99ff;
-  color: #ffffff;
-  border: none;
+  height: 30px;
+  background-color: #f1f5f9;
+  color: #334155;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11.5px;
+  font-weight: 500;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   cursor: pointer;
-  transition: background-color 100ms ease, transform 80ms ease;
+  transition: all 100ms ease;
 }
 
-.figma-spotlight-btn:hover {
-  background-color: #007be5;
+.figma-profile-btn-secondary:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
 }
 
-.figma-spotlight-btn:active {
+.figma-profile-btn-secondary:active {
   transform: scale(0.98);
 }
 
-.figma-spotlight-btn.active {
-  background-color: #10b981;
-}
-
-.figma-headphone-btn {
-  width: 32px;
-  height: 32px;
+.figma-profile-btn-danger {
+  height: 30px;
+  padding: 0 12px;
+  background-color: #fef2f2;
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.2);
   border-radius: var(--radius-sm);
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #9ca3af;
+  font-size: 11.5px;
+  font-weight: 500;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 5px;
   cursor: pointer;
   transition: all 100ms ease;
-  flex-shrink: 0;
 }
 
-.figma-headphone-btn:hover {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.2);
+.figma-profile-btn-danger:hover {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.figma-profile-btn-danger:active {
+  transform: scale(0.98);
 }
 
 .figma-collab-section {
@@ -303,7 +307,7 @@
 .figma-collab-section-title {
   font-size: 11px;
   font-weight: 500;
-  color: #9ca3af;
+  color: #64748b;
   padding: 2px 4px;
 }
 
@@ -326,7 +330,7 @@
 }
 
 .figma-collab-row:hover {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: #f8fafc;
 }
 
 .figma-collab-avatar-slot {
@@ -344,7 +348,7 @@
   height: 8px;
   border-radius: 50%;
   background-color: #10b981;
-  border: 1.5px solid #222222;
+  border: 1.5px solid #ffffff;
 }
 
 .figma-collab-info {
@@ -357,7 +361,7 @@
 .figma-collab-name {
   font-size: 12px;
   font-weight: 500;
-  color: #ffffff;
+  color: #0f172a;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -365,21 +369,21 @@
 
 .figma-collab-status {
   font-size: 10.5px;
-  color: #9ca3af;
+  color: #64748b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .figma-collab-status.online {
-  color: #34d399;
+  color: #10b981;
   font-weight: 500;
 }
 
 .figma-profile-divider {
   width: 100%;
   height: 1px;
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: rgba(0, 0, 0, 0.07);
   margin: 2px 0;
 }
 
@@ -391,7 +395,7 @@
   border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 500;
-  color: #e5e7eb;
+  color: #334155;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -401,17 +405,17 @@
 }
 
 .figma-profile-action-item:hover {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+  background-color: #f1f5f9;
+  color: #0f172a;
 }
 
 .figma-profile-action-item.logout {
-  color: #f87171;
+  color: #ef4444;
 }
 
 .figma-profile-action-item.logout:hover {
-  background-color: rgba(239, 68, 68, 0.15);
-  color: #fca5a5;
+  background-color: #fee2e2;
+  color: #dc2626;
 }
 
 /* Responsive styles */
