@@ -205,6 +205,43 @@ export async function signUpUserAction(formData: {
   };
 
   try {
+    const existing = await db
+      .select()
+      .from(schema.profiles)
+      .where(eq(schema.profiles.email, newProfile.email));
+
+    if (existing.length > 0) {
+      const existingProfile = existing[0];
+      await db
+        .update(schema.profiles)
+        .set({
+          id: newProfile.id,
+          fullName: newProfile.fullName,
+          phoneNumber: newProfile.phoneNumber,
+          avatarUrl: newProfile.avatarUrl,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.profiles.email, newProfile.email));
+
+      return {
+        success: true,
+        isApproved: existingProfile.isApproved,
+        profile: {
+          id: existingProfile.id,
+          email: existingProfile.email,
+          fullName: newProfile.fullName,
+          phoneNumber: newProfile.phoneNumber,
+          avatarUrl: newProfile.avatarUrl,
+          role: existingProfile.role,
+          divisionId: existingProfile.divisionId,
+          isApproved: existingProfile.isApproved,
+          createdAt: existingProfile.createdAt.toISOString(),
+          updatedAt: existingProfile.updatedAt.toISOString(),
+        },
+      };
+
+    }
+
     const [inserted] = await db
       .insert(schema.profiles)
       .values({
@@ -223,6 +260,7 @@ export async function signUpUserAction(formData: {
   } catch (e: unknown) {
     return { success: false, error: e instanceof Error ? e.message : 'Kesalahan saat menyimpan profil' };
   }
+
 
 
   // 1. Notify all Admins via Email
