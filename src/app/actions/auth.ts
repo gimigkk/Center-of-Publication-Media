@@ -62,6 +62,8 @@ export async function signOutAction(): Promise<{ success: boolean }> {
   }
 }
 
+import { getAuthenticatedUser, requireAdmin } from '@/lib/auth-guard';
+
 export async function updateProfileAction(
   userId: string,
   data: {
@@ -71,6 +73,14 @@ export async function updateProfileAction(
   }
 ): Promise<{ success: boolean; profile?: Profile; error?: string }> {
   if (!db) return { success: false, error: 'Database belum terhubung' };
+
+  const sessionUser = await getAuthenticatedUser();
+  if (!sessionUser) return { success: false, error: 'Sesi tidak valid' };
+
+  // Authorization check: User can only update their own profile unless they are an admin
+  if (sessionUser.id !== userId && sessionUser.role !== 'admin') {
+    return { success: false, error: 'Akses ditolak: Anda hanya dapat memperbarui profil sendiri.' };
+  }
 
   try {
     const updateData: Partial<typeof schema.profiles.$inferInsert> = {
@@ -113,7 +123,6 @@ export async function updateProfileAction(
   }
 }
 
-
 export async function getAllUsersAction(): Promise<Profile[]> {
   if (!db) return [];
   try {
@@ -154,6 +163,12 @@ export async function approveUserAction(
   userId: string,
   newRole?: UserRole
 ): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Akses ditolak' };
+  }
+
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
   const users = await getAllUsersAction();
@@ -198,6 +213,12 @@ export async function approveUserAction(
 }
 
 export async function rejectUserAction(userId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Akses ditolak' };
+  }
+
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
   const users = await getAllUsersAction();
@@ -220,6 +241,7 @@ export async function rejectUserAction(userId: string): Promise<{ success: boole
   revalidatePath('/');
   return { success: true };
 }
+
 
 export async function signUpUserAction(formData: {
   id?: string;

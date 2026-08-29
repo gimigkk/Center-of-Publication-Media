@@ -28,11 +28,20 @@ export async function getPageAction(pageId: string): Promise<Page | null> {
   return pages.find((p) => p.id === pageId) || pages[0] || null;
 }
 
+import { requireAdmin } from '@/lib/auth-guard';
+
 export async function createPageAction(
   name: string,
   description?: string,
   userId?: string
 ): Promise<{ success: boolean; page?: Page; error?: string }> {
+  try {
+    const admin = await requireAdmin();
+    userId = admin.id;
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Akses ditolak' };
+  }
+
   const trimmed = name.trim();
   if (!trimmed) {
     return { success: false, error: 'Nama halaman wajib diisi' };
@@ -73,6 +82,12 @@ export async function updatePageAction(
   pageId: string,
   name: string
 ): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Akses ditolak' };
+  }
+
   const trimmed = name.trim();
   if (!trimmed) return { success: false, error: 'Nama halaman tidak boleh kosong' };
 
@@ -91,6 +106,12 @@ export async function updatePageAction(
 }
 
 export async function deletePageAction(pageId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Akses ditolak' };
+  }
+
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
   try {
@@ -106,4 +127,5 @@ export async function deletePageAction(pageId: string): Promise<{ success: boole
     return { success: false, error: e instanceof Error ? e.message : 'Kesalahan database' };
   }
 }
+
 

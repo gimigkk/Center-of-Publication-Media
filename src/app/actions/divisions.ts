@@ -26,7 +26,15 @@ export async function getDivisionsAction(): Promise<Division[]> {
   }
 }
 
+import { requireAdmin } from '@/lib/auth-guard';
+
 export async function createDivisionAction(name: string): Promise<{ success: boolean; division?: Division; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Akses ditolak' };
+  }
+
   const trimmed = name.trim();
   if (!trimmed) {
     return { success: false, error: 'Nama divisi tidak boleh kosong' };
@@ -59,6 +67,12 @@ export async function createDivisionAction(name: string): Promise<{ success: boo
 }
 
 export async function updateDivisionAction(id: string, name: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Akses ditolak' };
+  }
+
   const trimmed = name.trim();
   if (!trimmed) return { success: false, error: 'Nama divisi tidak boleh kosong' };
 
@@ -77,6 +91,12 @@ export async function updateDivisionAction(id: string, name: string): Promise<{ 
 }
 
 export async function deleteDivisionAction(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Akses ditolak' };
+  }
+
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
   try {
@@ -87,4 +107,5 @@ export async function deleteDivisionAction(id: string): Promise<{ success: boole
     return { success: false, error: e instanceof Error ? e.message : 'Tidak dapat menghapus divisi yang memiliki job aktif' };
   }
 }
+
 
