@@ -225,7 +225,7 @@ export function JobFormModal({
         </div>
 
         {/* Main Request Form Panel Card */}
-        <div className="figma-detail-card" style={{ width: '480px', maxWidth: '480px' }}>
+        <div className="figma-detail-card modal-dual-form-card">
           <div className="modal-header">
             <h3 className="modal-title">Ajukan Request Kreatif Baru</h3>
             <button className="modal-close-btn" onClick={onClose} title="Tutup">
@@ -233,7 +233,7 @@ export function JobFormModal({
             </button>
           </div>
 
-          <div className="modal-body" style={{ maxHeight: 'calc(90vh - 125px)', overflowY: 'auto' }}>
+          <div className="modal-body modal-form-body">
             <form id="job-submission-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '13px' }}>
               {error && (
                 <div style={{ padding: '8px 12px', background: 'var(--accent-red-light)', border: '1px solid #fca5a5', borderRadius: 'var(--radius-sm)', color: 'var(--accent-red)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -304,7 +304,7 @@ export function JobFormModal({
                 </span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="form-row-dual">
                 <div className="form-group">
                   <label className="form-label">
                     Divisi Requester <span className="required-star">*</span>
@@ -338,6 +338,7 @@ export function JobFormModal({
                   />
                 </div>
               </div>
+
 
               <div className="form-group">
                 <label className="form-label">

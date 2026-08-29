@@ -99,6 +99,30 @@ body {
   overflow: hidden;
 }
 
+/* Scrollbar suppression utilities for clean Figma / FigJam feel */
+.no-scrollbar,
+.kanban-board,
+.board-container,
+.board-canvas-flow,
+.archive-card,
+.archive-table-container,
+.column-cards-container {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.no-scrollbar::-webkit-scrollbar,
+.kanban-board::-webkit-scrollbar,
+.board-container::-webkit-scrollbar,
+.board-canvas-flow::-webkit-scrollbar,
+.archive-card::-webkit-scrollbar,
+.archive-table-container::-webkit-scrollbar,
+.column-cards-container::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 /* Base resets */
 button,
 input,
@@ -108,6 +132,7 @@ textarea {
   font-size: 13px;
   color: inherit;
 }
+
 
 button {
   cursor: pointer;

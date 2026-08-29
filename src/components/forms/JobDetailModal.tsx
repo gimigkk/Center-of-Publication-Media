@@ -133,19 +133,8 @@ export function JobDetailModal({
         className={`modal-dual-container ${isClosing ? 'is-closing' : ''}`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Permanent Editor side panel: docked beside on the left of the modal for admins */}
-        {currentUser.role === 'admin' && onAssign && (
-          <AssignDesignerDropdown
-            job={activeJob}
-            isOpen={true}
-            onClose={() => { }}
-            designersWithWorkload={designersWithWorkload}
-            onAssign={onAssign}
-            position="modal-left"
-          />
-        )}
-
         <div className="figma-detail-card">
+
           {/* 1. Header: Status Pill + Close */}
           <div className="simple-modal-header">
             {activeJob.isArchived ? (
@@ -434,7 +423,20 @@ export function JobDetailModal({
             </div>
           </div>
         </div>
+
+        {/* Permanent Editor panel: placed below the main modal panel for admins */}
+        {currentUser.role === 'admin' && onAssign && (
+          <AssignDesignerDropdown
+            job={activeJob}
+            isOpen={true}
+            onClose={() => { }}
+            designersWithWorkload={designersWithWorkload}
+            onAssign={onAssign}
+            position="modal-left"
+          />
+        )}
       </div>
     </div>
   );
 }
+

@@ -95,22 +95,30 @@
 
 /* Figma-Grade Rules Sidebar Panel */
 .copm-rules-sidebar-panel {
-  width: 280px;
-  min-width: 280px;
-  max-width: 280px;
-  max-height: 90vh;
+  width: 100%;
+  max-width: 480px;
   background-color: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: var(--radius-md);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   flex-shrink: 0;
 }
 
+@media (min-width: 840px) {
+  .copm-rules-sidebar-panel {
+    width: 280px;
+    min-width: 280px;
+    max-width: 280px;
+    max-height: 90vh;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+}
+
 .copm-rules-sidebar-header {
-  padding: 12px 14px;
+  padding: 10px 14px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   background-color: #fafafa;
   display: flex;
@@ -131,17 +139,26 @@
   font-weight: 600;
   padding: 1px 6px;
   border-radius: var(--radius-xs);
-  background-color: rgba(0, 0, 0, 0.05);
-  color: var(--text-secondary);
+  background-color: var(--accent-purple-light);
+  color: var(--accent-purple-text);
 }
 
 .copm-rules-sidebar-body {
-  padding: 6px 0;
+  padding: 4px 0;
   overflow-y: auto;
+  max-height: 130px;
   display: flex;
   flex-direction: column;
   flex: 1;
 }
+
+@media (min-width: 840px) {
+  .copm-rules-sidebar-body {
+    max-height: none;
+    padding: 6px 0;
+  }
+}
+
 
 .copm-rule-row {
   display: flex;
@@ -440,12 +457,22 @@
    ─────────────────────────────────────────────────── */
 .modal-dual-container {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
   gap: 12px;
   max-width: 96vw;
-  max-height: 90vh;
+  max-height: 92vh;
   animation: scaleUp 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  overflow-y: auto;
+}
+
+@media (min-width: 840px) {
+  .modal-dual-container {
+    flex-direction: row;
+    align-items: flex-start;
+    overflow-y: visible;
+  }
 }
 
 .modal-dual-container.is-closing {
@@ -457,7 +484,7 @@
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: var(--radius-md);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.04);
-  width: 440px;
+  width: 100%;
   max-width: 440px;
   max-height: 90vh;
   display: flex;
@@ -466,7 +493,31 @@
   overflow: hidden;
 }
 
+.modal-dual-form-card {
+  max-width: 480px;
+}
+
+.modal-form-body {
+  padding: 14px 16px;
+  max-height: calc(90vh - 130px);
+  overflow-y: auto;
+}
+
+.form-row-dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .form-row-dual {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
 .figma-detail-card.is-closing {
+
   animation: scaleDown 130ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -1017,51 +1068,66 @@
 /* ==========================================================================
    Responsive Modal Styles (Mobile & Small Screens)
    ========================================================================== */
+/* ==========================================================================
+   Responsive Modal Styles (Mobile & Small Screens)
+   ========================================================================== */
 @media (max-width: 768px) {
   .modal-backdrop {
-    padding: 10px;
+    padding: 8px;
     align-items: center;
   }
 
   .modal-dialog {
     max-width: 100%;
-    max-height: 92vh;
+    max-height: 94vh;
   }
 
   .modal-dual-container {
     flex-direction: column;
     width: 100%;
-    max-width: 100%;
-    max-height: 92vh;
-    gap: 8px;
+    max-width: 480px;
+    max-height: 94vh;
+    gap: 10px;
     align-items: stretch;
   }
 
+  /* Rules panel sits ABOVE form panel on mobile */
   .copm-rules-sidebar-panel {
-    display: none;
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    border-radius: var(--radius-md);
   }
 
   .figma-detail-card {
     width: 100%;
     max-width: 100%;
-    max-height: 92vh;
+    max-height: none;
+  }
+
+  .modal-form-body {
+    max-height: calc(88vh - 160px);
+    overflow-y: auto;
   }
 
   .form-row,
-  .form-grid-2 {
+  .form-grid-2,
+  .form-row-dual {
     grid-template-columns: 1fr !important;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
   }
 
+  /* Editor assignment panel sits below the main card on mobile */
   .assign-dropdown-popover.position-modal-left {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: calc(100vw - 32px);
-    max-width: 320px;
-    z-index: 300;
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    width: 100%;
+    max-width: 100%;
+    z-index: 10;
+    margin-top: 0;
   }
 }
