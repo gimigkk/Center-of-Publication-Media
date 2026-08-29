@@ -41,6 +41,7 @@ import {
   rejectUserAction,
   signOutAction,
 } from '@/app/actions/auth';
+import { getInitialBoardDataAction } from '@/app/actions/board';
 import {
   getNotificationsAction,
   markAsReadAction,
@@ -81,7 +82,6 @@ export default function Home() {
   const [filterDivision, setFilterDivision] = useState<string | null>(null);
   const [filterSearch, setFilterSearch] = useState<string>('');
 
-
   // Modals state
   const [isJobFormOpen, setIsJobFormOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -95,44 +95,31 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeDraggedJob, setActiveDraggedJob] = useState<Job | null>(null);
 
-  // Load initial dataset
+  // Load initial dataset in 1 single fast roundtrip
   const loadData = useCallback(async () => {
     try {
-      const user = await getCurrentUserAction();
-      if (!user) {
+      const data = await getInitialBoardDataAction();
+      if (!data || !data.currentUser) {
         router.push('/login');
         return;
       }
 
-      const [users, pageList, divs, pending, suggestions, notifs] = await Promise.all([
-        getAllUsersAction(),
-        getPagesAction(),
-        getDivisionsAction(),
-        getPendingUsersAction(),
-        getDesignerSuggestionsAction(),
-        getNotificationsAction(user.id),
-      ]);
-
-      setCurrentUser(user);
-      setAllUsers(users);
-      setPages(pageList);
-      const active = pageList[0] || null;
-      setCurrentPage(active);
-      setDivisions(divs);
-      setPendingUsers(pending);
-      setDesignerSuggestions(suggestions);
-      setNotifications(notifs);
-
-      if (active) {
-        const jobs = await getJobsAction(active.id);
-        setInitialJobs(jobs);
-      }
+      setCurrentUser(data.currentUser);
+      setAllUsers(data.allUsers);
+      setPages(data.pages);
+      setCurrentPage(data.currentPage);
+      setDivisions(data.divisions);
+      setInitialJobs(data.initialJobs);
+      setPendingUsers(data.pendingUsers);
+      setDesignerSuggestions(data.designerSuggestions);
+      setNotifications(data.notifications);
     } catch (error) {
       console.error('Failed to load board data:', error);
     } finally {
       setIsLoading(false);
     }
   }, [router]);
+
 
 
   useEffect(() => {
