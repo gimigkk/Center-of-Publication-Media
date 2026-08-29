@@ -66,7 +66,7 @@ export const FloatingToolbar = memo(function FloatingToolbar({
       <div className="floating-toolbar">
         {/* 1. New Job Card Button */}
         <button className="toolbar-btn primary" onClick={onOpenNewJob}>
-          <Plus size={10} strokeWidth={5} />
+          <Plus size={10} strokeWidth={4} />
           <span>REQUEST COPM</span>
         </button>
 
@@ -131,7 +131,7 @@ export const FloatingToolbar = memo(function FloatingToolbar({
             onClick={() => setIsFilterOpen(!isFilterOpen)}
             title="Filter board"
           >
-            <SlidersHorizontal size={14} color={hasActiveFilters ? '#ffffff' : 'var(--text-on-dark-secondary)'} />
+            <SlidersHorizontal size={13} strokeWidth={2} />
             <span>Filter</span>
             {hasActiveFilters && <span className="filter-active-dot" />}
           </button>
@@ -141,12 +141,12 @@ export const FloatingToolbar = memo(function FloatingToolbar({
         {currentUser.role === 'admin' && (
           <>
             <button className="toolbar-btn" onClick={onOpenDivisions} title="Kelola Divisi">
-              <FolderTree size={14} color="var(--text-on-dark-secondary)" />
+              <FolderTree size={13} strokeWidth={2} />
               <span>Divisi</span>
             </button>
 
             <button className="toolbar-btn" onClick={onOpenApprovals} title="Persetujuan Tertunda">
-              <UserCheck size={14} color="var(--text-on-dark-secondary)" />
+              <UserCheck size={13} strokeWidth={2} />
               <span>Approval</span>
               {pendingCount > 0 && <span className="badge-count">{pendingCount}</span>}
             </button>

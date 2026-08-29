@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Figma Native Notification Inbox Styles
+   Figma Native Notification Inbox Styles (Figma Dark Theme)
    ========================================================================== */
 
 .figjam-inbox-wrapper {
@@ -20,23 +20,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
+  color: #38bdf8;
   cursor: pointer;
-  transition: all 100ms ease;
+  outline: none;
+  transition: background-color 100ms ease, color 100ms ease;
 }
 
 .figjam-inbox-btn:hover {
-  background-color: var(--bg-surface-hover);
-  color: var(--text-primary);
+  background-color: rgba(13, 153, 255, 0.12);
+  color: #7dd3fc;
 }
 
 .figjam-inbox-btn.active {
-  background-color: #f4ebff;
-  color: var(--accent-purple);
+  background-color: rgba(13, 153, 255, 0.2);
+  color: #ffffff;
 }
 
 .figjam-inbox-btn.has-unread {
-  color: var(--text-primary);
+  color: #0d99ff;
 }
 
 .inbox-badge-count {
@@ -54,7 +55,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid #ffffff;
+  border: 1.5px solid #2c2c2c;
   box-shadow: 0 1px 2px rgba(13, 153, 255, 0.3);
   animation: badgePop 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -64,30 +65,37 @@
   100% { transform: scale(1); opacity: 1; }
 }
 
-/* Figma Popover Container — Crisp, Compact 6px/8px Figma Standard */
+/* Figma Popover Container — Figma Dark Standard */
 .figma-inbox-popover {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   right: 0;
   left: auto;
   width: 340px;
   max-height: 480px;
-  background-color: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: #2c2c2c;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-md);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
   padding: 0;
   overflow: hidden;
   z-index: 130;
+  animation: popoverIn 120ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  user-select: none;
+}
+
+.figma-inbox-popover.is-closing {
+  animation: popoverOut 110ms ease forwards;
+  pointer-events: none !important;
 }
 
 /* Header & Segmented Tabs */
 .figma-inbox-header {
   padding: 10px 12px 8px 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  background-color: #ffffff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: #2c2c2c;
 }
 
 .figma-inbox-title-row {
@@ -100,44 +108,45 @@
 .figma-inbox-title {
   font-size: 12.5px;
   font-weight: 700;
-  color: #111111;
+  color: #ffffff;
   letter-spacing: -0.15px;
 }
 
 .figma-inbox-actions {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
 }
 
 .figma-inbox-icon-action {
   display: inline-flex;
   align-items: center;
-  gap: 3.5px;
-  font-size: 10.5px;
+  gap: 4px;
+  font-size: 11px;
   font-weight: 500;
-  color: #666666;
+  color: rgba(255, 255, 255, 0.65);
   background: transparent;
   border: none;
-  padding: 2.5px 5px;
-  border-radius: 3px;
+  padding: 3px 6px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   transition: all 100ms ease;
 }
 
 .figma-inbox-icon-action:hover {
-  background-color: #f0f0f0;
-  color: #111111;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
 }
 
 .figma-inbox-icon-action.delete:hover {
-  color: #dc2626;
+  color: #f87171;
+  background-color: rgba(239, 68, 68, 0.15);
 }
 
 /* Segmented Tabs (Semua / Belum Dibaca) */
 .figma-inbox-tabs {
   display: flex;
-  background-color: #f1f2f4;
+  background-color: #1e1e1e;
   padding: 2px;
   border-radius: 4px;
   gap: 2px;
@@ -148,11 +157,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 3.5px 6px;
+  gap: 5px;
+  padding: 4px 6px;
   font-size: 11px;
   font-weight: 500;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.6);
   border: none;
   background: transparent;
   border-radius: 3px;
@@ -162,19 +171,19 @@
 }
 
 .figma-inbox-tab:hover {
-  color: #111827;
+  color: #ffffff;
 }
 
 .figma-inbox-tab.active {
-  background-color: #ffffff;
-  color: #111827;
+  background-color: #383838;
+  color: #ffffff;
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 .figma-tab-count {
   font-size: 9.5px;
-  color: #9ca3af;
+  color: rgba(255, 255, 255, 0.45);
   font-weight: 500;
 }
 
@@ -183,16 +192,16 @@
   font-weight: 700;
   background-color: #0d99ff;
   color: #ffffff;
-  padding: 0 4px;
+  padding: 0 5px;
   border-radius: 8px;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 /* Body & Notification Feed */
 .figma-inbox-body {
   overflow-y: auto;
-  max-height: 380px;
-  padding: 3px 0;
+  max-height: 360px;
+  padding: 4px 0;
   overscroll-behavior: contain;
 }
 
@@ -204,14 +213,17 @@
 .figma-notif-row {
   display: flex;
   align-items: flex-start;
-  gap: 9px;
-  padding: 8px 10px;
-  margin: 1px 4px;
-  border-radius: 4px;
+  gap: 10px;
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   transition: background-color 100ms ease;
   position: relative;
   text-align: left;
   user-select: none;
+}
+
+.figma-notif-row:last-child {
+  border-bottom: none;
 }
 
 .figma-notif-row.is-clickable {
@@ -219,15 +231,15 @@
 }
 
 .figma-notif-row:hover {
-  background-color: #f5f5f5;
+  background-color: rgba(255, 255, 255, 0.06);
 }
 
 .figma-notif-row.is-unread {
-  background-color: rgba(13, 153, 255, 0.04);
+  background-color: rgba(13, 153, 255, 0.07);
 }
 
 .figma-notif-row.is-unread:hover {
-  background-color: rgba(13, 153, 255, 0.075);
+  background-color: rgba(13, 153, 255, 0.12);
 }
 
 .figma-notif-avatar-slot {
@@ -237,7 +249,7 @@
 }
 
 .figma-notif-avatar {
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .figma-notif-content {
@@ -245,72 +257,77 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2.5px;
+  gap: 3px;
 }
 
 .figma-notif-text {
   font-size: 11.5px;
-  line-height: 1.38;
-  color: #374151;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.88);
   word-break: break-word;
 }
 
-.figma-notif-text strong {
+.figma-notif-actor {
   font-weight: 600;
-  color: #111827;
+  color: #ffffff;
+}
+
+.figma-notif-action {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .figma-notif-target {
-  color: #111827;
   font-weight: 600;
-}
-
-.figma-notif-note-bubble {
-  font-size: 10.5px;
-  color: #4b5563;
-  background-color: #f3f4f6;
-  padding: 3.5px 7px;
-  border-radius: 3px;
-  margin: 2px 0 1px 0;
-  font-style: italic;
-  line-height: 1.35;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  color: #38bdf8;
 }
 
 .figma-notif-footer-meta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-top: 1.5px;
+  gap: 8px;
+  margin-top: 2px;
 }
 
 .figma-notif-timestamp {
-  font-size: 10px;
-  color: #9ca3af;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .figma-notif-open-cue {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 500;
-  color: #0d99ff;
-  opacity: 0;
-  transition: opacity 100ms ease;
+  color: #38bdf8;
+  transition: color 100ms ease;
 }
 
 .figma-notif-row:hover .figma-notif-open-cue {
-  opacity: 1;
+  color: #60a5fa;
+  text-decoration: underline;
 }
 
 .figma-notif-unread-indicator {
-  width: 5.5px;
-  height: 5.5px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background-color: #0d99ff;
   flex-shrink: 0;
-  margin-top: 5px;
+  align-self: center;
+  margin-left: 4px;
+}
+
+.figma-notif-note-bubble {
+  margin-top: 2px;
+  padding: 4px 8px;
+  background-color: #1e1e1e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.75);
+  font-style: italic;
+  line-height: 1.3;
 }
 
 /* Empty State */
@@ -319,37 +336,31 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 32px 16px;
-  text-align: center;
+  padding: 36px 16px;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .figma-inbox-empty-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
-  background-color: #f3f4f6;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9ca3af;
-  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 2px;
+}
+
+.figma-inbox-empty-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .figma-inbox-empty-sub {
-  font-size: 10.5px;
-  color: #9ca3af;
-  line-height: 1.35;
-  max-width: 220px;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .figma-inbox-popover {
-    position: fixed;
-    top: 56px;
-    left: 12px;
-    right: 12px;
-    width: auto;
-    max-width: none;
-  }
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  text-align: center;
 }

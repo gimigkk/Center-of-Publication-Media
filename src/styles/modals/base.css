@@ -27,9 +27,9 @@
 
 .modal-dialog {
   background-color: var(--bg-surface);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  border-radius: 16px;
+  box-shadow: 0 20px 48px -8px rgba(0, 0, 0, 0.16), 0 4px 16px -2px rgba(0, 0, 0, 0.06);
   width: 100%;
   max-width: 480px;
   display: flex;
@@ -48,23 +48,23 @@
 }
 
 .modal-header {
-  padding: 11px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 13px 18px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 .modal-title {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
-  letter-spacing: -0.1px;
+  letter-spacing: -0.15px;
 }
 
 .modal-close-btn {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--radius-xs);
   color: var(--text-secondary);
   display: flex;

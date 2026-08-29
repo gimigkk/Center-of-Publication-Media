@@ -91,43 +91,43 @@ export const NotificationInbox = memo(function NotificationInbox({
       case 'job_created':
         return (
           <>
-            <strong>{actorName}</strong> mengajukan request <span className="figma-notif-target">{targetTitle}</span>
+            <span className="figma-notif-actor">{actorName}</span> mengajukan request <span className="figma-notif-target">{targetTitle}</span>
           </>
         );
       case 'job_assigned':
         return (
           <>
-            <strong>{actorName}</strong> menugaskan Anda ke <span className="figma-notif-target">{targetTitle}</span>
+            <span className="figma-notif-actor">{actorName}</span> menugaskan Anda ke <span className="figma-notif-target">{targetTitle}</span>
           </>
         );
       case 'job_revisions':
         return (
           <>
-            <strong>{actorName}</strong> meminta revisi pada <span className="figma-notif-target">{targetTitle}</span>
+            <span className="figma-notif-actor">{actorName}</span> meminta revisi pada <span className="figma-notif-target">{targetTitle}</span>
           </>
         );
       case 'job_status_changed':
         return (
           <>
-            <strong>{actorName}</strong> memperbarui draft untuk <span className="figma-notif-target">{targetTitle}</span>
+            <span className="figma-notif-actor">{actorName}</span> memperbarui draft untuk <span className="figma-notif-target">{targetTitle}</span>
           </>
         );
       case 'job_completed':
         return (
           <>
-            <strong>{actorName}</strong> menandai <span className="figma-notif-target">{targetTitle}</span> selesai
+            <span className="figma-notif-actor">{actorName}</span> menandai <span className="figma-notif-target">{targetTitle}</span> selesai
           </>
         );
       case 'user_signup_pending':
         return (
           <>
-            <strong>{actorName}</strong> mendaftar akun baru dan menunggu approval
+            <span className="figma-notif-actor">{actorName}</span> mendaftar akun baru dan menunggu approval
           </>
         );
       case 'user_approved':
         return (
           <>
-            Akun Anda telah <strong>disetujui</strong> oleh Admin
+            Akun Anda telah <strong style={{ color: '#10b981' }}>disetujui</strong> oleh Admin
           </>
         );
       default:
@@ -145,7 +145,7 @@ export const NotificationInbox = memo(function NotificationInbox({
         title={unreadCount > 0 ? `${unreadCount} notifikasi belum dibaca` : 'Notifikasi'}
         aria-label="Notification Inbox"
       >
-        <Bell size={15} strokeWidth={2.2} />
+        <Bell size={15} strokeWidth={2} />
         {unreadCount > 0 && (
           <span className="inbox-badge-count">
             {unreadCount > 99 ? '99+' : unreadCount}
@@ -156,7 +156,7 @@ export const NotificationInbox = memo(function NotificationInbox({
       {shouldRender && (
         <div
           ref={popoverRef}
-          className={`figjam-pages-card figma-inbox-popover ${isClosing ? 'is-closing' : ''}`}
+          className={`figma-inbox-popover ${isClosing ? 'is-closing' : ''}`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* 1. Header with Title & Quick Actions */}
@@ -210,7 +210,7 @@ export const NotificationInbox = memo(function NotificationInbox({
           </div>
 
           {/* 3. Notification Stream List */}
-          <div className="figma-inbox-body">
+          <div className="figma-inbox-body no-scrollbar">
             {displayedNotifications.length === 0 ? (
               <div className="figma-inbox-empty">
                 <div className="figma-inbox-empty-icon">
@@ -281,4 +281,3 @@ export const NotificationInbox = memo(function NotificationInbox({
     </div>
   );
 });
-

@@ -1,4 +1,7 @@
-/* FigJam Bottom Toolbar — dark floating pill */
+/* ==========================================================================
+   FigJam Bottom Floating Toolbar & Filter Popover (Figma Dark Theme)
+   ========================================================================== */
+
 .floating-toolbar-container {
   position: fixed;
   bottom: 20px;
@@ -7,70 +10,88 @@
   z-index: 60;
   display: flex;
   align-items: center;
+  user-select: none;
 }
 
 .floating-toolbar {
-  background-color: var(--bg-toolbar);
+  background-color: #2c2c2c;
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  padding: 4px 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.25);
+  padding: 5px 6px;
+  height: 44px;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   position: relative;
+  box-sizing: border-box;
 }
 
 .toolbar-item-wrapper {
   position: relative;
   display: inline-flex;
   align-items: center;
+  height: 100%;
 }
 
 .toolbar-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border-radius: var(--radius-sm);
+  gap: 3px;
+  padding: 0 12px;
+  height: 34px;
+  border-radius: 8px;
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-on-dark-secondary);
+  color: rgba(255, 255, 255, 0.85);
   background: transparent;
   transition: background-color 100ms ease, color 100ms ease;
   white-space: nowrap;
   position: relative;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  box-sizing: border-box;
 }
 
 .toolbar-btn:hover {
   background-color: rgba(255, 255, 255, 0.08);
-  color: var(--text-on-dark);
+  color: #ffffff;
 }
 
 .toolbar-btn.primary {
-  background-color: var(--accent-blue);
+  background-color: #0d99ff;
   color: #ffffff;
   font-weight: 600;
+  padding: 0 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
 }
 
 .toolbar-btn.primary:hover {
   background-color: #007be5;
+  color: #ffffff;
+}
+
+.toolbar-btn.primary:active {
+  transform: scale(0.98);
 }
 
 .toolbar-btn.active-popover {
-  background-color: rgba(255, 255, 255, 0.12);
-  color: var(--text-on-dark);
+  background-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
 }
 
 .toolbar-divider {
   width: 1px;
-  height: 18px;
+  height: 20px;
   background-color: rgba(255, 255, 255, 0.12);
   margin: 0 4px;
 }
 
 .badge-count {
-  background-color: var(--accent-red);
-  color: #fff;
+  background-color: #ef4444;
+  color: #ffffff;
   font-size: 9px;
   font-weight: 700;
   padding: 1px 5px;
@@ -82,17 +103,17 @@
 /* Absolute dot so it never shifts the button's layout */
 .filter-active-dot {
   position: absolute;
-  top: 5px;
-  right: 5px;
+  top: 6px;
+  right: 6px;
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background-color: var(--accent-blue);
+  background-color: #0d99ff;
   pointer-events: none;
 }
 
 /* ───────────────────────────────────────────────────
-   FIGJAM-STYLE FILTER POPOVER (STABLE, NO JANK)
+   FIGMA-STYLE FILTER POPOVER (FIGMA DARK THEME)
    ─────────────────────────────────────────────────── */
 .toolbar-popover {
   position: absolute;
@@ -100,10 +121,10 @@
   left: 50%;
   transform: translateX(-50%);
   width: 270px;
-  background-color: var(--bg-surface);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: #2c2c2c;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-md);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.25);
   padding: 12px;
   z-index: 100;
   display: flex;
@@ -111,6 +132,7 @@
   gap: 10px;
   box-sizing: border-box;
   animation: popoverBottomUpIn 120ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  color: #ffffff;
 }
 
 .toolbar-popover.is-closing {
@@ -129,15 +151,17 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .toolbar-clear-btn {
   font-size: 11px;
   font-weight: 500;
-  color: var(--accent-blue-text);
+  color: #38bdf8;
   background: transparent;
+  border: none;
   padding: 0;
+  cursor: pointer;
   transition: opacity 100ms ease;
 }
 
@@ -154,25 +178,30 @@
 .search-input-icon {
   position: absolute;
   left: 8px;
-  color: var(--text-tertiary);
+  color: rgba(255, 255, 255, 0.4);
   pointer-events: none;
 }
 
 .toolbar-search-input {
   width: 100%;
   padding: 6px 8px 6px 28px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-sm);
-  background-color: var(--bg-surface);
-  color: var(--text-primary);
+  background-color: #1e1e1e;
+  color: #ffffff;
   font-size: 12px;
   outline: none;
   box-sizing: border-box;
+  transition: border-color 100ms ease, box-shadow 100ms ease;
+}
+
+.toolbar-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.38);
 }
 
 .toolbar-search-input:focus {
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 2px rgba(13, 153, 255, 0.15);
+  border-color: #0d99ff;
+  box-shadow: 0 0 0 2px rgba(13, 153, 255, 0.25);
 }
 
 .toolbar-filter-group {
@@ -186,24 +215,50 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  color: var(--text-tertiary);
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .toolbar-select {
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-sm);
-  background-color: var(--bg-surface);
-  color: var(--text-primary);
+  background-color: #1e1e1e;
+  color: #ffffff;
   font-size: 12px;
   outline: none;
   box-sizing: border-box;
+  cursor: pointer;
+  transition: border-color 100ms ease;
 }
 
 .toolbar-select:focus {
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 2px rgba(13, 153, 255, 0.15);
+  border-color: #0d99ff;
+  box-shadow: 0 0 0 2px rgba(13, 153, 255, 0.25);
+}
+
+@keyframes popoverBottomUpIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes popoverBottomUpOut {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate(-50%, 6px) scale(0.97);
+  }
 }
 
 /* ==========================================================================
@@ -219,19 +274,21 @@
   .floating-toolbar {
     width: 100%;
     justify-content: space-between;
-    padding: 3px 4px;
-    gap: 2px;
+    padding: 4px 6px;
+    height: 42px;
   }
 
   .toolbar-btn {
-    padding: 6px 8px;
+    padding: 0 8px;
     font-size: 11px;
+    height: 32px;
     gap: 4px;
   }
 
   .toolbar-btn.primary {
-    padding: 6px 10px;
+    padding: 0 10px;
     font-size: 11.5px;
+    height: 32px;
   }
 
   .toolbar-popover {

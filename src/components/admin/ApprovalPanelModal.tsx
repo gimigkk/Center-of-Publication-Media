@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Profile, UserRole } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
-import { Check, X, ShieldAlert, UserCheck } from 'lucide-react';
+import { Check, X, ShieldCheck, Info } from 'lucide-react';
+import { getRelativeTime } from '@/lib/utils';
 
 interface ApprovalPanelModalProps {
   isOpen: boolean;
@@ -39,7 +40,7 @@ export function ApprovalPanelModal({
   };
 
   const handleReject = async (userId: string) => {
-    if (!confirm('Tolak dan hapus pendaftaran ini?')) return;
+    if (!confirm('Tolak dan hapus pendaftaran akun ini?')) return;
     setProcessingId(userId);
     try {
       await onReject(userId);
@@ -52,63 +53,81 @@ export function ApprovalPanelModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Persetujuan Akun Pengguna (${pendingUsers.length})`}
-      large
+      title={
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <span>Persetujuan Akun Pengguna</span>
+          {pendingUsers.length > 0 && (
+            <span className="approval-header-badge">{pendingUsers.length}</span>
+          )}
+        </div>
+      }
+      maxWidth={680}
       footer={
-        <button className="btn-secondary" onClick={onClose}>
-          Tutup
-        </button>
+        <div className="approval-footer-actions">
+          <button type="button" className="btn-secondary" onClick={onClose}>
+            Tutup
+          </button>
+        </div>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-          Semua akun yang baru terdaftar memerlukan otorisasi manual administrator sebelum dapat mengakses ruang kerja.
-        </p>
+      <div className="approval-modal-body">
+        {/* Info Banner */}
+        <div className="approval-info-banner">
+          <Info size={16} className="approval-info-icon" />
+          <span>
+            Semua akun yang baru terdaftar memerlukan otorisasi manual administrator sebelum dapat mengakses ruang kerja COPM.
+          </span>
+        </div>
 
+        {/* Pending Users List or Empty State */}
         {pendingUsers.length === 0 ? (
-          <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-tertiary)', border: '1px dashed var(--border-default)', borderRadius: 'var(--radius-md)' }}>
-            <UserCheck size={28} style={{ margin: '0 auto 8px auto', display: 'block', color: 'var(--accent-green)' }} />
-            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Semua sudah diperiksa!</div>
-            <div style={{ fontSize: '12px' }}>Tidak ada persetujuan akun yang tertunda saat ini.</div>
+          <div className="approval-empty-state">
+            <div className="approval-empty-icon-wrap">
+              <ShieldCheck size={24} strokeWidth={2} />
+            </div>
+            <div className="approval-empty-title">Semua Permintaan Telah Ditinjau</div>
+            <div className="approval-empty-desc">
+              Tidak ada persetujuan akun yang tertunda saat ini. Akun baru yang mendaftar akan otomatis muncul di sini.
+            </div>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div className="approval-list-wrapper">
             {pendingUsers.map((user) => {
               const currentRole = selectedRoles[user.id] || user.role;
               const isProcessing = processingId === user.id;
 
               return (
-                <div
-                  key={user.id}
-                  style={{
-                    padding: '12px 16px',
-                    border: '1px solid var(--border-default)',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'var(--bg-surface)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '12px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <Avatar src={user.avatarUrl} name={user.fullName} size={36} />
-                    <div>
-                      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                        {user.fullName}
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                        {user.email}
+                <div key={user.id} className="approval-user-row">
+                  {/* Left: Avatar & User Identity */}
+                  <div className="approval-user-main">
+                    <Avatar
+                      src={user.avatarUrl}
+                      name={user.fullName}
+                      size={36}
+                      className="approval-user-avatar"
+                    />
+                    <div className="approval-user-details">
+                      <span className="approval-user-name">{user.fullName}</span>
+                      <div className="approval-user-meta">
+                        <span className="approval-user-email">{user.email}</span>
+                        {user.createdAt && (
+                          <>
+                            <span className="approval-user-dot">•</span>
+                            <span className="approval-user-time">
+                              {getRelativeTime(user.createdAt)}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>Peran:</span>
+                  {/* Right: Role Picker & Action Buttons */}
+                  <div className="approval-actions-container">
+                    <div className="approval-role-select-wrap">
+                      <span className="approval-role-label">Peran:</span>
                       <select
-                        className="form-select"
-                        style={{ padding: '4px 8px', fontSize: '12px' }}
+                        className="approval-role-select"
                         value={currentRole}
                         onChange={(e) => handleRoleChange(user.id, e.target.value as UserRole)}
                         disabled={isProcessing}
@@ -120,23 +139,24 @@ export function ApprovalPanelModal({
                     </div>
 
                     <button
-                      className="btn-primary"
-                      style={{ padding: '6px 12px', backgroundColor: 'var(--accent-green)' }}
+                      type="button"
+                      className="approval-btn-approve"
                       onClick={() => handleApprove(user)}
                       disabled={isProcessing}
+                      title="Setujui pendaftaran ini"
                     >
-                      <Check size={14} style={{ marginRight: '4px' }} />
-                      <span>Setujui</span>
+                      <Check size={14} strokeWidth={2.5} />
+                      <span>{isProcessing ? 'Memproses...' : 'Setujui'}</span>
                     </button>
 
                     <button
-                      className="btn-secondary"
-                      style={{ padding: '6px 10px', color: 'var(--accent-red)' }}
+                      type="button"
+                      className="approval-btn-reject"
                       onClick={() => handleReject(user.id)}
                       disabled={isProcessing}
-                      title="Tolak"
+                      title="Tolak pendaftaran ini"
                     >
-                      <X size={14} />
+                      <X size={15} strokeWidth={2} />
                     </button>
                   </div>
                 </div>

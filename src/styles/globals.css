@@ -415,40 +415,40 @@ textarea:focus-visible {
 
 .figjam-loader-container {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
 }
 
 .figjam-loader-icon-wrapper {
   position: relative;
-  width: 44px;
-  height: 44px;
+  width: 16px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .figjam-spinner-svg {
   animation: figmaRotate 1.4s linear infinite;
-  width: 36px;
-  height: 36px;
+  width: 16px;
+  height: 16px;
 }
 
 .figjam-spinner-svg .spinner-track {
-  stroke: rgba(0, 0, 0, 0.07);
+  stroke: rgba(0, 0, 0, 0.08);
 }
 
 .figjam-spinner-svg .spinner-head {
-  stroke: #7b2cbf; /* FigJam Signature Purple */
+  stroke: #0d99ff; /* Figma Blue */
   stroke-linecap: round;
   animation: figmaDash 1.4s ease-in-out infinite;
 }
 
 .figjam-loader-text {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
   letter-spacing: -0.15px;
-  animation: figmaPulse 2s ease-in-out infinite;
 }

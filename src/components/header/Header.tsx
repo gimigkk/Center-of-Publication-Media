@@ -280,6 +280,19 @@ export const Header = memo(function Header({
                     )}
                   </div>
                 </div>
+
+                <div className="figma-profile-divider" />
+
+                {/* Creator Credit Footer Link */}
+                <a
+                  href="https://github.com/gimigkk"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="figma-profile-credit-link"
+                  title="Kunjungi profil GitHub @gimigkk"
+                >
+                  Made with ♡ by <span className="figma-profile-credit-handle">@gimigkk</span>
+                </a>
               </div>
             )}
           </div>

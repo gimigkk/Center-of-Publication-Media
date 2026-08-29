@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Plus, MoreHorizontal } from 'lucide-react';
+import { Plus, MoreHorizontal, ChevronDown } from 'lucide-react';
 import { Page, Profile, OnlineUser } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
 import { useSafeZone } from '@/hooks/useSafeZone';
@@ -102,7 +102,7 @@ export function PageSwitcher({
     <div className="figjam-top-widget" ref={widgetRef} onClick={() => setIsPagesOpen(!isPagesOpen)}>
       {/* Full IEEE Brand Logo */}
       <div style={{ display: 'flex', alignItems: 'center', paddingRight: '2px' }}>
-        <FullLogoIEEE height={18} fill="var(--text-primary)" />
+        <FullLogoIEEE height={18} fill="#ffffff" />
       </div>
 
       {/* Full-height top-to-bottom divider line with no padding */}
@@ -111,7 +111,10 @@ export function PageSwitcher({
       {/* Current Page Name */}
       <span className="figjam-current-page-name">{currentPage.name}</span>
 
-      {/* Purple Overlapping Pages Toggle Button right beside page name */}
+      {/* Full-height divider between Page Name and Pages Icon */}
+      <div className="figjam-widget-divider" />
+
+      {/* FigJam Overlapping Pages Toggle Button */}
       <button
         className={`figjam-pages-toggle-btn ${isPagesOpen ? 'active' : ''}`}
         onClick={(e) => {
@@ -119,10 +122,11 @@ export function PageSwitcher({
           setIsPagesOpen(!isPagesOpen);
         }}
         title="Halaman"
+        aria-label="Halaman"
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="7" y="3" width="14" height="14" rx="2.5" stroke="#9747FF" strokeWidth="1.7" />
-          <rect x="3" y="7" width="14" height="14" rx="2.5" fill="#f5edff" stroke="#9747FF" strokeWidth="1.7" />
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="5.5" y="1.5" width="13" height="13" rx="2.5" stroke="#0d99ff" strokeWidth="1.6" fill="none" />
+          <rect x="1.5" y="5.5" width="13" height="13" rx="2.5" stroke="#0d99ff" strokeWidth="1.6" fill="rgba(13, 153, 255, 0.25)" />
         </svg>
       </button>
 

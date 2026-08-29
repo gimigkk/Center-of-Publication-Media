@@ -1,26 +1,32 @@
 /* ==========================================================================
-   Page Switcher Popover & Context Menus
+   Page Switcher Popover & Context Menus (Figma Dark Theme)
    ========================================================================== */
 
-/* Pages toggle icon */
+/* Pages toggle icon — FigJam Overlapping Pages */
 .figjam-pages-toggle-btn {
   width: 32px;
   height: 32px;
   border-radius: var(--radius-sm);
-  background-color: #f4ebff;
+  background-color: transparent;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #7b2cbf;
+  color: #38bdf8;
   cursor: pointer;
-  transition: background-color 100ms ease;
+  transition: background-color 100ms ease, color 100ms ease;
   flex-shrink: 0;
+  outline: none;
 }
 
-.figjam-pages-toggle-btn:hover,
+.figjam-pages-toggle-btn:hover {
+  background-color: rgba(13, 153, 255, 0.12);
+  color: #7dd3fc;
+}
+
 .figjam-pages-toggle-btn.active {
-  background-color: #e9d5ff;
+  background-color: rgba(13, 153, 255, 0.2);
+  color: #ffffff;
 }
 
 /* Pages popover */
@@ -29,10 +35,10 @@
   top: calc(100% + 8px);
   left: 0;
   width: 240px;
-  background-color: var(--bg-surface);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: #2c2c2c;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.25);
   padding: 8px;
   z-index: 120;
   display: flex;
@@ -56,7 +62,7 @@
 .pages-card-title {
   font-size: 11.5px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .pages-add-btn {
@@ -66,15 +72,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.7);
   background: transparent;
   border: none;
   cursor: pointer;
+  transition: all 100ms ease;
 }
 
 .pages-add-btn:hover {
-  background-color: var(--bg-surface-hover);
-  color: var(--text-primary);
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
 }
 
 .pages-list {
@@ -91,37 +98,39 @@
   border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-primary);
+  color: rgba(255, 255, 255, 0.88);
   cursor: pointer;
   transition: background-color 80ms ease;
 }
 
 .page-row-item:hover {
-  background-color: rgba(0, 0, 0, 0.04);
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .page-row-item.active {
-  background-color: #f4ebff;
-  color: #581c87;
+  background-color: rgba(13, 153, 255, 0.18);
+  color: #ffffff;
   font-weight: 600;
 }
 
 .page-more-btn {
   padding: 2px;
   border-radius: var(--radius-xs);
-  color: #7b2cbf;
+  color: #38bdf8;
   display: flex;
   align-items: center;
   justify-content: center;
   background: transparent;
   border: none;
   cursor: pointer;
-  opacity: 0.6;
+  opacity: 0.75;
+  outline: none;
 }
 
-.page-more-btn:hover {
+.page-more-btn:hover,
+.page-more-btn:focus-visible {
   opacity: 1;
-  background-color: rgba(123, 97, 255, 0.1);
+  background-color: rgba(13, 153, 255, 0.2);
 }
 
 /* Persona switcher rows in profile menu */
@@ -133,34 +142,36 @@
   border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-primary);
+  color: rgba(255, 255, 255, 0.88);
   cursor: pointer;
   width: 100%;
   transition: background-color 80ms ease;
   background: transparent;
   border: none;
+  outline: none;
 }
 
 .persona-row-item:hover {
-  background-color: rgba(0, 0, 0, 0.04);
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .persona-row-item.active {
-  background-color: rgba(0, 0, 0, 0.06);
+  background-color: rgba(255, 255, 255, 0.12);
   font-weight: 600;
-  color: var(--text-primary);
+  color: #ffffff;
 }
 
-/* Dark context menu */
+/* Dark context menu — Uniform #2c2c2c Figma Dark */
 .figjam-dark-context-menu {
   position: absolute;
   top: 0;
   left: calc(100% + 6px);
   width: 204px;
-  background-color: #222222;
-  color: #fff;
+  background-color: #2c2c2c;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.25);
   padding: 5px;
   z-index: 150;
   display: flex;
