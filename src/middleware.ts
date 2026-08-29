@@ -8,7 +8,12 @@ export async function middleware(request: NextRequest) {
     },
   });
 
+  if (process.env.USE_MOCK_DATA === 'true') {
+    return response;
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {

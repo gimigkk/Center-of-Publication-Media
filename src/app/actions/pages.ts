@@ -4,8 +4,14 @@ import { db, schema } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { Page } from '@/types';
+import { requireAdmin } from '@/lib/auth-guard';
+import { isMockEnabled, getMockStore } from '@/lib/mock-store';
 
 export async function getPagesAction(): Promise<Page[]> {
+  if (isMockEnabled()) {
+    return getMockStore().pages;
+  }
+
   if (!db) return [];
   try {
     const records = await db.select().from(schema.pages);
@@ -28,8 +34,6 @@ export async function getPageAction(pageId: string): Promise<Page | null> {
   return pages.find((p) => p.id === pageId) || pages[0] || null;
 }
 
-import { requireAdmin } from '@/lib/auth-guard';
-
 export async function createPageAction(
   name: string,
   description?: string,
@@ -45,6 +49,20 @@ export async function createPageAction(
   const trimmed = name.trim();
   if (!trimmed) {
     return { success: false, error: 'Nama halaman wajib diisi' };
+  }
+
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    const newPage: Page = {
+      id: `page-${Date.now()}`,
+      name: trimmed,
+      description: description?.trim() || null,
+      createdBy: userId || 'mock-user-admin-1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    store.pages.push(newPage);
+    return { success: true, page: newPage };
   }
 
   if (!db || !userId) {
@@ -91,6 +109,17 @@ export async function updatePageAction(
   const trimmed = name.trim();
   if (!trimmed) return { success: false, error: 'Nama halaman tidak boleh kosong' };
 
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    const target = store.pages.find((p) => p.id === pageId);
+    if (target) {
+      target.name = trimmed;
+      target.updatedAt = new Date().toISOString();
+      return { success: true };
+    }
+    return { success: false, error: 'Halaman tidak ditemukan' };
+  }
+
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
   try {
@@ -112,6 +141,15 @@ export async function deletePageAction(pageId: string): Promise<{ success: boole
     return { success: false, error: err instanceof Error ? err.message : 'Akses ditolak' };
   }
 
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    if (store.pages.length <= 1) {
+      return { success: false, error: 'Tidak dapat menghapus satu-satunya halaman yang tersisa' };
+    }
+    store.pages = store.pages.filter((p) => p.id !== pageId);
+    return { success: true };
+  }
+
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
   try {
@@ -127,5 +165,3 @@ export async function deletePageAction(pageId: string): Promise<{ success: boole
     return { success: false, error: e instanceof Error ? e.message : 'Kesalahan database' };
   }
 }
-
-

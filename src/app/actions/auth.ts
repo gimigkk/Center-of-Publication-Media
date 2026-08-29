@@ -8,8 +8,14 @@ import { signupSchema } from '@/lib/validations';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { sendUserSignupEmail, sendUserApprovalEmail } from '@/lib/email';
 import { createNotificationAction } from './notifications';
+import { getAuthenticatedUser, requireAdmin } from '@/lib/auth-guard';
+import { isMockEnabled, getMockStore } from '@/lib/mock-store';
 
 export async function getCurrentUserAction(): Promise<Profile | null> {
+  if (isMockEnabled()) {
+    return getMockStore().currentUser;
+  }
+
   try {
     const supabase = await createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -52,6 +58,10 @@ export async function getCurrentUserAction(): Promise<Profile | null> {
 }
 
 export async function signOutAction(): Promise<{ success: boolean }> {
+  if (isMockEnabled()) {
+    return { success: true };
+  }
+
   try {
     const supabase = await createServerSupabaseClient();
     await supabase.auth.signOut();
@@ -62,8 +72,6 @@ export async function signOutAction(): Promise<{ success: boolean }> {
   }
 }
 
-import { getAuthenticatedUser, requireAdmin } from '@/lib/auth-guard';
-
 export async function updateProfileAction(
   userId: string,
   data: {
@@ -72,12 +80,25 @@ export async function updateProfileAction(
     phoneNumber?: string | null;
   }
 ): Promise<{ success: boolean; profile?: Profile; error?: string }> {
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    if (data.fullName !== undefined) store.currentUser.fullName = data.fullName.trim();
+    if (data.avatarUrl !== undefined) store.currentUser.avatarUrl = data.avatarUrl.trim();
+    if (data.phoneNumber !== undefined) store.currentUser.phoneNumber = data.phoneNumber?.trim() || null;
+    store.currentUser.updatedAt = new Date().toISOString();
+
+    const uIdx = store.users.findIndex((u) => u.id === userId || u.id === store.currentUser.id);
+    if (uIdx !== -1) {
+      store.users[uIdx] = { ...store.currentUser };
+    }
+    return { success: true, profile: store.currentUser };
+  }
+
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
   const sessionUser = await getAuthenticatedUser();
   if (!sessionUser) return { success: false, error: 'Sesi tidak valid' };
 
-  // Authorization check: User can only update their own profile unless they are an admin
   if (sessionUser.id !== userId && sessionUser.role !== 'admin') {
     return { success: false, error: 'Akses ditolak: Anda hanya dapat memperbarui profil sendiri.' };
   }
@@ -124,6 +145,10 @@ export async function updateProfileAction(
 }
 
 export async function getAllUsersAction(): Promise<Profile[]> {
+  if (isMockEnabled()) {
+    return getMockStore().users;
+  }
+
   if (!db) return [];
   try {
     const records = await db.select().from(schema.profiles);
@@ -169,6 +194,17 @@ export async function approveUserAction(
     return { success: false, error: err instanceof Error ? err.message : 'Akses ditolak' };
   }
 
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    const target = store.users.find((u) => u.id === userId);
+    if (target) {
+      target.isApproved = true;
+      if (newRole) target.role = newRole;
+      return { success: true };
+    }
+    return { success: false, error: 'User tidak ditemukan' };
+  }
+
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
   const users = await getAllUsersAction();
@@ -191,7 +227,6 @@ export async function approveUserAction(
 
   if (targetUser) {
     const finalRole = newRole || targetUser.role;
-    // 1. Email notification
     await sendUserApprovalEmail({
       userEmail: targetUser.email,
       userFullName: targetUser.fullName,
@@ -199,7 +234,6 @@ export async function approveUserAction(
       role: finalRole,
     });
 
-    // 2. In-app notification
     await createNotificationAction({
       userId: targetUser.id,
       title: 'Akun Anda Telah Disetujui! 🎉',
@@ -217,6 +251,12 @@ export async function rejectUserAction(userId: string): Promise<{ success: boole
     await requireAdmin();
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : 'Akses ditolak' };
+  }
+
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    store.users = store.users.filter((u) => u.id !== userId);
+    return { success: true };
   }
 
   if (!db) return { success: false, error: 'Database belum terhubung' };
@@ -242,127 +282,128 @@ export async function rejectUserAction(userId: string): Promise<{ success: boole
   return { success: true };
 }
 
-
 export async function signUpUserAction(formData: {
   id?: string;
   fullName: string;
   email: string;
-  phoneNumber?: string | null;
-  password?: string;
-  role: 'requestor' | 'designer';
-  divisionId?: string | null;
-  avatarUrl: string;
-}): Promise<{ success: boolean; profile?: Profile; isApproved?: boolean; error?: string }> {
+  phoneNumber?: string;
+  avatarUrl?: string;
+  role?: UserRole;
+  divisionId?: string;
+}): Promise<{ success: boolean; profile?: Profile; error?: string }> {
   const validation = signupSchema.safeParse(formData);
   if (!validation.success) {
-    return { success: false, error: validation.error.issues[0]?.message || 'Input formulir tidak valid' };
+    return { success: false, error: validation.error.issues[0]?.message || 'Data pendaftaran tidak valid' };
   }
 
-  if (!db) {
-    return { success: false, error: 'Database belum terhubung' };
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    const newUser: Profile = {
+      id: formData.id || `mock-user-${Date.now()}`,
+      email: formData.email.toLowerCase().trim(),
+      fullName: formData.fullName.trim(),
+      phoneNumber: formData.phoneNumber?.trim() || null,
+      avatarUrl: formData.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      role: formData.role || 'requestor',
+      divisionId: formData.divisionId || null,
+      isApproved: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    store.users.push(newUser);
+    return { success: true, profile: newUser };
   }
 
-  const { fullName, email, phoneNumber, role, divisionId, avatarUrl } = validation.data;
-  const profileId = formData.id || crypto.randomUUID();
+  if (!db) return { success: false, error: 'Database belum terhubung' };
 
-  const newProfile: Profile = {
-    id: profileId,
-    email: email.toLowerCase().trim(),
-    fullName: fullName.trim(),
-    phoneNumber: phoneNumber?.trim() || null,
-    avatarUrl: avatarUrl.trim(),
-    role,
-    divisionId: divisionId || null,
-    isApproved: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
+  const { id: clientProvidedId, fullName, email, phoneNumber, avatarUrl, role, divisionId } = formData;
+  const userRole: UserRole = role || 'requestor';
 
   try {
-    const existing = await db
+    const avatar = avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+    const profileId = clientProvidedId || crypto.randomUUID();
+
+    const [existing] = await db
       .select()
       .from(schema.profiles)
-      .where(eq(schema.profiles.email, newProfile.email));
+      .where(eq(schema.profiles.email, email.toLowerCase().trim()));
 
-    if (existing.length > 0) {
-      const existingProfile = existing[0];
-      await db
+    let inserted;
+    if (existing) {
+      [inserted] = await db
         .update(schema.profiles)
         .set({
-          id: newProfile.id,
-          fullName: newProfile.fullName,
-          phoneNumber: newProfile.phoneNumber,
-          avatarUrl: newProfile.avatarUrl,
+          fullName: fullName.trim(),
+          phoneNumber: phoneNumber?.trim() || existing.phoneNumber,
+          avatarUrl: avatar,
+          role: userRole,
+          divisionId: divisionId || existing.divisionId,
           updatedAt: new Date(),
         })
-        .where(eq(schema.profiles.email, newProfile.email));
-
-      return {
-        success: true,
-        isApproved: existingProfile.isApproved,
-        profile: {
-          id: existingProfile.id,
-          email: existingProfile.email,
-          fullName: newProfile.fullName,
-          phoneNumber: newProfile.phoneNumber,
-          avatarUrl: newProfile.avatarUrl,
-          role: existingProfile.role,
-          divisionId: existingProfile.divisionId,
-          isApproved: existingProfile.isApproved,
-          createdAt: existingProfile.createdAt.toISOString(),
-          updatedAt: existingProfile.updatedAt.toISOString(),
-        },
-      };
-
+        .where(eq(schema.profiles.id, existing.id))
+        .returning();
+    } else {
+      [inserted] = await db
+        .insert(schema.profiles)
+        .values({
+          id: profileId,
+          email: email.toLowerCase().trim(),
+          fullName: fullName.trim(),
+          phoneNumber: phoneNumber?.trim() || null,
+          avatarUrl: avatar,
+          role: userRole,
+          divisionId: divisionId || null,
+          isApproved: false,
+        })
+        .returning();
     }
 
-    const [inserted] = await db
-      .insert(schema.profiles)
-      .values({
-        id: newProfile.id,
-        email: newProfile.email,
-        fullName: newProfile.fullName,
-        phoneNumber: newProfile.phoneNumber,
-        avatarUrl: newProfile.avatarUrl,
-        role: newProfile.role,
-        divisionId: newProfile.divisionId,
-        isApproved: false,
-      })
-      .returning();
+    if (!inserted) {
+      return { success: false, error: 'Gagal menyimpan profil pengguna' };
+    }
 
-    newProfile.id = inserted.id;
+    const allUsers = await getAllUsersAction();
+    const adminUsers = allUsers.filter((u) => u.role === 'admin' && u.isApproved);
+    const adminEmails = adminUsers.map((u) => u.email);
+
+    if (adminEmails.length > 0) {
+      await sendUserSignupEmail({
+        newUserFullName: inserted.fullName,
+        newUserEmail: inserted.email,
+        newUserRole: inserted.role,
+        adminEmails,
+      });
+    }
+
+    for (const admin of adminUsers) {
+      await createNotificationAction({
+        userId: admin.id,
+        title: 'Pendaftaran Akun Baru',
+        message: `${inserted.fullName} (${inserted.email}) telah mendaftar sebagai ${inserted.role}.`,
+        type: 'user_signup_pending',
+      });
+    }
+
+
+    revalidatePath('/');
+    return {
+      success: true,
+      profile: {
+        id: inserted.id,
+        email: inserted.email,
+        fullName: inserted.fullName,
+        phoneNumber: inserted.phoneNumber,
+        avatarUrl: inserted.avatarUrl,
+        role: inserted.role,
+        divisionId: inserted.divisionId,
+        isApproved: inserted.isApproved,
+        createdAt: inserted.createdAt.toISOString(),
+        updatedAt: inserted.updatedAt.toISOString(),
+      },
+    };
   } catch (e: unknown) {
-    return { success: false, error: e instanceof Error ? e.message : 'Kesalahan saat menyimpan profil' };
+    console.error('Sign up user profile error:', e);
+    const msg = e instanceof Error ? e.message : 'Kesalahan database';
+    return { success: false, error: msg };
   }
-
-
-
-  // 1. Notify all Admins via Email
-  const allUsers = await getAllUsersAction();
-  const adminEmails = allUsers.filter((u) => u.role === 'admin').map((u) => u.email);
-  await sendUserSignupEmail({
-    newUserFullName: newProfile.fullName,
-    newUserEmail: newProfile.email,
-    newUserRole: newProfile.role,
-    adminEmails,
-  });
-
-  // 2. Dispatch In-App Notification to Admins
-  const adminUsers = allUsers.filter((u) => u.role === 'admin');
-  for (const admin of adminUsers) {
-    await createNotificationAction({
-      userId: admin.id,
-      title: 'Pendaftaran Anggota Baru',
-      message: `${newProfile.fullName} (${newProfile.email}) mendaftar sebagai ${newProfile.role}`,
-      type: 'user_signup_pending',
-      actorId: newProfile.id,
-      actorName: newProfile.fullName,
-      actorAvatar: newProfile.avatarUrl,
-    });
-  }
-
-  revalidatePath('/');
-  return { success: true, isApproved: false, profile: newProfile };
 }
-
-

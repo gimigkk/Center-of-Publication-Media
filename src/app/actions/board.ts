@@ -5,6 +5,8 @@ import { eq, inArray, and } from 'drizzle-orm';
 import { Profile, Page, Division, Job, AppNotification, NotificationType } from '@/types';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+import { isMockEnabled, getMockStore } from '@/lib/mock-store';
+
 export interface InitialBoardData {
   currentUser: Profile | null;
   allUsers: Profile[];
@@ -18,7 +20,39 @@ export interface InitialBoardData {
 }
 
 export async function getInitialBoardDataAction(): Promise<InitialBoardData | null> {
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    const currentPage = store.pages[0] || null;
+    const initialJobs = currentPage ? store.jobs.filter((j) => j.pageId === currentPage.id) : store.jobs;
+    const pendingUsers = store.users.filter((u) => !u.isApproved);
+    const designers = store.users.filter((u) => u.isApproved && (u.role === 'designer' || u.role === 'admin'));
+    const designerSuggestions = designers
+      .map((d) => ({
+        designer: d,
+        activeWipCount: store.jobs.filter(
+          (j) =>
+            !j.isArchived &&
+            (j.status === 'wip' || j.status === 'revisions') &&
+            (j.designerIds?.includes(d.id) || j.designerId === d.id)
+        ).length,
+      }))
+      .sort((a, b) => a.activeWipCount - b.activeWipCount);
+
+    return {
+      currentUser: store.currentUser,
+      allUsers: store.users,
+      pages: store.pages,
+      currentPage,
+      divisions: store.divisions,
+      initialJobs,
+      pendingUsers,
+      designerSuggestions,
+      notifications: store.notifications,
+    };
+  }
+
   if (!db) return null;
+
 
   try {
     const supabase = await createServerSupabaseClient();

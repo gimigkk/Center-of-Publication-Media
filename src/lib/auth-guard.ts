@@ -2,13 +2,19 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { db, schema } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { Profile } from '@/types';
+import { isMockEnabled, getMockStore } from '@/lib/mock-store';
 
 /**
  * Validates the caller's session from request cookies and returns the active approved Profile.
  * Returns null if unauthenticated or not approved.
  */
 export async function getAuthenticatedUser(): Promise<Profile | null> {
+  if (isMockEnabled()) {
+    return getMockStore().currentUser;
+  }
+
   if (!db) return null;
+
   try {
     const supabase = await createServerSupabaseClient();
     const {

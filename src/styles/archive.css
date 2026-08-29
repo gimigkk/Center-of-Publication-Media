@@ -473,51 +473,52 @@
     margin-top: 20px;
   }
 
+  /* Title on Row 1, Search + Filter on Row 2 by themselves */
   .archive-top-bar {
     display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: stretch;
     gap: 8px;
-    flex-wrap: nowrap;
   }
 
   .archive-title-group {
-    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
   }
 
   .archive-main-title {
-    font-size: 12px;
+    font-size: 13px;
   }
 
+  /* Row 2: Search + Division filter in 1 row by themselves */
   .archive-controls-group {
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 6px;
-    flex-wrap: nowrap;
-    flex: 1;
-    justify-content: flex-end;
-    min-width: 0;
+    gap: 8px;
+    width: 100%;
   }
 
   .archive-search-box {
     flex: 1;
     min-width: 0;
-    max-width: 140px;
-    height: 28px;
-    padding: 0 6px;
+    max-width: none;
+    height: 32px;
+    padding: 0 8px;
   }
 
   .archive-search-input {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .archive-select {
-    height: 28px;
-    max-width: 110px;
-    padding: 0 4px;
-    font-size: 10.5px;
+    height: 32px;
+    min-width: 130px;
+    max-width: 155px;
+    padding: 0 8px;
+    font-size: 11.5px;
     flex-shrink: 0;
   }
 
@@ -539,5 +540,6 @@
     font-size: 10.5px;
   }
 }
+
 
 

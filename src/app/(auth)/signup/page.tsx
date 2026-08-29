@@ -98,12 +98,13 @@ export default function SignupPage() {
         id: authUserId,
         fullName: fullName.trim(),
         email: cleanEmail,
-        phoneNumber: phoneNumber.trim() || null,
-        password,
+        phoneNumber: phoneNumber.trim() || undefined,
         role,
-        divisionId: role === 'requestor' ? divisionId : null,
+        divisionId: role === 'requestor' ? divisionId : undefined,
         avatarUrl: avatarPreview,
       });
+
+
 
       if (res.success) {
         setIsSubmittedPending(true);

@@ -4,8 +4,14 @@ import { db, schema } from '@/lib/db';
 import { eq, desc } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { AppNotification, NotificationType } from '@/types';
+import { isMockEnabled, getMockStore } from '@/lib/mock-store';
 
 export async function getNotificationsAction(userId?: string): Promise<AppNotification[]> {
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    return userId ? store.notifications.filter((n) => n.userId === userId) : store.notifications;
+  }
+
   if (!db) return [];
 
   try {
@@ -65,6 +71,27 @@ export async function createNotificationAction({
   actorAvatar?: string | null;
   note?: string | null;
 }): Promise<{ success: boolean; notification?: AppNotification; error?: string }> {
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    const notif: AppNotification = {
+      id: `notif-${Date.now()}`,
+      userId,
+      title,
+      message,
+      type,
+      jobId: jobId || undefined,
+      jobTitle: jobTitle || undefined,
+      actorId: actorId || undefined,
+      actorName: actorName || undefined,
+      actorAvatar: actorAvatar || undefined,
+      note: note || undefined,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+    };
+    store.notifications.unshift(notif);
+    return { success: true, notification: notif };
+  }
+
   if (!db) {
     return { success: false, error: 'Database belum terhubung' };
   }
@@ -111,6 +138,13 @@ export async function createNotificationAction({
 }
 
 export async function markAsReadAction(notificationId: string): Promise<{ success: boolean }> {
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    const target = store.notifications.find((n) => n.id === notificationId);
+    if (target) target.isRead = true;
+    return { success: true };
+  }
+
   if (!db) return { success: false };
 
   try {
@@ -127,6 +161,14 @@ export async function markAsReadAction(notificationId: string): Promise<{ succes
 }
 
 export async function markAllAsReadAction(userId?: string): Promise<{ success: boolean }> {
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    store.notifications.forEach((n) => {
+      if (!userId || n.userId === userId) n.isRead = true;
+    });
+    return { success: true };
+  }
+
   if (!db || !userId) return { success: false };
 
   try {
@@ -143,6 +185,16 @@ export async function markAllAsReadAction(userId?: string): Promise<{ success: b
 }
 
 export async function clearNotificationsAction(userId?: string): Promise<{ success: boolean }> {
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    if (userId) {
+      store.notifications = store.notifications.filter((n) => n.userId !== userId);
+    } else {
+      store.notifications = [];
+    }
+    return { success: true };
+  }
+
   if (!db || !userId) return { success: false };
 
   try {
@@ -153,4 +205,3 @@ export async function clearNotificationsAction(userId?: string): Promise<{ succe
     return { success: false };
   }
 }
-

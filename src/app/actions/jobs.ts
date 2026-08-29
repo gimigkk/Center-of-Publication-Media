@@ -10,12 +10,17 @@ import { fetchGoogleDocTitle } from '@/lib/gdocs';
 import { getAllUsersAction } from './auth';
 import { getDivisionsAction } from './divisions';
 import { createNotificationAction } from './notifications';
+import { isMockEnabled, getMockStore } from '@/lib/mock-store';
 
 export async function fetchGoogleDocTitleAction(url: string): Promise<string | null> {
   return await fetchGoogleDocTitle(url);
 }
 
 export async function getJobsAction(pageId: string): Promise<Job[]> {
+  if (isMockEnabled()) {
+    return getMockStore().jobs.filter((j) => j.pageId === pageId);
+  }
+
   if (!db) return [];
 
   const users = await getAllUsersAction();
@@ -101,12 +106,49 @@ export async function createJobAction(formData: {
     return { success: false, error: validation.error.issues[0]?.message || 'Input formulir tidak valid' };
   }
 
+  const { pageId, title, description, briefLink, divisionId, publicationMedia, deadline } =
+    validation.data;
+
+  // Try auto-fetching Google Doc title if not explicitly provided
+  let fetchedTitle = formData.briefTitle;
+  if (!fetchedTitle) {
+    fetchedTitle = (await fetchGoogleDocTitle(briefLink)) || `${title.trim()} - Brief Kreatif`;
+  }
+
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    const div = store.divisions.find((d) => d.id === divisionId);
+    const req = store.users.find((u) => u.id === formData.requestorId) || store.currentUser;
+    const newJob: Job = {
+      id: `mock-job-${Date.now()}`,
+      pageId,
+      title: title.trim(),
+      description: description?.trim() || null,
+      briefLink: briefLink.trim(),
+      briefTitle: fetchedTitle,
+      divisionId,
+      divisionName: div?.name || 'Umum',
+      publicationMedia: publicationMedia.trim(),
+      deadline: new Date(deadline).toISOString(),
+      status: 'in_queue',
+      kanbanOrder: 0,
+      requestorId: req.id,
+      requestor: req,
+      designerId: null,
+      designer: null,
+      designerIds: [],
+      designers: [],
+      isArchived: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    store.jobs.unshift(newJob);
+    return { success: true, job: newJob };
+  }
+
   if (!db) {
     return { success: false, error: 'Database belum terhubung' };
   }
-
-  const { pageId, title, description, briefLink, divisionId, publicationMedia, deadline } =
-    validation.data;
 
   const users = await getAllUsersAction();
   const divisions = await getDivisionsAction();
@@ -116,12 +158,6 @@ export async function createJobAction(formData: {
   const requestor = userMap.get(formData.requestorId) || users[0];
   if (!requestor) {
     return { success: false, error: 'User requestor tidak valid' };
-  }
-
-  // Try auto-fetching Google Doc title if not explicitly provided
-  let fetchedTitle = formData.briefTitle;
-  if (!fetchedTitle) {
-    fetchedTitle = (await fetchGoogleDocTitle(briefLink)) || `${title.trim()} - Brief Kreatif`;
   }
 
   const newJobId = crypto.randomUUID();
@@ -192,16 +228,16 @@ export async function createJobAction(formData: {
       });
     }
 
-
     // 2. Dispatch In-App Notification to Admins
     const adminUsers = users.filter((u) => u.role === 'admin');
     for (const admin of adminUsers) {
       await createNotificationAction({
         userId: admin.id,
-        title: 'Request COPM Baru Diajukan',
-        message: `${requestor.fullName} mengajukan request baru: "${newJob.title}"`,
+        title: 'Request Job Baru',
+        message: `${requestor.fullName} mengajukan job: "${newJob.title}"`,
         type: 'job_created',
         jobId: newJob.id,
+
         jobTitle: newJob.title,
         actorId: requestor.id,
         actorName: requestor.fullName,
@@ -213,7 +249,8 @@ export async function createJobAction(formData: {
     revalidatePath('/');
     return { success: true, job: newJob };
   } catch (e: unknown) {
-    return { success: false, error: e instanceof Error ? e.message : 'Gagal membuat job' };
+    const msg = e instanceof Error ? e.message : 'Kesalahan database';
+    return { success: false, error: msg };
   }
 }
 
@@ -223,27 +260,41 @@ export async function moveJobAction(
   actor: Profile,
   note?: string
 ): Promise<{ success: boolean; error?: string }> {
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    const target = store.jobs.find((j) => j.id === jobId);
+    if (target) {
+      target.status = toStatus;
+      target.updatedAt = new Date().toISOString();
+      return { success: true };
+    }
+    return { success: false, error: 'Job tidak ditemukan' };
+  }
+
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
-  const [currentRecord] = await db.select().from(schema.jobs).where(eq(schema.jobs.id, jobId));
+  const [currentRecord] = await db
+    .select()
+    .from(schema.jobs)
+    .where(eq(schema.jobs.id, jobId));
+
   if (!currentRecord) {
     return { success: false, error: 'Job tidak ditemukan' };
   }
 
   const fromStatus = currentRecord.status;
-  if (fromStatus === toStatus) return { success: true };
 
-  // Role Permissions Check:
-  // Admin: can do anything
-  // Designer: can move their own assigned jobs from wip -> revisions
-  // Requestor: can move their own jobs in revisions (revisions -> wip, or revisions -> done)
+  // Strict role check for status transitions
   if (actor.role !== 'admin') {
     if (actor.role === 'designer') {
       if (currentRecord.designerId !== actor.id) {
-        return { success: false, error: 'Anda hanya dapat memindahkan job yang ditugaskan kepada Anda.' };
+        return { success: false, error: 'Hanya desainer yang ditugaskan yang dapat memperbarui status job ini.' };
       }
-      if (fromStatus !== 'wip' || toStatus !== 'revisions') {
-        return { success: false, error: 'Desainer hanya dapat mengirim pekerjaan untuk Revisi.' };
+      if (fromStatus === 'in_queue' && toStatus !== 'wip') {
+        return { success: false, error: 'Desainer hanya dapat memindahkan job dari Antrian ke Sedang Dikerjakan.' };
+      }
+      if (fromStatus === 'wip' && toStatus !== 'revisions') {
+        return { success: false, error: 'Desainer hanya dapat mengirim job ke Revisi untuk ditinjau Requester.' };
       }
     } else if (actor.role === 'requestor') {
       if (currentRecord.requestorId !== actor.id) {
@@ -373,6 +424,26 @@ export async function setJobDesignersAction(
     return { success: false, error: 'Hanya admin yang dapat menugaskan desainer' };
   }
 
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    const target = store.jobs.find((j) => j.id === jobId);
+    if (target) {
+      const designersList = designerIds
+        .map((id) => store.users.find((u) => u.id === id))
+        .filter(Boolean) as Profile[];
+      target.designerIds = designerIds;
+      target.designerId = designerIds[0] || null;
+      target.designers = designersList;
+      target.designer = designersList[0] || null;
+      if (target.status === 'in_queue' && designerIds.length > 0) {
+        target.status = 'wip';
+      }
+      target.updatedAt = new Date().toISOString();
+      return { success: true };
+    }
+    return { success: false, error: 'Job tidak ditemukan' };
+  }
+
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
   const [currentJob] = await db.select().from(schema.jobs).where(eq(schema.jobs.id, jobId));
@@ -399,7 +470,6 @@ export async function setJobDesignersAction(
       })
       .where(eq(schema.jobs.id, jobId));
 
-    // Sync job_designers join table
     await db.delete(schema.jobDesigners).where(eq(schema.jobDesigners.jobId, jobId));
     if (designerIds.length > 0) {
       await db.insert(schema.jobDesigners).values(
@@ -439,7 +509,6 @@ export async function setJobDesignersAction(
       note: `Ditugaskan kepada editor: ${designerNames}`,
     });
 
-    // In-app notifications to newly assigned designers
     for (const d of designersList) {
       if (d.id !== actor.id) {
         await createNotificationAction({
@@ -455,30 +524,29 @@ export async function setJobDesignersAction(
         });
       }
     }
-
-    // Notify requestor
-    if (requestor && requestor.id !== actor.id) {
-      await createNotificationAction({
-        userId: requestor.id,
-        title: 'Editor Ditugaskan',
-        message: `Job "${currentJob.title}" telah ditugaskan kepada ${designerNames}`,
-        type: 'job_assigned',
-        jobId: currentJob.id,
-        jobTitle: currentJob.title,
-        actorId: actor.id,
-        actorName: actor.fullName,
-        actorAvatar: actor.avatarUrl,
-      });
-    }
   }
 
   revalidatePath('/');
   return { success: true };
 }
 
-export async function getDesignerSuggestionsAction(): Promise<
-  { designer: Profile; activeWipCount: number }[]
-> {
+export async function getDesignerWorkloadsAction(): Promise<{ designer: Profile; activeWipCount: number }[]> {
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    const designers = store.users.filter((u) => u.isApproved && (u.role === 'designer' || u.role === 'admin'));
+    return designers
+      .map((d) => ({
+        designer: d,
+        activeWipCount: store.jobs.filter(
+          (j) =>
+            !j.isArchived &&
+            (j.status === 'wip' || j.status === 'revisions') &&
+            (j.designerIds?.includes(d.id) || j.designerId === d.id)
+        ).length,
+      }))
+      .sort((a, b) => a.activeWipCount - b.activeWipCount);
+  }
+
   const users = await getAllUsersAction();
   const designers = users.filter((u) => u.isApproved && (u.role === 'designer' || u.role === 'admin'));
 
@@ -490,7 +558,12 @@ export async function getDesignerSuggestionsAction(): Promise<
     const activeJobs = await db
       .select()
       .from(schema.jobs)
-      .where(and(eq(schema.jobs.isArchived, false), inArray(schema.jobs.status, ['wip', 'revisions'])));
+      .where(
+        and(
+          eq(schema.jobs.isArchived, false),
+          inArray(schema.jobs.status, ['wip', 'revisions'])
+        )
+      );
 
     const wipCountMap = new Map<string, number>();
     designers.forEach((d) => wipCountMap.set(d.id, 0));
@@ -531,6 +604,18 @@ export async function archiveJobAction(
   jobId: string,
   actor: Profile
 ): Promise<{ success: boolean; error?: string }> {
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    const target = store.jobs.find((j) => j.id === jobId);
+    if (target) {
+      target.isArchived = true;
+      target.archivedAt = new Date().toISOString();
+      target.updatedAt = new Date().toISOString();
+      return { success: true };
+    }
+    return { success: false, error: 'Job tidak ditemukan' };
+  }
+
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
   try {
@@ -565,6 +650,18 @@ export async function unarchiveJobAction(
   jobId: string,
   actor: Profile
 ): Promise<{ success: boolean; error?: string }> {
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    const target = store.jobs.find((j) => j.id === jobId);
+    if (target) {
+      target.isArchived = false;
+      target.archivedAt = null;
+      target.updatedAt = new Date().toISOString();
+      return { success: true };
+    }
+    return { success: false, error: 'Job tidak ditemukan' };
+  }
+
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
   try {
@@ -599,6 +696,20 @@ export async function archiveAllDoneJobsAction(
   pageId: string,
   actor: Profile
 ): Promise<{ success: boolean; archivedCount?: number; error?: string }> {
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    let count = 0;
+    store.jobs.forEach((j) => {
+      if (j.pageId === pageId && j.status === 'done' && !j.isArchived) {
+        j.isArchived = true;
+        j.archivedAt = new Date().toISOString();
+        j.updatedAt = new Date().toISOString();
+        count++;
+      }
+    });
+    return { success: true, archivedCount: count };
+  }
+
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
   try {
@@ -638,3 +749,6 @@ export async function archiveAllDoneJobsAction(
     return { success: false, error: e instanceof Error ? e.message : 'Gagal mengarsipkan job selesai' };
   }
 }
+
+export const getDesignerSuggestionsAction = getDesignerWorkloadsAction;
+
