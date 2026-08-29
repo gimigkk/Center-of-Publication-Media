@@ -2,17 +2,14 @@
 
 import React, { useState, useMemo } from 'react';
 import { Job, Profile, Division } from '@/types';
-import { Avatar } from '@/components/ui/Avatar';
-import { GoogleDocsIcon } from '@/components/ui/GoogleDocsIcon';
-import { formatDate } from '@/lib/utils';
+import { Search, Layers } from 'lucide-react';
 import {
-  Search,
-  ArrowUpDown,
-  Layers,
-  Calendar,
-  User,
-  Palette,
-} from 'lucide-react';
+  ArchiveTableHeader,
+  SortField,
+  SortOrder,
+} from './archive/ArchiveTableHeader';
+import { ArchiveTableRow } from './archive/ArchiveTableRow';
+import { ArchiveMobileCard } from './archive/ArchiveMobileCard';
 
 interface ArchiveTableProps {
   archivedJobs: Job[];
@@ -20,9 +17,6 @@ interface ArchiveTableProps {
   divisions: Division[];
   onCardClick: (job: Job) => void;
 }
-
-type SortField = 'title' | 'deadline' | 'division' | 'archivedAt';
-type SortOrder = 'asc' | 'desc';
 
 export const ArchiveTable = React.memo(function ArchiveTable({
   archivedJobs,
@@ -35,7 +29,9 @@ export const ArchiveTable = React.memo(function ArchiveTable({
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
   const sortedDivisions = useMemo(() => {
-    return [...divisions].sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
+    return [...divisions].sort((a, b) =>
+      a.name.localeCompare(b.name, 'id', { sensitivity: 'base' })
+    );
   }, [divisions]);
 
   // Filter archived jobs
@@ -103,14 +99,11 @@ export const ArchiveTable = React.memo(function ArchiveTable({
       <div className="archive-top-bar">
         <div className="archive-title-group">
           <h3 className="archive-main-title">Tabel Arsip COPM</h3>
-          <span className="archive-count-badge">
-            {sortedJobs.length} request
-          </span>
+          <span className="archive-count-badge">{sortedJobs.length} request</span>
         </div>
 
         {/* Toolbar controls (Search + Division in 1 row) */}
         <div className="archive-controls-group">
-          {/* Search box */}
           <div className="archive-search-box">
             <Search size={12} color="var(--text-tertiary)" />
             <input
@@ -122,7 +115,6 @@ export const ArchiveTable = React.memo(function ArchiveTable({
             />
           </div>
 
-          {/* Division Filter */}
           <select
             value={selectedDivision}
             onChange={(e) => setSelectedDivision(e.target.value)}
@@ -143,150 +135,16 @@ export const ArchiveTable = React.memo(function ArchiveTable({
         {/* Desktop View: Multi-column Table */}
         <div className="archive-table-desktop">
           <table className="archive-table">
-            <thead>
-              <tr>
-                <th className="archive-th" style={{ width: '40px', textAlign: 'center' }}>
-                  #
-                </th>
-                <th className="archive-th sortable" onClick={() => handleSort('title')}>
-                  <div className="archive-th-inner">
-                    <span>Tugas</span>
-                    <ArrowUpDown size={11} style={{ opacity: sortField === 'title' ? 1 : 0.4 }} />
-                  </div>
-                </th>
-                <th className="archive-th">Penanggung Jawab</th>
-                <th className="archive-th">Requester</th>
-                <th className="archive-th sortable" onClick={() => handleSort('division')}>
-                  <div className="archive-th-inner">
-                    <span>Dari / Divisi</span>
-                    <ArrowUpDown size={11} style={{ opacity: sortField === 'division' ? 1 : 0.4 }} />
-                  </div>
-                </th>
-                <th className="archive-th sortable" onClick={() => handleSort('deadline')}>
-                  <div className="archive-th-inner">
-                    <span>Deadline</span>
-                    <ArrowUpDown size={11} style={{ opacity: sortField === 'deadline' ? 1 : 0.4 }} />
-                  </div>
-                </th>
-                <th className="archive-th">Brief</th>
-              </tr>
-            </thead>
-
+            <ArchiveTableHeader sortField={sortField} onSort={handleSort} />
             <tbody>
-              {sortedJobs.map((job, idx) => {
-                const assignedDesigners: Profile[] =
-                  job.designers && job.designers.length > 0
-                    ? job.designers
-                    : job.designer
-                      ? [job.designer]
-                      : [];
-
-                return (
-                  <tr
-                    key={job.id}
-                    className="archive-tr"
-                    onClick={() => onCardClick(job)}
-                  >
-                    {/* Index */}
-                    <td
-                      className="archive-td"
-                      style={{
-                        textAlign: 'center',
-                        color: 'var(--text-tertiary)',
-                        fontSize: '11px',
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
-                      {idx + 1}
-                    </td>
-
-                    {/* Task Title + Snippet */}
-                    <td className="archive-td">
-                      <div className="archive-task-title-group">
-                        <span className="archive-task-title">{job.title}</span>
-                        {job.description && (
-                          <span className="archive-task-desc">{job.description}</span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Person In Charge (Editors) */}
-                    <td className="archive-td">
-                      <div className="archive-people-group">
-                        {assignedDesigners.length > 0 ? (
-                          assignedDesigners.map((designer) => (
-                            <div
-                              key={designer.id}
-                              className="archive-person-chip"
-                              title={`Editor: ${designer.fullName} (${designer.email})`}
-                            >
-                              <Avatar
-                                src={designer.avatarUrl}
-                                name={designer.fullName}
-                                size={16}
-                              />
-                              <span>{designer.fullName.split(' ')[0]}</span>
-                            </div>
-                          ))
-                        ) : (
-                          <span style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}>
-                            Belum Ditugaskan
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Requestor */}
-                    <td className="archive-td">
-                      <div
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                        }}
-                        title={`Requester: ${job.requestor?.fullName || 'Anonim'}`}
-                      >
-                        <Avatar
-                          src={job.requestor?.avatarUrl}
-                          name={job.requestor?.fullName || 'Requester'}
-                          size={18}
-                        />
-                        <span style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>
-                          {job.requestor?.fullName.split(' ')[0] || 'Anonim'}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Division / From */}
-                    <td className="archive-td">
-                      <span className="archive-division-badge">
-                        {job.divisionName || 'Umum'}
-                      </span>
-                    </td>
-
-                    {/* Due Date */}
-                    <td className="archive-td">
-                      <div className="archive-due-group">
-                        <span className="archive-due-date">{formatDate(job.deadline)}</span>
-                      </div>
-                    </td>
-
-                    {/* Brief Link */}
-                    <td className="archive-td" onClick={(e) => e.stopPropagation()}>
-                      <a
-                        href={job.briefLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="archive-brief-btn"
-                        title="Buka Brief Google Docs"
-                      >
-                        <GoogleDocsIcon size={12} />
-                        <span>Brief</span>
-                      </a>
-                    </td>
-                  </tr>
-                );
-              })}
+              {sortedJobs.map((job, idx) => (
+                <ArchiveTableRow
+                  key={job.id}
+                  job={job}
+                  index={idx}
+                  onCardClick={onCardClick}
+                />
+              ))}
 
               {sortedJobs.length === 0 && (
                 <tr>
@@ -311,90 +169,9 @@ export const ArchiveTable = React.memo(function ArchiveTable({
 
         {/* Mobile / Tablet Responsive View: Vertical Card Table */}
         <div className="archive-cards-mobile">
-          {sortedJobs.map((job) => {
-            const assignedDesigners: Profile[] =
-              job.designers && job.designers.length > 0
-                ? job.designers
-                : job.designer
-                  ? [job.designer]
-                  : [];
-
-            return (
-              <div
-                key={job.id}
-                className="archive-mobile-card"
-                onClick={() => onCardClick(job)}
-              >
-                {/* Header Row: Title + Division Badge */}
-                <div className="archive-mobile-card-header">
-                  <span className="archive-mobile-card-title">{job.title}</span>
-                  <span className="archive-division-badge">
-                    {job.divisionName || 'Umum'}
-                  </span>
-                </div>
-
-                {job.description && (
-                  <p className="archive-mobile-card-desc">{job.description}</p>
-                )}
-
-                {/* Middle Info Row: Requester & Editor */}
-                <div className="archive-mobile-card-people">
-                  <div className="archive-mobile-person-item" title="Requester">
-                    <User size={12} color="var(--text-tertiary)" />
-                    <Avatar
-                      src={job.requestor?.avatarUrl}
-                      name={job.requestor?.fullName || 'Requester'}
-                      size={16}
-                    />
-                    <span className="archive-mobile-person-name">
-                      {job.requestor?.fullName || 'Anonim'}
-                    </span>
-                  </div>
-
-                  <div className="archive-mobile-person-item" title="Editor">
-                    <Palette size={12} color="var(--text-tertiary)" />
-                    {assignedDesigners.length > 0 ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Avatar
-                          src={assignedDesigners[0].avatarUrl}
-                          name={assignedDesigners[0].fullName}
-                          size={16}
-                        />
-                        <span className="archive-mobile-person-name">
-                          {assignedDesigners.map((d) => d.fullName.split(' ')[0]).join(', ')}
-                        </span>
-                      </div>
-                    ) : (
-                      <span style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}>
-                        Belum Ditugaskan
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Footer Row: Deadline + Brief Button */}
-                <div className="archive-mobile-card-footer">
-                  <div className="archive-mobile-deadline">
-                    <Calendar size={12} color="var(--text-tertiary)" />
-                    <span>{formatDate(job.deadline)}</span>
-                  </div>
-
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <a
-                      href={job.briefLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="archive-brief-btn"
-                      title="Buka Brief Google Docs"
-                    >
-                      <GoogleDocsIcon size={12} />
-                      <span>Brief Google Docs</span>
-                    </a>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {sortedJobs.map((job) => (
+            <ArchiveMobileCard key={job.id} job={job} onCardClick={onCardClick} />
+          ))}
 
           {sortedJobs.length === 0 && (
             <div className="archive-empty-state">

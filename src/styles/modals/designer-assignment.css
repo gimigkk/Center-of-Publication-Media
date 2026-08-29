@@ -1,0 +1,280 @@
+/* ==========================================================================
+   ASSIGN / REASSIGN DESIGNER DROPDOWN POPOVER & WORKLOAD PILLS
+   ========================================================================== */
+
+.assign-dropdown-popover {
+  position: absolute;
+  z-index: 1050;
+  width: 310px;
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16), 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: popoverIn 120ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  user-select: none;
+  text-align: left;
+}
+
+.assign-dropdown-popover.is-closing {
+  animation: popoverOut 110ms ease forwards;
+}
+
+.assign-dropdown-popover.position-top-right {
+  bottom: calc(100% + 8px);
+  right: 0;
+}
+
+.assign-dropdown-popover.position-top-left {
+  bottom: calc(100% + 8px);
+  left: 0;
+}
+
+.assign-dropdown-popover.position-bottom-left {
+  top: calc(100% + 6px);
+  left: 0;
+}
+
+.assign-dropdown-popover.position-bottom-right {
+  top: calc(100% + 6px);
+  right: 0;
+}
+
+.assign-dropdown-popover.position-modal-left {
+  position: relative;
+  right: auto;
+  top: auto;
+  bottom: auto;
+  left: auto;
+  height: fit-content;
+  width: 240px;
+  min-width: 240px;
+  max-width: 240px;
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  gap: 6px;
+  flex-shrink: 0;
+  order: -1; /* Place BEFORE (left of) the detail card on desktop */
+}
+
+.assign-dropdown-popover.position-modal-left .assign-dropdown-list {
+  flex: 1;
+  min-height: 0;
+  gap: 2px;
+}
+
+.assign-dropdown-popover.position-modal-left .assign-dropdown-item {
+  padding: 5px 6px;
+}
+
+@keyframes popoverLeftIn {
+  from {
+    opacity: 0;
+    transform: translateX(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes popoverLeftOut {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(10px) scale(0.98);
+  }
+}
+
+.assign-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px 6px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.assign-dropdown-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.assign-dropdown-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.1px;
+}
+
+.assign-dropdown-subtitle {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.assign-dropdown-close {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  background: transparent;
+  cursor: pointer;
+  border: none;
+}
+
+.assign-dropdown-close:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+}
+
+.assign-dropdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 230px;
+  overflow-y: auto;
+}
+
+.assign-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 100ms ease, border-color 100ms ease;
+  gap: 8px;
+}
+
+.assign-dropdown-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.assign-dropdown-item.submitting {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Custom checklist box for multi-editor assignment */
+.assign-checkbox {
+  width: 15px;
+  height: 15px;
+  border-radius: var(--radius-xs);
+  border: 1.5px solid rgba(0, 0, 0, 0.22);
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 100ms ease;
+  color: #ffffff;
+}
+
+.assign-checkbox.checked {
+  background-color: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+.assign-dropdown-item:hover .assign-checkbox:not(.checked) {
+  border-color: rgba(0, 0, 0, 0.4);
+}
+
+.assign-count-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: var(--radius-full);
+  background-color: var(--accent-blue-light);
+  color: var(--accent-blue-text);
+  margin-left: 4px;
+}
+
+.assign-dropdown-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.assign-dropdown-item-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.assign-dropdown-item-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.assign-dropdown-item-email {
+  font-size: 10px;
+  color: var(--text-secondary);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.assign-dropdown-item-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.workload-pill {
+  font-size: 10.5px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  background-color: rgba(0, 0, 0, 0.04);
+  color: var(--text-secondary);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  white-space: nowrap;
+}
+
+.workload-pill.busy {
+  background-color: var(--accent-orange-light);
+  color: var(--accent-orange-text);
+  border-color: rgba(255, 114, 98, 0.15);
+}
+
+.recommended-badge {
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 2px 5px;
+  border-radius: var(--radius-xs);
+  background-color: rgba(0, 0, 0, 0.04);
+  color: var(--text-secondary);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}

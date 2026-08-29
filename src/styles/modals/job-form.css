@@ -1,0 +1,172 @@
+/* ==========================================================================
+   Job Form Modal & Figma-Grade Rules Sidebar Panel
+   ========================================================================== */
+
+.modal-dual-form-card {
+  max-width: 480px;
+}
+
+.modal-form-body {
+  padding: 14px 16px;
+}
+
+.form-row-dual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .form-row-dual {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+/* Figma-Grade Rules Sidebar Panel */
+.copm-rules-sidebar-panel {
+  width: 100%;
+  max-width: 480px;
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+@media (min-width: 840px) {
+  .copm-rules-sidebar-panel {
+    width: 280px;
+    min-width: 280px;
+    max-width: 280px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+}
+
+.copm-rules-sidebar-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background-color: #fafafa;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.copm-rules-sidebar-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.copm-rules-policy-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  background-color: var(--accent-purple-light);
+  color: var(--accent-purple-text);
+}
+
+.copm-rules-sidebar-body {
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+@media (min-width: 840px) {
+  .copm-rules-sidebar-body {
+    padding: 6px 0;
+  }
+}
+
+.copm-rule-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  transition: background-color 100ms ease;
+}
+
+.copm-rule-row:last-child {
+  border-bottom: none;
+}
+
+.copm-rule-row:hover {
+  background-color: #f8fafc;
+}
+
+.copm-rule-index {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #94a3b8;
+  padding-top: 1px;
+  flex-shrink: 0;
+}
+
+.copm-rule-content {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #334155;
+  flex: 1;
+}
+
+.copm-rule-content strong {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.copm-rule-wa-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #0d99ff;
+  font-weight: 500;
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(13, 153, 255, 0.4);
+  transition: all 100ms ease;
+}
+
+.copm-rule-wa-link:hover {
+  color: #007be5;
+  border-bottom-style: solid;
+}
+
+/* Mandatory Rules Checkbox */
+.copm-rules-checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  background-color: #fafafa;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  user-select: none;
+  transition: all 100ms ease;
+  margin-top: 2px;
+}
+
+.copm-rules-checkbox-container:hover {
+  background-color: #f4f4f5;
+  border-color: rgba(0, 0, 0, 0.14);
+}
+
+.copm-rules-checkbox-container.checked {
+  background-color: rgba(13, 153, 255, 0.04);
+  border-color: rgba(13, 153, 255, 0.3);
+}
+
+.copm-rules-checkbox-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #18181b;
+  line-height: 1.4;
+}

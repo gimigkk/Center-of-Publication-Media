@@ -1,0 +1,315 @@
+/* ==========================================================================
+   Figma-Grade Job Detail Modal
+   ========================================================================== */
+
+.modal-dual-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 96vw;
+  animation: scaleUp 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  margin: auto;
+}
+
+@media (min-width: 840px) {
+  .modal-dual-container {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+.modal-dual-container.is-closing {
+  animation: scaleDown 130ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.figma-detail-card {
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.04);
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.figma-detail-card.is-closing {
+  animation: scaleDown 130ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.simple-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 6px;
+}
+
+.simple-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.simple-status-badge.in_queue {
+  background-color: #f1f5f9;
+  color: #334155;
+}
+
+.simple-status-badge.wip {
+  background-color: #e0f2fe;
+  color: #0284c7;
+}
+
+.simple-status-badge.revisions {
+  background-color: #fff7ed;
+  color: #c2410c;
+}
+
+.simple-status-badge.done {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.simple-modal-body {
+  padding: 4px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.simple-modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.simple-modal-desc {
+  font-size: 12.5px;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Simple Properties list (Clean rows with NO heavy table borders) */
+.simple-props-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.simple-prop-row {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  min-height: 22px;
+}
+
+.simple-prop-label {
+  width: 90px;
+  flex-shrink: 0;
+  color: #64748b;
+  font-weight: 400;
+}
+
+.simple-prop-value {
+  flex: 1;
+  color: #0f172a;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.simple-assign-link {
+  color: #0284c7;
+  background: transparent;
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+}
+
+.simple-assign-link:hover {
+  text-decoration: underline;
+}
+
+.simple-deadline-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  background: rgba(0, 0, 0, 0.05);
+  color: #475569;
+}
+
+.simple-deadline-tag.soon,
+.simple-deadline-tag.warning {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.simple-deadline-tag.urgent,
+.simple-deadline-tag.overdue {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Google Docs Brief Box with Copy & Open Actions */
+.simple-brief-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: #f8fafc;
+  transition: all 120ms ease;
+  gap: 8px;
+}
+
+.simple-brief-box:hover {
+  background-color: #f1f5f9;
+  border-color: rgba(0, 0, 0, 0.14);
+}
+
+.simple-brief-main-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #0f172a;
+  text-decoration: none;
+  font-size: 12.5px;
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+}
+
+.simple-brief-main-link:hover .simple-brief-text {
+  color: #0284c7;
+  text-decoration: underline;
+}
+
+.simple-brief-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 100ms ease;
+}
+
+.simple-brief-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.simple-brief-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 7px;
+  height: 26px;
+  border-radius: var(--radius-xs);
+  color: #64748b;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 100ms ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.simple-brief-action-btn:hover {
+  background-color: #ffffff;
+  color: #0f172a;
+  border-color: rgba(0, 0, 0, 0.16);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.simple-brief-action-btn.copied {
+  color: #15803d;
+  background-color: #f0fdf4;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+/* Revision Box */
+.detail-revision-section {
+  background: #fff7ed;
+  border: 1px solid rgba(234, 88, 12, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.revision-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #c2410c;
+}
+
+/* Simple Footer */
+.simple-modal-footer {
+  padding: 10px 14px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.modal-stage-select {
+  height: 28px;
+  padding: 0 8px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  outline: none;
+  transition: all 120ms ease;
+}
+
+.modal-stage-select:hover {
+  border-color: rgba(0, 0, 0, 0.25);
+  color: var(--text-primary);
+}
+
+.modal-stage-select:focus {
+  border-color: var(--accent-purple);
+  box-shadow: 0 0 0 2px rgba(123, 44, 191, 0.12);
+}

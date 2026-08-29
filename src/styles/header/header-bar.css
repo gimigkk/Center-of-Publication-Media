@@ -1,0 +1,247 @@
+/* ==========================================================================
+   Header Bar, Floating Widget Pills & User Profile Styles
+   ========================================================================== */
+
+/* Top bar — transparent, floating widgets pinned to corners with generous Y padding */
+.figjam-header {
+  position: absolute;
+  top: 18px;
+  left: 20px;
+  right: 20px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 80;
+}
+
+.header-left,
+.header-right {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Top-left pill widget */
+.figjam-top-widget {
+  background-color: var(--bg-surface);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float);
+  display: flex;
+  align-items: center;
+  padding: 0 6px 0 16px;
+  gap: 10px;
+  height: 44px;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+.figjam-brand-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+}
+
+/* Full-height top-to-bottom line divider with no padding */
+.figjam-widget-divider {
+  width: 1px;
+  align-self: stretch;
+  height: auto;
+  background-color: rgba(0, 0, 0, 0.08);
+  margin: 0;
+}
+
+.figjam-current-page-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Top-right widget */
+.figjam-right-widget {
+  background-color: var(--bg-surface);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float);
+  display: flex;
+  align-items: center;
+  height: 44px;
+  position: relative;
+}
+
+.figma-avatar-cluster {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+}
+
+.collaborator-avatar-wrapper {
+  margin-right: -6px;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+}
+
+.collaborator-avatar-item {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid #ffffff;
+  object-fit: cover;
+  display: block;
+}
+
+.current-user-avatar-item {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid #ffffff;
+  position: relative;
+  z-index: 2;
+  object-fit: cover;
+  display: block;
+}
+
+.user-profile-menu-wrapper {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.user-profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px 0 10px;
+  height: 100%;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  max-width: 260px;
+  transition: background-color 100ms ease;
+}
+
+.user-profile-btn:hover {
+  background-color: var(--bg-surface-hover);
+}
+
+.user-profile-text-group {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+}
+
+.user-profile-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.1px;
+}
+
+.user-profile-email {
+  font-size: 10px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Figma-styled role tags */
+.role-badge {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 1.5px 5px;
+  border-radius: var(--radius-xs);
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--text-secondary);
+}
+
+.role-badge.admin {
+  background-color: var(--accent-purple-light);
+  color: var(--accent-purple-text);
+}
+
+.role-badge.designer {
+  background-color: var(--accent-blue-light);
+  color: var(--accent-blue-text);
+}
+
+.role-badge.requestor {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--text-secondary);
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .figjam-header {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    height: 40px;
+    gap: 8px;
+  }
+
+  .header-left {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .figjam-top-widget {
+    height: 38px;
+    padding: 0 4px 0 10px;
+    gap: 6px;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .figjam-brand-title {
+    font-size: 11.5px;
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .figjam-current-page-name {
+    font-size: 11.5px;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .figjam-right-widget {
+    height: 38px;
+  }
+
+  .user-profile-text-group {
+    display: none; /* Hide name/email on mobile header to save space */
+  }
+
+  .user-profile-btn {
+    padding: 0 6px;
+    gap: 0;
+    max-width: none;
+  }
+
+  .collaborator-avatar-wrapper {
+    display: none; /* Hide background collaborator avatars on mobile header */
+  }
+}
