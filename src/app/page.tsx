@@ -449,14 +449,15 @@ export default function Home() {
 
   if (isLoading || !currentUser || !currentPage) {
     return (
-      <div className="empty-state" style={{ height: '100vh', justifyContent: 'center' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-          <div className="spin" style={{ width: '28px', height: '28px', border: '2px solid rgba(0,0,0,0.1)', borderTopColor: 'var(--accent-blue)', borderRadius: '50%' }} />
-          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Memuat Ruang Kerja...</span>
+      <div className="app-loading-screen">
+        <div className="app-loading-card">
+          <div className="app-loading-spinner spin" />
+          <span className="app-loading-text">Memuat Ruang Kerja...</span>
         </div>
       </div>
     );
   }
+
 
   return (
     <div className="figjam-canvas">
