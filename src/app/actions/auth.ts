@@ -184,6 +184,8 @@ export async function getDesignersAction(): Promise<Profile[]> {
   return users.filter((u) => u.isApproved && (u.role === 'designer' || u.role === 'admin'));
 }
 
+import { createAdminClient } from '@/lib/supabase/admin';
+
 export async function approveUserAction(
   userId: string,
   newRole?: UserRole
@@ -221,6 +223,18 @@ export async function approveUserAction(
       .update(schema.profiles)
       .set(updateData)
       .where(eq(schema.profiles.id, userId));
+
+    // Also auto-confirm email in Supabase Auth if service role is available
+    const supabaseAdmin = createAdminClient();
+    if (supabaseAdmin) {
+      try {
+        await supabaseAdmin.auth.admin.updateUserById(userId, {
+          email_confirm: true,
+        });
+      } catch (adminErr) {
+        console.warn('Supabase Admin auto-confirm note:', adminErr);
+      }
+    }
   } catch (e: unknown) {
     return { success: false, error: e instanceof Error ? e.message : 'Kesalahan database' };
   }
@@ -296,17 +310,24 @@ export async function signUpUserAction(formData: {
     return { success: false, error: validation.error.issues[0]?.message || 'Data pendaftaran tidak valid' };
   }
 
+  const userRole: UserRole = formData.role || 'requestor';
+  const isAutoApproved = userRole === 'requestor';
+
   if (isMockEnabled()) {
     const store = getMockStore();
+    const resolvedDivision = isAutoApproved
+      ? (formData.divisionId || store.divisions[0]?.id || null)
+      : null;
+
     const newUser: Profile = {
       id: formData.id || `mock-user-${Date.now()}`,
       email: formData.email.toLowerCase().trim(),
       fullName: formData.fullName.trim(),
       phoneNumber: formData.phoneNumber?.trim() || null,
       avatarUrl: formData.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      role: formData.role || 'requestor',
-      divisionId: formData.divisionId || null,
-      isApproved: false,
+      role: userRole,
+      divisionId: resolvedDivision,
+      isApproved: isAutoApproved,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -316,12 +337,20 @@ export async function signUpUserAction(formData: {
 
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
-  const { id: clientProvidedId, fullName, email, phoneNumber, avatarUrl, role, divisionId } = formData;
-  const userRole: UserRole = role || 'requestor';
+  const { id: clientProvidedId, fullName, email, phoneNumber, avatarUrl, divisionId } = formData;
 
   try {
     const avatar = avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
     const profileId = clientProvidedId || crypto.randomUUID();
+
+    // Resolve division ID for requestor
+    let resolvedDivisionId = (userRole === 'requestor' && divisionId && divisionId.trim()) ? divisionId.trim() : null;
+    if (userRole === 'requestor' && !resolvedDivisionId) {
+      const divs = await db.select().from(schema.divisions).limit(1);
+      if (divs.length > 0) {
+        resolvedDivisionId = divs[0].id;
+      }
+    }
 
     const [existing] = await db
       .select()
@@ -337,7 +366,8 @@ export async function signUpUserAction(formData: {
           phoneNumber: phoneNumber?.trim() || existing.phoneNumber,
           avatarUrl: avatar,
           role: userRole,
-          divisionId: divisionId || existing.divisionId,
+          divisionId: resolvedDivisionId || existing.divisionId,
+          isApproved: isAutoApproved || existing.isApproved,
           updatedAt: new Date(),
         })
         .where(eq(schema.profiles.id, existing.id))
@@ -352,8 +382,8 @@ export async function signUpUserAction(formData: {
           phoneNumber: phoneNumber?.trim() || null,
           avatarUrl: avatar,
           role: userRole,
-          divisionId: divisionId || null,
-          isApproved: false,
+          divisionId: resolvedDivisionId,
+          isApproved: isAutoApproved,
         })
         .returning();
     }
@@ -362,28 +392,44 @@ export async function signUpUserAction(formData: {
       return { success: false, error: 'Gagal menyimpan profil pengguna' };
     }
 
-    const allUsers = await getAllUsersAction();
-    const adminUsers = allUsers.filter((u) => u.role === 'admin' && u.isApproved);
-    const adminEmails = adminUsers.map((u) => u.email);
-
-    if (adminEmails.length > 0) {
-      await sendUserSignupEmail({
-        newUserFullName: inserted.fullName,
-        newUserEmail: inserted.email,
-        newUserRole: inserted.role,
-        adminEmails,
-      });
+    // Auto-confirm user in Supabase Auth if requestor (instant access)
+    if (isAutoApproved) {
+      const supabaseAdmin = createAdminClient();
+      if (supabaseAdmin) {
+        try {
+          await supabaseAdmin.auth.admin.updateUserById(profileId, {
+            email_confirm: true,
+          });
+        } catch (adminErr) {
+          console.warn('Supabase Admin auto-confirm note for requestor:', adminErr);
+        }
+      }
     }
 
-    for (const admin of adminUsers) {
-      await createNotificationAction({
-        userId: admin.id,
-        title: 'Pendaftaran Akun Baru',
-        message: `${inserted.fullName} (${inserted.email}) telah mendaftar sebagai ${inserted.role}.`,
-        type: 'user_signup_pending',
-      });
-    }
+    // Only notify admins for approval if account is NOT auto-approved (e.g. Designers)
+    if (!isAutoApproved) {
+      const allUsers = await getAllUsersAction();
+      const adminUsers = allUsers.filter((u) => u.role === 'admin' && u.isApproved);
+      const adminEmails = adminUsers.map((u) => u.email);
 
+      if (adminEmails.length > 0) {
+        await sendUserSignupEmail({
+          newUserFullName: inserted.fullName,
+          newUserEmail: inserted.email,
+          newUserRole: inserted.role,
+          adminEmails,
+        });
+      }
+
+      for (const admin of adminUsers) {
+        await createNotificationAction({
+          userId: admin.id,
+          title: 'Pendaftaran Akun Baru',
+          message: `${inserted.fullName} (${inserted.email}) telah mendaftar sebagai ${inserted.role}.`,
+          type: 'user_signup_pending',
+        });
+      }
+    }
 
     revalidatePath('/');
     return {

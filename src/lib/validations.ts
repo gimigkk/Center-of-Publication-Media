@@ -34,7 +34,6 @@ export const signupSchema = z.object({
   fullName: z.string().min(2, 'Nama lengkap minimal 2 karakter'),
   email: z.string().email('Harap masukkan alamat email yang valid'),
   phoneNumber: z.string().min(8, 'Nomor HP / WhatsApp minimal 8 karakter').optional().nullable(),
-  password: z.string().min(6, 'Kata sandi minimal 6 karakter'),
   role: z.enum(['requestor', 'designer'] as const),
   divisionId: z.string().optional().nullable(),
   avatarUrl: z.string().min(1, 'Foto profil wajib diunggah'),

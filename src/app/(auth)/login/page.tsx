@@ -31,7 +31,13 @@ export default function LoginPage() {
       });
 
       if (authError || !data.user) {
-        setError(authError?.message || 'Email atau kata sandi tidak valid.');
+        if (authError?.message?.toLowerCase().includes('email not confirmed')) {
+          setError('Email belum dikonfirmasi atau administrator belum menyetujui akun.');
+        } else if (authError?.message?.toLowerCase().includes('invalid login credentials')) {
+          setError('Email atau kata sandi tidak cocok.');
+        } else {
+          setError(authError?.message || 'Email atau kata sandi tidak valid.');
+        }
         setIsSubmitting(false);
         return;
       }

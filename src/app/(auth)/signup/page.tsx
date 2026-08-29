@@ -76,6 +76,11 @@ export default function SignupPage() {
       return;
     }
 
+    if (role === 'requestor' && divisions.length > 0 && (!divisionId || divisionId.trim() === '')) {
+      setError('Harap pilih divisi Requester Anda');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // 1. Create Supabase Auth user
@@ -100,14 +105,27 @@ export default function SignupPage() {
         email: cleanEmail,
         phoneNumber: phoneNumber.trim() || undefined,
         role,
-        divisionId: role === 'requestor' ? divisionId : undefined,
+        divisionId: role === 'requestor' ? (divisionId || divisions[0]?.id) : undefined,
         avatarUrl: avatarPreview,
       });
 
-
-
       if (res.success) {
-        setIsSubmittedPending(true);
+        if (res.profile?.isApproved) {
+          // Requestor gets instant access: sign in and redirect to dashboard
+          const { error: signInErr } = await supabase.auth.signInWithPassword({
+            email: cleanEmail,
+            password,
+          });
+          if (!signInErr) {
+            router.push('/');
+            router.refresh();
+          } else {
+            router.push('/login');
+          }
+        } else {
+          // Designer needs admin verification
+          setIsSubmittedPending(true);
+        }
       } else {
         setError(res.error || 'Gagal membuat akun');
       }
