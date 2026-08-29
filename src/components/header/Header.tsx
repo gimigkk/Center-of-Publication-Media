@@ -69,8 +69,10 @@ export const Header = memo(function Header({
     },
   });
 
+  const otherCollaborators = (onlineUsers || []).filter((u) => u.userId !== currentUser.id);
+
   return (
-    <header className="figjam-floating-header">
+    <header className="figjam-header">
       {/* 1. Left Cluster: Page Switcher */}
       <div className="header-left">
         <PageSwitcher
@@ -85,7 +87,6 @@ export const Header = memo(function Header({
           onDropdownChange={onDropdownChange}
         />
       </div>
-
 
       {/* 2. Right Cluster: Notifications + Collaborators + User Menu */}
       <div className="header-right">
@@ -103,40 +104,41 @@ export const Header = memo(function Header({
 
           <div className="figjam-widget-divider" />
 
-          {/* Connected Live Collaborator Avatars */}
-          <div className="collaborator-avatars-cluster">
-            {onlineUsers
-              .filter((u) => u.userId !== currentUser.id)
-              .slice(0, 4)
-              .map((u) => (
-                <div key={u.userId} className="collaborator-avatar-wrapper" title={`${u.userName} (Online)`}>
-                  <Avatar
-                    src={u.userAvatar}
-                    name={u.userName}
-                    size={26}
-                    className="collaborator-avatar-item"
-                  />
-                  <span className="collaborator-live-dot" />
-                </div>
-              ))}
-          </div>
-
-          {/* Active User Profile & Menu */}
-          <div className="user-profile-cluster">
+          {/* Current user profile & stacked collaborator avatars */}
+          <div className="user-profile-menu-wrapper">
             <button
               ref={profileButtonRef}
               type="button"
-              className={`user-profile-trigger ${showUserMenu ? 'active' : ''}`}
+              className="user-profile-btn"
               onClick={() => setShowUserMenu(!showUserMenu)}
-              aria-label="User profile menu"
+              title={`${currentUser.fullName} (${currentUser.email})`}
             >
-              <div className="current-user-avatar-wrapper">
+              <div className="figma-avatar-cluster">
+                {otherCollaborators.slice(0, 4).map((user) => (
+                  <div
+                    key={user.userId}
+                    className="collaborator-avatar-wrapper"
+                    title={`${user.userName} (${user.role})`}
+                  >
+                    <Avatar
+                      src={user.userAvatar}
+                      name={user.userName}
+                      size={28}
+                      className="collaborator-avatar-item"
+                    />
+                  </div>
+                ))}
                 <Avatar
                   src={currentUser.avatarUrl}
                   name={currentUser.fullName}
                   size={28}
                   className="current-user-avatar-item"
                 />
+              </div>
+
+              <div className="user-profile-text-group">
+                <span className="user-profile-name">{currentUser.fullName}</span>
+                <span className="user-profile-email">{currentUser.email}</span>
               </div>
             </button>
 
@@ -180,4 +182,5 @@ export const Header = memo(function Header({
       </div>
     </header>
   );
+
 });
