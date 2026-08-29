@@ -11,6 +11,7 @@ import { getAllUsersAction } from '../auth';
 import { getDivisionsAction } from '../divisions';
 import { createNotificationAction } from '../notifications';
 import { isMockEnabled, getMockStore } from '@/lib/mock-store';
+import { formatDate } from '@/lib/utils';
 
 export async function createJobAction(formData: {
   pageId: string;
@@ -326,3 +327,61 @@ export async function moveJobAction(
   revalidatePath('/');
   return { success: true };
 }
+
+export async function updateJobDeadlineAction(
+  jobId: string,
+  deadline: string,
+  actor: Profile
+): Promise<{ success: boolean; error?: string }> {
+  if (actor.role !== 'admin') {
+    return { success: false, error: 'Hanya admin yang dapat mengubah deadline' };
+  }
+
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    const target = store.jobs.find((j) => j.id === jobId);
+    if (target) {
+      target.deadline = new Date(deadline).toISOString();
+      target.updatedAt = new Date().toISOString();
+      return { success: true };
+    }
+    return { success: false, error: 'Job tidak ditemukan' };
+  }
+
+  if (!db) return { success: false, error: 'Database belum terhubung' };
+
+  try {
+    const [currentJob] = await db.select().from(schema.jobs).where(eq(schema.jobs.id, jobId));
+    if (!currentJob) return { success: false, error: 'Job tidak ditemukan' };
+
+    const newDeadlineDate = new Date(deadline);
+    if (isNaN(newDeadlineDate.getTime())) {
+      return { success: false, error: 'Format tanggal deadline tidak valid' };
+    }
+
+    await db
+      .update(schema.jobs)
+      .set({
+        deadline: newDeadlineDate,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.jobs.id, jobId));
+
+    await db.insert(schema.jobActivity).values({
+      jobId,
+      actorId: actor.id,
+      fromStatus: currentJob.status,
+      toStatus: currentJob.status,
+      note: `Deadline diubah ke ${formatDate(newDeadlineDate)}`,
+    });
+
+    revalidatePath('/');
+    return { success: true };
+  } catch (e: unknown) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : 'Gagal memperbarui deadline job',
+    };
+  }
+}
+

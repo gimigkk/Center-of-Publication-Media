@@ -40,6 +40,7 @@ interface BoardModalsProps {
     requestorId: string;
   }) => Promise<{ success: boolean; job?: Job; error?: string }>;
   onAssignDesigner: (jobId: string, designerId: string) => Promise<{ success: boolean; error?: string }>;
+  onUpdateDeadline?: (jobId: string, deadline: string) => Promise<{ success: boolean; error?: string }>;
   onArchiveJob: (jobId: string) => Promise<void>;
   onUnarchiveJob: (jobId: string) => Promise<void>;
   onMoveJobStatus: (jobId: string, toStatus: JobStatus, note?: string) => Promise<{ success: boolean; error?: string }>;
@@ -78,6 +79,7 @@ export function BoardModals({
   onDetailDropdownChange,
   onSubmitJob,
   onAssignDesigner,
+  onUpdateDeadline,
   onArchiveJob,
   onUnarchiveJob,
   onMoveJobStatus,
@@ -107,6 +109,7 @@ export function BoardModals({
         currentUser={currentUser}
         designersWithWorkload={designerSuggestions}
         onAssign={onAssignDesigner}
+        onUpdateDeadline={onUpdateDeadline}
         onArchive={onArchiveJob}
         onUnarchive={onUnarchiveJob}
         onMoveStatus={onMoveJobStatus}

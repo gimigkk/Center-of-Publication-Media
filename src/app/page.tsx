@@ -201,6 +201,7 @@ export default function Home() {
         onDetailDropdownChange={modals.setDetailDropdownState}
         onSubmitJob={operations.handleSubmitJob}
         onAssignDesigner={operations.handleAssignDesigner}
+        onUpdateDeadline={operations.handleUpdateDeadline}
         onArchiveJob={operations.handleArchiveJob}
         onUnarchiveJob={operations.handleUnarchiveJob}
         onMoveJobStatus={async (jobId, toStatus, note) => {

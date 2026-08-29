@@ -5,6 +5,7 @@ import {
   getJobsAction,
   createJobAction,
   moveJobAction,
+  updateJobDeadlineAction,
   assignDesignerAction,
   getDesignerSuggestionsAction,
   archiveJobAction,
@@ -163,6 +164,41 @@ export function useBoardOperations({
       return res;
     },
     [currentUser, activePageId, broadcastBoardChange, setJobs, setDesignerSuggestions, setSelectedJobForDetail]
+  );
+
+  // Update Job Deadline Handler
+  const handleUpdateDeadline = useCallback(
+    async (jobId: string, deadline: string) => {
+      if (!currentUser) return { success: false, error: 'Tidak terautentikasi' };
+
+      const deadlineIso = new Date(deadline).toISOString();
+
+      // Optimistic UI update
+      setJobs((prev) =>
+        prev.map((j) =>
+          j.id === jobId
+            ? { ...j, deadline: deadlineIso, updatedAt: new Date().toISOString() }
+            : j
+        )
+      );
+
+      const res = await updateJobDeadlineAction(jobId, deadlineIso, currentUser);
+      if (res.success) {
+        broadcastBoardChange();
+        const fresh = await getJobsAction(activePageId);
+        setJobs(fresh);
+        const updatedJob = fresh.find((j) => j.id === jobId);
+        if (updatedJob) {
+          setSelectedJobForDetail(updatedJob);
+        }
+      } else {
+        const fresh = await getJobsAction(activePageId);
+        setJobs(fresh);
+        alert(res.error || 'Gagal memperbarui deadline');
+      }
+      return res;
+    },
+    [currentUser, activePageId, broadcastBoardChange, setJobs, setSelectedJobForDetail]
   );
 
   // Archive Job Handler
@@ -408,6 +444,7 @@ export function useBoardOperations({
     handleMoveJob,
     handleSubmitJob,
     handleAssignDesigner,
+    handleUpdateDeadline,
     handleArchiveJob,
     handleUnarchiveJob,
     handleArchiveAllDone,

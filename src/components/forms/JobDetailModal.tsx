@@ -16,6 +16,7 @@ interface JobDetailModalProps {
   currentUser: Profile;
   designersWithWorkload?: { designer: Profile; activeWipCount: number }[];
   onAssign?: (jobId: string, designerId: string) => Promise<{ success: boolean; error?: string }>;
+  onUpdateDeadline?: (jobId: string, deadline: string) => Promise<{ success: boolean; error?: string }>;
   onMoveStatus: (jobId: string, toStatus: JobStatus, note?: string) => Promise<{ success: boolean; error?: string }>;
   onArchive?: (jobId: string) => Promise<void>;
   onUnarchive?: (jobId: string) => Promise<void>;
@@ -36,6 +37,7 @@ export const JobDetailModal = React.memo(function JobDetailModal({
   currentUser,
   designersWithWorkload = [],
   onAssign,
+  onUpdateDeadline,
   onMoveStatus,
   onArchive,
   onUnarchive,
@@ -154,6 +156,8 @@ export const JobDetailModal = React.memo(function JobDetailModal({
             <JobDetailProperties
               job={activeJob}
               assignedDesigners={assignedDesigners}
+              isAdmin={currentUser.role === 'admin'}
+              onUpdateDeadline={onUpdateDeadline}
             />
 
             {/* Google Docs Brief Box */}

@@ -133,15 +133,17 @@
 .simple-prop-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   font-size: 12px;
   min-height: 22px;
+  gap: 12px;
 }
 
 .simple-prop-label {
-  width: 90px;
   flex-shrink: 0;
   color: #64748b;
   font-weight: 400;
+  text-align: left;
 }
 
 .simple-prop-value {
@@ -150,8 +152,103 @@
   font-weight: 500;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  text-align: right;
   gap: 6px;
   min-width: 0;
+}
+
+.simple-prop-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-xs);
+  border: 1px solid transparent;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0;
+  transition: all 120ms ease;
+}
+
+.simple-prop-edit-btn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.simple-prop-edit-form {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.simple-prop-date-input {
+  height: 24px;
+  padding: 0 4px;
+  font-size: 11.5px;
+  font-family: inherit;
+  font-weight: 500;
+  color: #0f172a;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: var(--radius-xs);
+  outline: none;
+  transition: all 120ms ease;
+}
+
+.simple-prop-date-input:focus {
+  border-color: var(--accent-purple);
+  box-shadow: 0 0 0 2px rgba(123, 44, 191, 0.12);
+}
+
+.simple-prop-save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-xs);
+  border: 1px solid #16a34a;
+  background: #16a34a;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 0;
+  transition: all 120ms ease;
+}
+
+.simple-prop-save-btn:hover:not(:disabled) {
+  background: #15803d;
+  border-color: #15803d;
+}
+
+.simple-prop-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.simple-prop-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-xs);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #ffffff;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  transition: all 120ms ease;
+}
+
+.simple-prop-cancel-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: rgba(0, 0, 0, 0.2);
 }
 
 .simple-assign-link {

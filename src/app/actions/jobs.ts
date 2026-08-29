@@ -8,6 +8,7 @@ import {
 import {
   createJobAction as _createJobAction,
   moveJobAction as _moveJobAction,
+  updateJobDeadlineAction as _updateJobDeadlineAction,
 } from './jobs/mutations';
 
 import {
@@ -42,6 +43,14 @@ export async function moveJobAction(
   note?: string
 ) {
   return _moveJobAction(jobId, toStatus, actor, note);
+}
+
+export async function updateJobDeadlineAction(
+  jobId: string,
+  deadline: string,
+  actor: Profile
+) {
+  return _updateJobDeadlineAction(jobId, deadline, actor);
 }
 
 export async function assignDesignerAction(
