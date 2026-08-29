@@ -1,5 +1,4 @@
 import React from 'react';
-import { useDraggable } from '@dnd-kit/core';
 import { Job, Profile } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
 import { GoogleDocsIcon } from '@/components/ui/GoogleDocsIcon';
@@ -22,18 +21,10 @@ export const ArchiveMobileCard = React.memo(function ArchiveMobileCard({
         ? [job.designer]
         : [];
 
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: job.id,
-    data: { type: 'ArchivedJob', job },
-  });
-
   return (
     <div
-      ref={setNodeRef}
-      className={`archive-mobile-card ${isDragging ? 'archive-tr--dragging' : ''}`}
-      onClick={() => !isDragging && onCardClick(job)}
-      {...listeners}
-      {...attributes}
+      className="archive-mobile-card"
+      onClick={() => onCardClick(job)}
     >
       {/* Header Row: Title + Division Badge */}
       <div className="archive-mobile-card-header">
@@ -48,61 +39,51 @@ export const ArchiveMobileCard = React.memo(function ArchiveMobileCard({
       )}
 
       {/* Middle Info Row: Requester & Editor */}
-      <div className="archive-mobile-card-people">
-        <div className="archive-mobile-person-item" title="Requester">
-          <User size={12} color="var(--text-tertiary)" />
-          <Avatar
-            src={job.requestor?.avatarUrl}
-            name={job.requestor?.fullName || 'Requester'}
-            size={16}
-          />
-          <span className="archive-mobile-person-name">
-            {job.requestor?.fullName || 'Anonim'}
+      <div className="archive-mobile-card-meta">
+        <div className="archive-mobile-meta-item">
+          <User size={12} className="archive-mobile-meta-icon" />
+          <span className="archive-mobile-meta-label">Req:</span>
+          <span className="archive-mobile-meta-val">
+            {job.requestor?.fullName || 'Requester'}
           </span>
         </div>
 
-        <div className="archive-mobile-person-item" title="Editor">
-          <Palette size={12} color="var(--text-tertiary)" />
-          {assignedDesigners.length > 0 ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Avatar
-                src={assignedDesigners[0].avatarUrl}
-                name={assignedDesigners[0].fullName}
-                size={16}
-              />
-              <span className="archive-mobile-person-name">
-                {assignedDesigners.map((d) => d.fullName.split(' ')[0]).join(', ')}
-              </span>
-            </div>
-          ) : (
-            <span style={{ color: 'var(--text-tertiary)', fontSize: '11px' }}>
-              Belum Ditugaskan
-            </span>
-          )}
+        <div className="archive-mobile-meta-item">
+          <Palette size={12} className="archive-mobile-meta-icon" />
+          <span className="archive-mobile-meta-label">Desainer:</span>
+          <span className="archive-mobile-meta-val">
+            {assignedDesigners.length > 0
+              ? assignedDesigners.map((d) => d.fullName).join(', ')
+              : 'Belum ada'}
+          </span>
         </div>
       </div>
 
-      {/* Footer Row: Deadline + Brief Button */}
+      {/* Footer Row: Brief doc & Date */}
       <div className="archive-mobile-card-footer">
-        <div className="archive-mobile-deadline">
-          <Calendar size={12} color="var(--text-tertiary)" />
-          <span>{formatDate(job.deadline)}</span>
+        <div className="archive-mobile-brief-slot">
+          {job.briefLink ? (
+            <a
+              href={job.briefLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="archive-mobile-doc-link"
+              onClick={(e) => e.stopPropagation()}
+              title="Buka Google Docs Brief"
+            >
+              <GoogleDocsIcon size={14} />
+              <span>Buka Brief Docs</span>
+            </a>
+          ) : (
+            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+              Tidak ada brief
+            </span>
+          )}
         </div>
 
-        <div
-          onClick={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          <a
-            href={job.briefLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="archive-brief-btn"
-            title="Buka Brief Google Docs"
-          >
-            <GoogleDocsIcon size={12} />
-            <span>Brief Google Docs</span>
-          </a>
+        <div className="archive-mobile-date-slot">
+          <Calendar size={11} style={{ opacity: 0.6 }} />
+          <span>{job.archivedAt ? formatDate(job.archivedAt) : '-'}</span>
         </div>
       </div>
     </div>

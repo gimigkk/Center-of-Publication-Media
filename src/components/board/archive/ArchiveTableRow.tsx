@@ -9,12 +9,14 @@ interface ArchiveTableRowProps {
   job: Job;
   index: number;
   onCardClick: (job: Job) => void;
+  isDraggable?: boolean;
 }
 
 export const ArchiveTableRow = React.memo(function ArchiveTableRow({
   job,
   index,
   onCardClick,
+  isDraggable = true,
 }: ArchiveTableRowProps) {
   const assignedDesigners: Profile[] =
     job.designers && job.designers.length > 0
@@ -25,6 +27,7 @@ export const ArchiveTableRow = React.memo(function ArchiveTableRow({
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: job.id,
+    disabled: !isDraggable,
     data: { type: 'ArchivedJob', job },
   });
 
@@ -33,9 +36,9 @@ export const ArchiveTableRow = React.memo(function ArchiveTableRow({
       ref={setNodeRef}
       className={`archive-tr ${isDragging ? 'archive-tr--dragging' : ''}`}
       onClick={() => !isDragging && onCardClick(job)}
-      {...listeners}
-      {...attributes}
-      title="Klik untuk detail, atau seret baris ini ke atas untuk memindahkan ke board"
+      {...(isDraggable ? listeners : {})}
+      {...(isDraggable ? attributes : {})}
+      title={isDraggable ? 'Klik untuk detail, atau seret baris ini ke atas untuk memindahkan ke board' : 'Klik untuk detail'}
     >
       {/* Index */}
       <td

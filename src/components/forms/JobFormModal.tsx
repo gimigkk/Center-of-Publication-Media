@@ -167,13 +167,16 @@ export function JobFormModal({
     <div className={`modal-backdrop ${isClosing ? 'is-closing' : ''}`} onClick={onClose}>
       <div
         className={`modal-dual-container ${isClosing ? 'is-closing' : ''}`}
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            onClose();
+          }
+        }}
       >
         {/* Rules of COPM 2026 Side Panel */}
-        <div className="copm-rules-sidebar-panel">
+        <div className="copm-rules-sidebar-panel" onClick={(e) => e.stopPropagation()}>
           <div className="copm-rules-sidebar-header">
             <span className="copm-rules-sidebar-title">Rules of COPM 2026</span>
-            <span className="copm-rules-policy-tag">Panduan</span>
           </div>
 
           <div className="copm-rules-sidebar-body">
@@ -225,7 +228,7 @@ export function JobFormModal({
         </div>
 
         {/* Main Request Form Panel Card */}
-        <div className="figma-detail-card modal-dual-form-card">
+        <div className="figma-detail-card modal-dual-form-card" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
             <h3 className="modal-title">Ajukan Request Kreatif Baru</h3>
             <button className="modal-close-btn" onClick={onClose} title="Tutup">

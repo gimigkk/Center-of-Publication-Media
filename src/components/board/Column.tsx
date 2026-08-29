@@ -20,6 +20,7 @@ interface ColumnProps {
   lastDropEvent?: CardDropEvent | null;
   /** True when an archived card is being dragged (highlight columns as restore targets) */
   isDragActive?: boolean;
+  isDragDisabled?: boolean;
 }
 
 export const Column = memo(function Column({
@@ -34,6 +35,7 @@ export const Column = memo(function Column({
   remotelyDraggedJobIds,
   lastDropEvent,
   isDragActive = false,
+  isDragDisabled = false,
 }: ColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: status,
@@ -45,6 +47,7 @@ export const Column = memo(function Column({
 
   // Calculate if the current user has permission to drag this specific card
   const canUserDragCard = (job: Job) => {
+    if (isDragDisabled) return false;
     if (currentUser.role === 'admin') return true;
     if (currentUser.role === 'designer') {
       return job.designerId === currentUser.id && job.status === 'wip';

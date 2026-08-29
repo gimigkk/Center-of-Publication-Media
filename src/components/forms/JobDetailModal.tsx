@@ -99,9 +99,13 @@ export const JobDetailModal = React.memo(function JobDetailModal({
     <div className={`modal-backdrop ${isClosing ? 'is-closing' : ''}`} onClick={onClose}>
       <div
         className={`modal-dual-container ${isClosing ? 'is-closing' : ''}`}
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            onClose();
+          }
+        }}
       >
-        <div className="figma-detail-card">
+        <div className="figma-detail-card" onClick={(e) => e.stopPropagation()}>
           {/* 1. Header: Status Pill + Close */}
           <div className="simple-modal-header">
             {activeJob.isArchived ? (

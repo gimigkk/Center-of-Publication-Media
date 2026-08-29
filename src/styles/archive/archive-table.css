@@ -328,3 +328,11 @@
   outline-offset: -1px;
   background-color: rgba(59, 130, 246, 0.06);
 }
+
+@media (max-width: 768px), (pointer: coarse) {
+  .archive-tr,
+  .archive-mobile-card {
+    cursor: pointer !important;
+    touch-action: auto !important;
+  }
+}

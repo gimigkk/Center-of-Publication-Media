@@ -22,6 +22,7 @@ interface ArchiveTableProps {
   isDropTarget?: boolean;
   /** True when a Kanban card is hovering over this zone */
   isOver?: boolean;
+  isDraggable?: boolean;
 }
 
 export const ArchiveTable = React.memo(function ArchiveTable({
@@ -30,6 +31,7 @@ export const ArchiveTable = React.memo(function ArchiveTable({
   onCardClick,
   isDropTarget = false,
   isOver = false,
+  isDraggable = true,
 }: ArchiveTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDivision, setSelectedDivision] = useState<string>('all');
@@ -157,6 +159,7 @@ export const ArchiveTable = React.memo(function ArchiveTable({
                   job={job}
                   index={idx}
                   onCardClick={onCardClick}
+                  isDraggable={isDraggable}
                 />
               ))}
 

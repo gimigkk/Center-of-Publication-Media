@@ -4,7 +4,7 @@ import React, { useState, useRef, memo } from 'react';
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
   useSensor,
   useSensors,
   DragStartEvent,
@@ -196,13 +196,26 @@ export const Board = memo(function Board({
   const [boardHeight, setBoardHeight] = useState<number | undefined>(undefined);
   const isMountedRef = useRef(false);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5, // 5px movement required before drag starts to allow normal clicks
-      },
-    })
-  );
+  const [isMobile, setIsMobile] = useState(false);
+
+  React.useEffect(() => {
+    const checkIsMobile = () => {
+      const isSmallScreen = window.innerWidth <= 768;
+      const isTouch = window.matchMedia('(pointer: coarse)').matches;
+      setIsMobile(isSmallScreen || isTouch);
+    };
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+
+  const mouseSensor = useSensor(MouseSensor, {
+    activationConstraint: {
+      distance: 5, // 5px movement required before drag starts to allow normal clicks
+    },
+  });
+
+  const sensors = useSensors(isMobile ? undefined : mouseSensor);
 
   // Separate active kanban jobs from archived table jobs
   const activeJobs = jobs.filter((j) => !j.isArchived);
@@ -456,6 +469,7 @@ export const Board = memo(function Board({
                     remotelyDraggedJobIds={remotelyDraggedJobIds}
                     lastDropEvent={effectiveDropEvent}
                     isDragActive={isDraggingArchivedCard}
+                    isDragDisabled={isMobile}
                   />
                   {index < COLUMNS.length - 1 && (
                     <div className="pipeline-connector" aria-hidden="true">
@@ -475,30 +489,33 @@ export const Board = memo(function Board({
             onCardClick={onCardClick}
             isDropTarget={!!activeJob && !activeJob.isArchived}
             isOver={isDraggingOverArchive}
+            isDraggable={!isMobile}
           />
 
-          <DragOverlay
-            modifiers={[snapTopCenterToCursor]}
-            dropAnimation={null}
-          >
-            {activeJob ? (
-              <div
-                ref={overlayRef}
-                className="local-dragged-card-overlay"
-                style={{
-                  '--card-tilt': '0deg',
-                } as React.CSSProperties}
-              >
-                <JobCard
-                  job={activeJob}
-                  currentUser={currentUser}
-                  onCardClick={() => { }}
-                  onAssignClick={() => { }}
-                  isDraggable={false}
-                />
-              </div>
-            ) : null}
-          </DragOverlay>
+          {!isMobile && (
+            <DragOverlay
+              modifiers={[snapTopCenterToCursor]}
+              dropAnimation={null}
+            >
+              {activeJob ? (
+                <div
+                  ref={overlayRef}
+                  className="local-dragged-card-overlay"
+                  style={{
+                    '--card-tilt': '0deg',
+                  } as React.CSSProperties}
+                >
+                  <JobCard
+                    job={activeJob}
+                    currentUser={currentUser}
+                    onCardClick={() => { }}
+                    onAssignClick={() => { }}
+                    isDraggable={false}
+                  />
+                </div>
+              ) : null}
+            </DragOverlay>
+          )}
         </DndContext>
       </div>
     </div>
