@@ -325,7 +325,7 @@ export function JobDetailModal({
             </span>
 
             {/* Action buttons on bottom right */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap', justifyContent: 'flex-end' }}>
               {/* Admin quick stage switcher */}
               {currentUser.role === 'admin' && !activeJob.isArchived && (
                 <div style={{ display: 'flex', alignItems: 'center' }}>
