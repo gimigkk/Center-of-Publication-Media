@@ -1,0 +1,374 @@
+/* ==========================================================================
+   Figma-Native COPM Archive Table Styles (100% FigJam Design Tokens)
+   ========================================================================== */
+
+.archive-section-wrapper {
+  width: 100%;
+  max-width: 1240px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 36px;
+  user-select: none;
+}
+
+/* Header bar with Title, Count, Search, and Division Filter */
+.archive-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+
+.archive-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.archive-title-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  background-color: var(--accent-purple-light);
+  color: var(--accent-purple-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.archive-main-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.1px;
+}
+
+.archive-count-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+}
+
+/* Toolbar controls: Search input & Filter dropdown */
+.archive-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.archive-search-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 0 8px;
+  height: 30px;
+  width: 210px;
+  transition: border-color 100ms ease, box-shadow 100ms ease;
+}
+
+.archive-search-box:focus-within {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 1px var(--border-focus);
+}
+
+.archive-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 12px;
+  color: var(--text-primary);
+  width: 100%;
+}
+
+.archive-search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Division select dropdown */
+.archive-select {
+  height: 30px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 0 8px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 100ms ease;
+}
+
+.archive-select:hover {
+  border-color: rgba(0, 0, 0, 0.16);
+  color: var(--text-primary);
+}
+
+.archive-select:focus-visible {
+  border-color: var(--border-focus);
+}
+
+/* Main Table Container Card — Zero Internal Scrolling */
+.archive-card {
+  background-color: var(--bg-surface);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+  overflow-y: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Table element */
+.archive-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 12px;
+  min-width: 820px;
+}
+
+/* Table Header */
+.archive-table thead {
+  background-color: #fafafa;
+}
+
+.archive-th {
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.archive-th.sortable {
+  cursor: pointer;
+  transition: color 80ms ease, background-color 80ms ease;
+}
+
+.archive-th.sortable:hover {
+  color: var(--text-primary);
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.archive-th-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Table Rows & Cells */
+.archive-tr {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  transition: background-color 80ms ease;
+  cursor: pointer;
+}
+
+.archive-tr:last-child {
+  border-bottom: none;
+}
+
+.archive-tr:hover {
+  background-color: var(--bg-surface-hover);
+}
+
+.archive-td {
+  padding: 10px 14px;
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+/* Task Title cell */
+.archive-task-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 320px;
+}
+
+.archive-task-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.35;
+  letter-spacing: -0.1px;
+}
+
+.archive-task-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Person in Charge / Editor chips */
+.archive-people-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  max-width: 260px;
+}
+
+.archive-person-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px 2px 3px;
+  background-color: rgba(0, 0, 0, 0.04);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* Division Badge */
+.archive-division-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background-color: rgba(0, 0, 0, 0.03);
+  padding: 2.5px 7px;
+  border-radius: var(--radius-xs);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  white-space: nowrap;
+}
+
+/* Due Date */
+.archive-due-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.archive-due-date {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Brief Link */
+.archive-brief-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent-blue-text);
+  background-color: var(--accent-blue-light);
+  padding: 2.5px 7px;
+  border-radius: var(--radius-xs);
+  text-decoration: none;
+  transition: background-color 100ms ease;
+  white-space: nowrap;
+}
+
+.archive-brief-btn:hover {
+  background-color: rgba(13, 153, 255, 0.18);
+}
+
+/* Empty State */
+.archive-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  gap: 8px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.archive-empty-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.04);
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.archive-empty-text {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.archive-empty-subtext {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+/* Table Footer / Summary Bar */
+.archive-footer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background-color: #fafafa;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* Column Quick Archive Button in DONE Column */
+.column-archive-all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background-color: rgba(0, 0, 0, 0.04);
+  border-radius: var(--radius-xs);
+  padding: 1.5px 6px;
+  transition: all 100ms ease;
+}
+
+.column-archive-all-btn:hover {
+  background-color: var(--accent-purple-light);
+  color: var(--accent-purple-text);
+}
+
+/* Card Quick Archive button on hover */
+.job-card-archive-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-xs);
+  color: var(--text-tertiary);
+  background: transparent;
+  transition: all 100ms ease;
+  opacity: 0.7;
+}
+
+.job-card-archive-btn:hover {
+  opacity: 1;
+  background-color: var(--accent-purple-light);
+  color: var(--accent-purple-text);
+}
