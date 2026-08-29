@@ -1013,3 +1013,55 @@
   white-space: nowrap;
   letter-spacing: 0.2px;
 }
+
+/* ==========================================================================
+   Responsive Modal Styles (Mobile & Small Screens)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .modal-backdrop {
+    padding: 10px;
+    align-items: center;
+  }
+
+  .modal-dialog {
+    max-width: 100%;
+    max-height: 92vh;
+  }
+
+  .modal-dual-container {
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .copm-rules-sidebar-panel {
+    display: none;
+  }
+
+  .figma-detail-card {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+  }
+
+  .form-row,
+  .form-grid-2 {
+    grid-template-columns: 1fr !important;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .assign-dropdown-popover.position-modal-left {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100vw - 32px);
+    max-width: 320px;
+    z-index: 300;
+  }
+}

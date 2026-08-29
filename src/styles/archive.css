@@ -372,3 +372,49 @@
   background-color: var(--accent-purple-light);
   color: var(--accent-purple-text);
 }
+
+/* ==========================================================================
+   Responsive Archive Table (Mobile & Tablets)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .archive-section-wrapper {
+    margin-top: 24px;
+  }
+
+  .archive-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .archive-controls-group {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .archive-search-box {
+    width: 100%;
+  }
+
+  .archive-select {
+    width: 100%;
+  }
+
+  .archive-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .archive-table {
+    min-width: 680px;
+  }
+
+  .archive-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
+

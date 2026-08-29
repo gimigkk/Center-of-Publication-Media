@@ -151,3 +151,65 @@
   color: var(--text-tertiary);
   font-size: 11px;
 }
+
+/* ==========================================================================
+   Responsive Board Layout (Tablets, Laptops & Mobile)
+   ========================================================================== */
+@media (max-width: 1180px) {
+  .board-container {
+    padding: 68px 16px 100px 16px;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .board-canvas-flow {
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+    align-items: flex-start;
+  }
+
+  .kanban-section-wrapper {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .kanban-board {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    width: 100%;
+    scroll-snap-type: x mandatory;
+    padding: 4px 2px 14px 2px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .kanban-column {
+    width: 272px;
+    min-width: 272px;
+    max-width: 272px;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+
+  .pipeline-connector {
+    min-width: 14px;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .board-container {
+    padding: 58px 10px 88px 10px;
+  }
+
+  .kanban-column {
+    width: 260px;
+    min-width: 260px;
+    max-width: 260px;
+  }
+
+  .kanban-main-title {
+    font-size: 12px;
+  }
+}
