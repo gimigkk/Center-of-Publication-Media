@@ -192,6 +192,10 @@ export const Board = memo(function Board({
   const lastPointerXRef = useRef<number | null>(null);
   const tiltDecayTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const kanbanBoardRef = useRef<HTMLDivElement | null>(null);
+  const [boardHeight, setBoardHeight] = useState<number | undefined>(undefined);
+  const isMountedRef = useRef(false);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -216,6 +220,28 @@ export const Board = memo(function Board({
     }
     return true;
   });
+
+  // Calculate the tallest column height so the board smoothly lerps height
+  React.useLayoutEffect(() => {
+    const boardEl = kanbanBoardRef.current;
+    if (!boardEl) return;
+
+    const columns = boardEl.querySelectorAll<HTMLElement>('.kanban-column');
+    let maxColHeight = 0;
+    columns.forEach((col) => {
+      maxColHeight = Math.max(maxColHeight, col.offsetHeight);
+    });
+
+    if (maxColHeight > 0) {
+      setBoardHeight(maxColHeight);
+    }
+
+    const timer = setTimeout(() => {
+      isMountedRef.current = true;
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [jobs, filteredJobs, filterDivision, filterSearch]);
 
   const getJobsByStatus = (status: JobStatus) => {
     return filteredJobs.filter((job) => job.status === status);
@@ -407,7 +433,15 @@ export const Board = memo(function Board({
               </div>
             </div>
 
-            <div className="kanban-board">
+            <div
+              ref={kanbanBoardRef}
+              className="kanban-board"
+              style={{
+                height: boardHeight ? `${boardHeight}px` : undefined,
+                transition: isMountedRef.current ? 'height 340ms cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
+                willChange: 'height',
+              }}
+            >
               {COLUMNS.map((col, index) => (
                 <React.Fragment key={col.status}>
                   <Column
