@@ -57,10 +57,9 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
   try {
     const supabase = await createServerSupabaseClient();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    const user = session?.user;
     if (!user) return null;
 
 

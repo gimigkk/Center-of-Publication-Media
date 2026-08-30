@@ -16,6 +16,7 @@ const client = connectionString
       max: 10,
       idle_timeout: 30,
       connect_timeout: 10,
+      ssl: 'require',
     }))
   : (null as unknown as postgres.Sql);
 

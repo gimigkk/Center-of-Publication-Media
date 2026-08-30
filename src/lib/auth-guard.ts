@@ -18,15 +18,15 @@ export async function getAuthenticatedUser(): Promise<Profile | null> {
   try {
     const supabase = await createServerSupabaseClient();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session?.user) return null;
+    if (!user) return null;
 
     const [profile] = await db
       .select()
       .from(schema.profiles)
-      .where(eq(schema.profiles.id, session.user.id));
+      .where(eq(schema.profiles.id, user.id));
 
     if (!profile || !profile.isApproved) return null;
 

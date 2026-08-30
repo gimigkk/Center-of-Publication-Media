@@ -34,6 +34,7 @@ export default function Home() {
   >([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeDraggedJob, setActiveDraggedJob] = useState<Job | null>(null);
 
   // Filtering state
@@ -69,27 +70,48 @@ export default function Home() {
     setIsDetailOpen: modals.setIsDetailOpen,
   });
 
-  // Load initial dataset in 1 single fast roundtrip
+  // Load initial dataset in 1 single fast roundtrip with safety timeout
   const loadData = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Koneksi timeout. Gagal memuat data dari server.')), 10000)
+    );
+
     try {
-      const data = await getInitialBoardDataAction();
+      const data = await Promise.race([
+        getInitialBoardDataAction(),
+        timeoutPromise,
+      ]);
+
       if (!data || !data.currentUser) {
         window.location.replace('/login');
         return;
       }
 
+      const activePage = data.currentPage || (data.pages && data.pages[0]) || {
+        id: 'default-page',
+        name: 'Creative & Marketing',
+        description: 'Papan kerja utama COPM',
+        createdBy: data.currentUser.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const activePages = data.pages && data.pages.length > 0 ? data.pages : [activePage];
+
       setCurrentUser(data.currentUser);
-      setAllUsers(data.allUsers);
-      setPages(data.pages);
-      setCurrentPage(data.currentPage);
-      setDivisions(data.divisions);
-      setInitialJobs(data.initialJobs);
-      setPendingUsers(data.pendingUsers);
-      setDesignerSuggestions(data.designerSuggestions);
-      setNotifications(data.notifications);
-    } catch (error) {
+      setAllUsers(data.allUsers || [data.currentUser]);
+      setPages(activePages);
+      setCurrentPage(activePage);
+      setDivisions(data.divisions || []);
+      setInitialJobs(data.initialJobs || []);
+      setPendingUsers(data.pendingUsers || []);
+      setDesignerSuggestions(data.designerSuggestions || []);
+      setNotifications(data.notifications || []);
+    } catch (error: any) {
       console.error('Failed to load board data:', error);
-      window.location.replace('/login');
+      setLoadError(error?.message || 'Terjadi kesalahan saat memuat papan kerja.');
     } finally {
       setIsLoading(false);
     }
@@ -99,7 +121,26 @@ export default function Home() {
     loadData();
   }, [loadData]);
 
-  if (isLoading || !currentUser || !currentPage) {
+  if (loadError) {
+    return (
+      <div className="figjam-loading-screen">
+        <div className="figjam-loader-container" style={{ flexDirection: 'column', gap: '12px', textAlign: 'center' }}>
+          <span className="figjam-loader-text" style={{ color: 'var(--accent-red)', maxWidth: '320px' }}>
+            {loadError}
+          </span>
+          <button
+            onClick={() => loadData()}
+            className="toolbar-btn primary"
+            style={{ padding: '6px 16px', height: '32px' }}
+          >
+            Coba Muat Ulang
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
     return (
       <div className="figjam-loading-screen">
         <div className="figjam-loader-container">
@@ -118,6 +159,10 @@ export default function Home() {
         </div>
       </div>
     );
+  }
+
+  if (!currentUser || !currentPage) {
+    return null;
   }
 
   return (
