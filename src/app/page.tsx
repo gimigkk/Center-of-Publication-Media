@@ -9,6 +9,7 @@ import { getInitialBoardDataAction } from '@/app/actions/board';
 import { useCursors } from '@/hooks/useCursors';
 import { usePresence } from '@/hooks/usePresence';
 import { useRealtimeBoard } from '@/hooks/useRealtimeBoard';
+import { useRealtimeWorkspaceSync } from '@/hooks/useRealtimeWorkspaceSync';
 import { useBoardModals } from '@/hooks/useBoardModals';
 import { useBoardOperations } from '@/hooks/useBoardOperations';
 
@@ -49,6 +50,20 @@ export default function Home() {
   const { jobs, setJobs, broadcastBoardChange, lastDropEvent } = useRealtimeBoard(activePageId, initialJobs);
   const { cursors, remotelyDraggedJobIds } = useCursors(currentPage, currentUser, activeDraggedJob, modals.currentUserState);
   const { onlineUsers } = usePresence(currentPage, currentUser);
+
+  // Multi-table real-time workspace sync (profiles, job_designers, jobs, divisions, pages, notifications)
+  useRealtimeWorkspaceSync({
+    activePageId,
+    currentUser,
+    setCurrentUser,
+    setAllUsers,
+    setPendingUsers,
+    setDesignerSuggestions,
+    setJobs,
+    setDivisions,
+    setPages,
+    setNotifications,
+  });
 
   // Harmonize presence state with active collaborator cursors so avatar stack never drops active users
   const activeOnlineUsers = useMemo(() => {
