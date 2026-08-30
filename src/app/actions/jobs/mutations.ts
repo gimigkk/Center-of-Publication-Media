@@ -136,10 +136,10 @@ export async function createJobAction(formData: {
       updatedAt: inserted.updatedAt.toISOString(),
     };
 
-    // 1. Dispatch Email to Admins
+    // 1. Dispatch Email to Admins (non-blocking background task)
     const adminEmails = users.filter((u) => u.role === 'admin').map((u) => u.email);
     if (adminEmails.length > 0) {
-      await sendJobStatusEmail({
+      sendJobStatusEmail({
         jobTitle: newJob.title,
         briefLink: newJob.briefLink,
         fromStatus: null,
@@ -148,25 +148,27 @@ export async function createJobAction(formData: {
         actorEmail: requestor.email,
         recipients: adminEmails,
         note: newJob.description || undefined,
-      });
+      }).catch((err) => console.error('Failed to send new job email:', err));
     }
 
-    // 2. Dispatch In-App Notification to Admins
+    // 2. Dispatch In-App Notification to Admins in parallel
     const adminUsers = users.filter((u) => u.role === 'admin');
-    for (const admin of adminUsers) {
-      await createNotificationAction({
-        userId: admin.id,
-        title: 'Request Job Baru',
-        message: `${requestor.fullName} mengajukan job: "${newJob.title}"`,
-        type: 'job_created',
-        jobId: newJob.id,
-        jobTitle: newJob.title,
-        actorId: requestor.id,
-        actorName: requestor.fullName,
-        actorAvatar: requestor.avatarUrl,
-        note: newJob.description || undefined,
-      });
-    }
+    Promise.all(
+      adminUsers.map((admin) =>
+        createNotificationAction({
+          userId: admin.id,
+          title: 'Request Job Baru',
+          message: `${requestor.fullName} mengajukan job: "${newJob.title}"`,
+          type: 'job_created',
+          jobId: newJob.id,
+          jobTitle: newJob.title,
+          actorId: requestor.id,
+          actorName: requestor.fullName,
+          actorAvatar: requestor.avatarUrl,
+          note: newJob.description || undefined,
+        })
+      )
+    ).catch((err) => console.error('Failed to dispatch admin notifications:', err));
 
     revalidatePath('/');
     return { success: true, job: newJob };
@@ -264,7 +266,8 @@ export async function moveJobAction(
     recipients.push(...adminEmails);
   }
 
-  await sendJobStatusEmail({
+  // Dispatch email in background (non-blocking)
+  sendJobStatusEmail({
     jobTitle: currentRecord.title,
     briefLink: currentRecord.briefLink,
     fromStatus,
@@ -273,11 +276,11 @@ export async function moveJobAction(
     actorEmail: actor.email,
     recipients,
     note,
-  });
+  }).catch((err) => console.error('Failed to send status email:', err));
 
-  // Dispatch in-app notifications
+  // Dispatch in-app notifications asynchronously in background
   if (toStatus === 'revisions' && requestor && requestor.id !== actor.id) {
-    await createNotificationAction({
+    createNotificationAction({
       userId: requestor.id,
       title: 'Draft Siap Ditinjau',
       message: `${actor.fullName} telah mengunggah draft untuk "${currentRecord.title}"`,
@@ -288,9 +291,9 @@ export async function moveJobAction(
       actorName: actor.fullName,
       actorAvatar: actor.avatarUrl,
       note: note || undefined,
-    });
+    }).catch((err) => console.error('Failed to dispatch notification:', err));
   } else if (toStatus === 'wip' && designer && designer.id !== actor.id) {
-    await createNotificationAction({
+    createNotificationAction({
       userId: designer.id,
       title: 'Revisi Diminta',
       message: `${actor.fullName} meminta revisi untuk "${currentRecord.title}"`,
@@ -301,27 +304,29 @@ export async function moveJobAction(
       actorName: actor.fullName,
       actorAvatar: actor.avatarUrl,
       note: note || undefined,
-    });
+    }).catch((err) => console.error('Failed to dispatch notification:', err));
   } else if (toStatus === 'done') {
     const notifyUserIds = new Set<string>();
     if (requestor && requestor.id !== actor.id) notifyUserIds.add(requestor.id);
     if (designer && designer.id !== actor.id) notifyUserIds.add(designer.id);
     users.filter((u) => u.role === 'admin' && u.id !== actor.id).forEach((a) => notifyUserIds.add(a.id));
 
-    for (const uid of notifyUserIds) {
-      await createNotificationAction({
-        userId: uid,
-        title: 'Job Selesai (Done)',
-        message: `${actor.fullName} menandai "${currentRecord.title}" sebagai selesai`,
-        type: 'job_completed',
-        jobId: currentRecord.id,
-        jobTitle: currentRecord.title,
-        actorId: actor.id,
-        actorName: actor.fullName,
-        actorAvatar: actor.avatarUrl,
-        note: note || undefined,
-      });
-    }
+    Promise.all(
+      Array.from(notifyUserIds).map((uid) =>
+        createNotificationAction({
+          userId: uid,
+          title: 'Job Selesai (Done)',
+          message: `${actor.fullName} menandai "${currentRecord.title}" sebagai selesai`,
+          type: 'job_completed',
+          jobId: currentRecord.id,
+          jobTitle: currentRecord.title,
+          actorId: actor.id,
+          actorName: actor.fullName,
+          actorAvatar: actor.avatarUrl,
+          note: note || undefined,
+        })
+      )
+    ).catch((err) => console.error('Failed to dispatch done notifications:', err));
   }
 
   revalidatePath('/');

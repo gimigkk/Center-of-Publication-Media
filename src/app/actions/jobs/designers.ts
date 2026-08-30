@@ -101,7 +101,8 @@ export async function setJobDesignersAction(
 
   if (designersList.length > 0) {
     const designerNames = designersList.map((d) => d.fullName).join(', ');
-    await sendJobStatusEmail({
+    // Dispatch email asynchronously in background so response is instantaneous
+    sendJobStatusEmail({
       jobTitle: currentJob.title,
       briefLink: currentJob.briefLink,
       fromStatus: currentJob.status,
@@ -110,23 +111,26 @@ export async function setJobDesignersAction(
       actorEmail: actor.email,
       recipients,
       note: `Ditugaskan kepada editor: ${designerNames}`,
-    });
+    }).catch((err) => console.error('Failed to send assignment email:', err));
 
-    for (const d of designersList) {
-      if (d.id !== actor.id) {
-        await createNotificationAction({
-          userId: d.id,
-          title: 'Penugasan Job Baru',
-          message: `${actor.fullName} menugaskan Anda ke job: "${currentJob.title}"`,
-          type: 'job_assigned',
-          jobId: currentJob.id,
-          jobTitle: currentJob.title,
-          actorId: actor.id,
-          actorName: actor.fullName,
-          actorAvatar: actor.avatarUrl,
-        });
-      }
-    }
+    // Dispatch in-app notifications in parallel
+    Promise.all(
+      designersList
+        .filter((d) => d.id !== actor.id)
+        .map((d) =>
+          createNotificationAction({
+            userId: d.id,
+            title: 'Penugasan Job Baru',
+            message: `${actor.fullName} menugaskan Anda ke job: "${currentJob.title}"`,
+            type: 'job_assigned',
+            jobId: currentJob.id,
+            jobTitle: currentJob.title,
+            actorId: actor.id,
+            actorName: actor.fullName,
+            actorAvatar: actor.avatarUrl,
+          })
+        )
+    ).catch((err) => console.error('Failed to create in-app notifications:', err));
   }
 
   revalidatePath('/');

@@ -83,7 +83,7 @@ export function AssignDesignerDropdown({
     setError(null);
 
     try {
-      const res = await onAssign(job.id, designerId);
+      const res = await onAssign(job.id, nextAssignedIds.join(','));
       if (!res.success) {
         // Revert on error
         setAssignedIds(assignedIds);
