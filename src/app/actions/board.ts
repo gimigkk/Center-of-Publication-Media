@@ -104,6 +104,7 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
       const meta = (user.user_metadata || {}) as Record<string, any>;
       const fallbackName = meta.full_name || meta.name || user.email?.split('@')[0] || 'User';
       const fallbackAvatar = meta.avatar_url || null;
+      const fallbackPhone = meta.phone_number || user.phone || null;
       const creativeDiv = divisionsRecords.find((d) => d.name === 'Creative & Marketing');
       const defaultDiv = creativeDiv?.id || divisionsRecords[0]?.id || null;
 
@@ -114,6 +115,7 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
             id: user.id,
             email: user.email || '',
             fullName: fallbackName,
+            phoneNumber: fallbackPhone,
             avatarUrl: fallbackAvatar,
             role: 'designer',
             divisionId: defaultDiv,

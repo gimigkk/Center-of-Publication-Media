@@ -95,6 +95,7 @@ export default function SignupPage() {
           data: {
             full_name: fullName.trim(),
             avatar_url: avatarPreview,
+            phone_number: phoneNumber.trim() || null,
           },
         },
       });
