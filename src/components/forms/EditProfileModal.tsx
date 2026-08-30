@@ -6,6 +6,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Avatar } from '@/components/ui/Avatar';
 import { Camera, Check, Loader2 } from 'lucide-react';
 import { compressImageToAvatarDataUrl } from '@/lib/utils';
+import { uploadAvatarDataUrlToStorage } from '@/lib/storage';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -68,9 +69,17 @@ export function EditProfileModal({
     setIsSubmitting(true);
     setError(null);
     try {
+      let finalAvatarUrl = avatarPreview;
+      if (avatarPreview && avatarPreview.startsWith('data:image')) {
+        const uploadedUrl = await uploadAvatarDataUrlToStorage(avatarPreview, currentUser.id);
+        if (uploadedUrl) {
+          finalAvatarUrl = uploadedUrl;
+        }
+      }
+
       const res = await onUpdateProfile({
         fullName: fullName.trim(),
-        avatarUrl: avatarPreview,
+        avatarUrl: finalAvatarUrl,
         phoneNumber: phoneNumber.trim() || null,
       });
 

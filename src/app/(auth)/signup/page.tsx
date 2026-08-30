@@ -10,6 +10,7 @@ import { Division } from '@/types';
 import { Camera, AlertCircle, Clock, Check } from 'lucide-react';
 import { FullLogoIEEE } from '@/components/ui/FullLogoIEEE';
 import { compressImageToAvatarDataUrl } from '@/lib/utils';
+import { uploadAvatarDataUrlToStorage } from '@/lib/storage';
 import '@/styles/auth.css';
 
 export default function SignupPage() {
@@ -106,7 +107,13 @@ export default function SignupPage() {
 
       const authUserId = authData.user?.id;
 
-      // 2. Insert into public profiles table
+      // 2. Upload avatar to Supabase Storage CDN
+      let publicAvatarUrl: string | null = null;
+      if (avatarPreview && authUserId) {
+        publicAvatarUrl = await uploadAvatarDataUrlToStorage(avatarPreview, authUserId);
+      }
+
+      // 3. Insert into public profiles table
       const res = await signUpUserAction({
         id: authUserId,
         fullName: fullName.trim(),
@@ -114,7 +121,7 @@ export default function SignupPage() {
         phoneNumber: phoneNumber.trim() || undefined,
         role,
         divisionId: role === 'requestor' ? (divisionId || divisions[0]?.id) : undefined,
-        avatarUrl: avatarPreview,
+        avatarUrl: publicAvatarUrl || avatarPreview,
       });
 
       if (res.success) {
