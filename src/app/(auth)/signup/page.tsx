@@ -9,6 +9,7 @@ import { getDivisionsAction } from '@/app/actions/divisions';
 import { Division } from '@/types';
 import { Camera, AlertCircle, Clock, Check } from 'lucide-react';
 import { FullLogoIEEE } from '@/components/ui/FullLogoIEEE';
+import { compressImageToAvatarDataUrl } from '@/lib/utils';
 import '@/styles/auth.css';
 
 export default function SignupPage() {
@@ -34,7 +35,7 @@ export default function SignupPage() {
   }, []);
 
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -43,12 +44,13 @@ export default function SignupPage() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setAvatarPreview(reader.result as string);
+    try {
+      const compressed = await compressImageToAvatarDataUrl(file, 256, 0.85);
+      setAvatarPreview(compressed);
       setError(null);
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      setError('Gagal memproses gambar');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

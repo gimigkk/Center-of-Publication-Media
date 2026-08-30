@@ -5,6 +5,7 @@ import { Profile } from '@/types';
 import { Modal } from '@/components/ui/Modal';
 import { Avatar } from '@/components/ui/Avatar';
 import { Camera, Check, Loader2 } from 'lucide-react';
+import { compressImageToAvatarDataUrl } from '@/lib/utils';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -39,7 +40,7 @@ export function EditProfileModal({
     }
   }, [isOpen, currentUser]);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -48,17 +49,13 @@ export function EditProfileModal({
       return;
     }
 
-    if (file.size > 4 * 1024 * 1024) {
-      setError('Ukuran gambar maksimal 4MB');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setAvatarPreview(reader.result as string);
+    try {
+      const compressed = await compressImageToAvatarDataUrl(file, 256, 0.85);
+      setAvatarPreview(compressed);
       setError(null);
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      setError('Gagal memproses gambar');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
