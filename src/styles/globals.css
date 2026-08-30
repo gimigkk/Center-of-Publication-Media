@@ -99,28 +99,51 @@ body {
   overflow: hidden;
 }
 
-/* Scrollbar suppression utilities for clean Figma / FigJam feel */
-.no-scrollbar,
-.kanban-board,
-.board-container,
-.board-canvas-flow,
-.archive-card,
-.archive-table-container,
-.column-cards-container {
+/* ==========================================================================
+   Complete Platform-Wide Scrollbar Removal (100% Seamless Figma Feel)
+   ========================================================================== */
+*,
+*::before,
+*::after,
+html,
+body,
+div,
+section,
+article,
+aside,
+main,
+nav,
+header,
+footer,
+ul,
+ol,
+table,
+tbody,
+thead,
+tr,
+td,
+th,
+textarea,
+pre,
+dialog,
+form {
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
 }
 
-.no-scrollbar::-webkit-scrollbar,
-.kanban-board::-webkit-scrollbar,
-.board-container::-webkit-scrollbar,
-.board-canvas-flow::-webkit-scrollbar,
-.archive-card::-webkit-scrollbar,
-.archive-table-container::-webkit-scrollbar,
-.column-cards-container::-webkit-scrollbar {
+*::-webkit-scrollbar,
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-corner,
+::-webkit-scrollbar,
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-corner {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
+  background: transparent !important;
+  opacity: 0 !important;
 }
 
 /* Base resets */
@@ -165,25 +188,6 @@ textarea:focus-visible {
   font-weight: 700;
   color: #fff;
   letter-spacing: -0.2px;
-}
-
-/* Scrollbars */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.12);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.22);
 }
 
 /* ───────────────────────────────────────────────────

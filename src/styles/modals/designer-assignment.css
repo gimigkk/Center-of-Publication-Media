@@ -50,9 +50,9 @@
   bottom: auto;
   left: auto;
   height: fit-content;
-  width: 240px;
-  min-width: 240px;
-  max-width: 240px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   background-color: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: var(--radius-md);
@@ -62,7 +62,16 @@
   padding: 10px;
   gap: 6px;
   flex-shrink: 0;
-  order: -1; /* Place BEFORE (left of) the detail card on desktop */
+  order: 2; /* Place at the BOTTOM on mobile */
+}
+
+@media (min-width: 840px) {
+  .assign-dropdown-popover.position-modal-left {
+    width: 240px;
+    min-width: 240px;
+    max-width: 240px;
+    order: -1; /* Place to the LEFT on desktop */
+  }
 }
 
 .assign-dropdown-popover.position-modal-left .assign-dropdown-list {
@@ -72,7 +81,7 @@
 }
 
 .assign-dropdown-popover.position-modal-left .assign-dropdown-item {
-  padding: 5px 6px;
+  padding: 6px 8px;
 }
 
 @keyframes popoverLeftIn {
