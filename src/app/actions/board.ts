@@ -97,7 +97,54 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
     }));
 
     const userMap = new Map(allUsers.map((u) => [u.id, u]));
-    const currentUser = userMap.get(user.id) || null;
+    let currentUser = userMap.get(user.id) || null;
+
+    if (!currentUser) {
+      // Auto-heal missing profile row for valid authenticated user
+      const meta = (user.user_metadata || {}) as Record<string, any>;
+      const fallbackName = meta.full_name || meta.name || user.email?.split('@')[0] || 'User';
+      const fallbackAvatar = meta.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+      const defaultDiv = divisionsRecords[0]?.id || null;
+
+      try {
+        const [newProfile] = await db
+          .insert(schema.profiles)
+          .values({
+            id: user.id,
+            email: user.email || '',
+            fullName: fallbackName,
+            avatarUrl: fallbackAvatar,
+            role: 'requestor',
+            divisionId: defaultDiv,
+            isApproved: true,
+          })
+          .onConflictDoUpdate({
+            target: schema.profiles.id,
+            set: { updatedAt: new Date() },
+          })
+          .returning();
+
+        if (newProfile) {
+          currentUser = {
+            id: newProfile.id,
+            email: newProfile.email,
+            fullName: newProfile.fullName,
+            phoneNumber: newProfile.phoneNumber,
+            avatarUrl: newProfile.avatarUrl,
+            role: newProfile.role,
+            divisionId: newProfile.divisionId,
+            divisionName: newProfile.divisionId ? divMap.get(newProfile.divisionId) : undefined,
+            isApproved: newProfile.isApproved,
+            createdAt: newProfile.createdAt.toISOString(),
+            updatedAt: newProfile.updatedAt.toISOString(),
+          };
+          allUsers.push(currentUser);
+        }
+      } catch (err) {
+        console.error('Failed to auto-heal profile:', err);
+      }
+    }
+
     if (!currentUser) return null;
 
     const pages: Page[] = pagesRecords.map((r) => ({
