@@ -74,7 +74,7 @@ export default function Home() {
     try {
       const data = await getInitialBoardDataAction();
       if (!data || !data.currentUser) {
-        router.push('/login');
+        window.location.replace('/login');
         return;
       }
 
@@ -89,10 +89,11 @@ export default function Home() {
       setNotifications(data.notifications);
     } catch (error) {
       console.error('Failed to load board data:', error);
+      window.location.replace('/login');
     } finally {
       setIsLoading(false);
     }
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     loadData();

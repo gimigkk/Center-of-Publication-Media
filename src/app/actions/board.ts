@@ -64,27 +64,21 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
     if (!user) return null;
 
 
-    // Run ALL independent queries in parallel in 1 roundtrip
+    // Run ALL queries in parallel in a SINGLE database roundtrip
     const [
       profilesRecords,
       divisionsRecords,
       pagesRecords,
       notificationsRecords,
-      activeJobsRecords,
+      allJobsRecords,
+      allJobDesignersRecords,
     ] = await Promise.all([
       db.select().from(schema.profiles),
       db.select().from(schema.divisions),
       db.select().from(schema.pages),
       db.select().from(schema.notifications).where(eq(schema.notifications.userId, user.id)),
-      db
-        .select()
-        .from(schema.jobs)
-        .where(
-          and(
-            eq(schema.jobs.isArchived, false),
-            inArray(schema.jobs.status, ['wip', 'revisions'])
-          )
-        ),
+      db.select().from(schema.jobs),
+      db.select().from(schema.jobDesigners),
     ]);
 
     const divMap = new Map(divisionsRecords.map((d) => [d.id, d.name]));
@@ -125,99 +119,74 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
       }))
       .sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
 
-
-
     const currentPage = pages[0] || null;
 
-    // Fetch jobs for current page + designer assignments in parallel
-    let initialJobs: Job[] = [];
-    if (currentPage) {
-      const pageJobsRecords = await db
-        .select()
-        .from(schema.jobs)
-        .where(eq(schema.jobs.pageId, currentPage.id));
+    // Build map of job designer assignments from allJobDesignersRecords in memory
+    const jobDesignersMap = new Map<string, string[]>();
+    const wipCountMap = new Map<string, number>();
+    allJobDesignersRecords.forEach((da) => {
+      const existing = jobDesignersMap.get(da.jobId) || [];
+      existing.push(da.designerId);
+      jobDesignersMap.set(da.jobId, existing);
+    });
 
-      if (pageJobsRecords.length > 0) {
-        const jobIds = pageJobsRecords.map((r) => r.id);
-        const designerAssignments = await db
-          .select()
-          .from(schema.jobDesigners)
-          .where(inArray(schema.jobDesigners.jobId, jobIds));
+    // Map jobs for the current active page
+    const pageJobsRecords = currentPage
+      ? allJobsRecords.filter((j) => j.pageId === currentPage.id)
+      : allJobsRecords;
 
-        const jobDesignersMap = new Map<string, string[]>();
-        designerAssignments.forEach((da) => {
-          const existing = jobDesignersMap.get(da.jobId) || [];
-          existing.push(da.designerId);
-          jobDesignersMap.set(da.jobId, existing);
-        });
-
-        initialJobs = pageJobsRecords.map((r) => {
-          let rawIds = jobDesignersMap.get(r.id) || [];
-          if (rawIds.length === 0 && r.designerId) {
-            rawIds = [r.designerId];
-          }
-          const designersList = rawIds.map((id) => userMap.get(id)).filter(Boolean) as Profile[];
-
-          return {
-            id: r.id,
-            pageId: r.pageId,
-            title: r.title,
-            description: r.description,
-            briefLink: r.briefLink,
-            briefTitle: r.briefTitle || null,
-            divisionId: r.divisionId,
-            divisionName: divMap.get(r.divisionId) || 'Umum',
-            publicationMedia: r.publicationMedia,
-            deadline: r.deadline.toISOString(),
-            status: r.status,
-            kanbanOrder: r.kanbanOrder,
-            requestorId: r.requestorId,
-            requestor: userMap.get(r.requestorId),
-            designerId: rawIds[0] || r.designerId || null,
-            designer: designersList[0] || (r.designerId ? userMap.get(r.designerId) : null) || null,
-            designerIds: rawIds,
-            designers: designersList,
-            isArchived: r.isArchived || false,
-            archivedAt: r.archivedAt ? r.archivedAt.toISOString() : null,
-            createdAt: r.createdAt.toISOString(),
-            updatedAt: r.updatedAt.toISOString(),
-          };
-        });
+    const initialJobs: Job[] = pageJobsRecords.map((r) => {
+      let rawIds = jobDesignersMap.get(r.id) || [];
+      if (rawIds.length === 0 && r.designerId) {
+        rawIds = [r.designerId];
       }
-    }
+      const designersList = rawIds.map((id) => userMap.get(id)).filter(Boolean) as Profile[];
+
+      return {
+        id: r.id,
+        pageId: r.pageId,
+        title: r.title,
+        description: r.description,
+        briefLink: r.briefLink,
+        briefTitle: r.briefTitle || null,
+        divisionId: r.divisionId,
+        divisionName: divMap.get(r.divisionId) || 'Umum',
+        publicationMedia: r.publicationMedia,
+        deadline: r.deadline.toISOString(),
+        status: r.status,
+        kanbanOrder: r.kanbanOrder,
+        requestorId: r.requestorId,
+        requestor: userMap.get(r.requestorId),
+        designerId: rawIds[0] || r.designerId || null,
+        designer: designersList[0] || (r.designerId ? userMap.get(r.designerId) : null) || null,
+        designerIds: rawIds,
+        designers: designersList,
+        isArchived: r.isArchived || false,
+        archivedAt: r.archivedAt ? r.archivedAt.toISOString() : null,
+        createdAt: r.createdAt.toISOString(),
+        updatedAt: r.updatedAt.toISOString(),
+      };
+    });
 
     // Pending users computed in memory from profiles
     const pendingUsers = allUsers.filter((u) => !u.isApproved);
 
-    // Designer suggestions computed in memory
+    // Compute active WIP counts across all active jobs in memory
+    const activeJobs = allJobsRecords.filter(
+      (j) => !j.isArchived && (j.status === 'wip' || j.status === 'revisions')
+    );
+
     const designers = allUsers.filter(
       (u) => u.isApproved && (u.role === 'designer' || u.role === 'admin')
     );
-    const wipCountMap = new Map<string, number>();
     designers.forEach((d) => wipCountMap.set(d.id, 0));
 
-    if (activeJobsRecords.length > 0) {
-      const activeJobIds = activeJobsRecords.map((j) => j.id);
-      const activeAssignments = await db
-        .select()
-        .from(schema.jobDesigners)
-        .where(inArray(schema.jobDesigners.jobId, activeJobIds));
-
-      activeAssignments.forEach((a) => {
-        const count = wipCountMap.get(a.designerId) || 0;
-        wipCountMap.set(a.designerId, count + 1);
+    activeJobs.forEach((job) => {
+      const assignedIds = jobDesignersMap.get(job.id) || (job.designerId ? [job.designerId] : []);
+      assignedIds.forEach((dId) => {
+        wipCountMap.set(dId, (wipCountMap.get(dId) || 0) + 1);
       });
-
-      activeJobsRecords.forEach((j) => {
-        if (
-          j.designerId &&
-          !activeAssignments.some((a) => a.jobId === j.id && a.designerId === j.designerId)
-        ) {
-          const count = wipCountMap.get(j.designerId) || 0;
-          wipCountMap.set(j.designerId, count + 1);
-        }
-      });
-    }
+    });
 
     const designerSuggestions = designers.map((d) => ({
       designer: d,

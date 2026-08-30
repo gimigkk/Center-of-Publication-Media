@@ -121,6 +121,11 @@ export function usePresence(currentPage: Page | null, currentUser: Profile | nul
     const channelName = 'copm-presence-workspace';
 
     try {
+      const existingChannel = supabase.getChannels().find((c) => c.topic === `realtime:${channelName}`);
+      if (existingChannel) {
+        supabase.removeChannel(existingChannel);
+      }
+
       const channel = supabase.channel(channelName, {
         config: {
           presence: {

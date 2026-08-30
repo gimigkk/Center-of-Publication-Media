@@ -215,7 +215,7 @@ export const Board = memo(function Board({
     },
   });
 
-  const sensors = useSensors(isMobile ? undefined : mouseSensor);
+  const sensors = useSensors(mouseSensor);
 
   // Separate active kanban jobs from archived table jobs
   const activeJobs = jobs.filter((j) => !j.isArchived);

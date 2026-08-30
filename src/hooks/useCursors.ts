@@ -169,6 +169,11 @@ export function useCursors(
     // 2. Supabase Realtime Broadcast for remote network collaborators
     const supabase = createClient();
     try {
+      const existingChannel = supabase.getChannels().find((c) => c.topic === `realtime:${channelName}`);
+      if (existingChannel) {
+        supabase.removeChannel(existingChannel);
+      }
+
       const channel = supabase.channel(channelName, {
         config: { broadcast: { self: false } },
       });

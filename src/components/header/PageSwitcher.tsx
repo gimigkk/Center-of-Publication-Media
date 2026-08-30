@@ -109,7 +109,9 @@ export function PageSwitcher({
       <div className="figjam-widget-divider" />
 
       {/* Current Page Name */}
-      <span className="figjam-current-page-name">{currentPage.name}</span>
+      <span className="figjam-current-page-name" title={currentPage.name}>
+        {currentPage.name}
+      </span>
 
       {/* Full-height divider between Page Name and Pages Icon */}
       <div className="figjam-widget-divider" />

@@ -3,7 +3,7 @@ import { Job, Profile } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
 import { GoogleDocsIcon } from '@/components/ui/GoogleDocsIcon';
 import { formatDate } from '@/lib/utils';
-import { Calendar, User, Palette } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 
 interface ArchiveMobileCardProps {
   job: Job;
@@ -23,67 +23,85 @@ export const ArchiveMobileCard = React.memo(function ArchiveMobileCard({
 
   return (
     <div
-      className="archive-mobile-card"
+      className="job-card archive-mobile-card"
       onClick={() => onCardClick(job)}
     >
-      {/* Header Row: Title + Division Badge */}
+      {/* 1. Header: Title + Division Badge */}
       <div className="archive-mobile-card-header">
-        <span className="archive-mobile-card-title">{job.title}</span>
+        <h4 className="job-card-title">{job.title}</h4>
         <span className="archive-division-badge">
           {job.divisionName || 'Umum'}
         </span>
       </div>
 
+      {/* 2. Short Description Snippet */}
       {job.description && (
-        <p className="archive-mobile-card-desc">{job.description}</p>
+        <p className="job-card-desc">{job.description}</p>
       )}
 
-      {/* Middle Info Row: Requester & Editor */}
-      <div className="archive-mobile-card-meta">
-        <div className="archive-mobile-meta-item">
-          <User size={12} className="archive-mobile-meta-icon" />
-          <span className="archive-mobile-meta-label">Req:</span>
-          <span className="archive-mobile-meta-val">
-            {job.requestor?.fullName || 'Requester'}
-          </span>
-        </div>
-
-        <div className="archive-mobile-meta-item">
-          <Palette size={12} className="archive-mobile-meta-icon" />
-          <span className="archive-mobile-meta-label">Desainer:</span>
-          <span className="archive-mobile-meta-val">
-            {assignedDesigners.length > 0
-              ? assignedDesigners.map((d) => d.fullName).join(', ')
-              : 'Belum ada'}
-          </span>
-        </div>
-      </div>
-
-      {/* Footer Row: Brief doc & Date */}
-      <div className="archive-mobile-card-footer">
-        <div className="archive-mobile-brief-slot">
-          {job.briefLink ? (
+      {/* 3. Footer Row */}
+      <div className="job-card-footer">
+        <div className="job-card-meta">
+          {/* Brief Link */}
+          {job.briefLink && (
             <a
               href={job.briefLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="archive-mobile-doc-link"
+              className="job-brief-link"
               onClick={(e) => e.stopPropagation()}
-              title="Buka Google Docs Brief"
+              title="Buka Brief Google Docs"
             >
-              <GoogleDocsIcon size={14} />
-              <span>Buka Brief Docs</span>
+              <GoogleDocsIcon size={12} />
+              <span>Brief</span>
             </a>
-          ) : (
-            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-              Tidak ada brief
-            </span>
           )}
+
+          {/* Date Badge */}
+          <div
+            className="deadline-badge normal"
+            title={`Deadline: ${formatDate(job.deadline)}`}
+          >
+            <Calendar size={10} />
+            <span>{job.deadline ? formatDate(job.deadline) : '-'}</span>
+          </div>
         </div>
 
-        <div className="archive-mobile-date-slot">
-          <Calendar size={11} style={{ opacity: 0.6 }} />
-          <span>{job.archivedAt ? formatDate(job.archivedAt) : '-'}</span>
+        {/* Assigned Editors Avatars (Kanban style overlapping stack) */}
+        <div className="job-card-people">
+          {assignedDesigners.length > 0 ? (
+            <div
+              className="editors-avatar-group"
+              title={`Editor: ${assignedDesigners.map((d) => d.fullName).join(', ')}`}
+            >
+              {assignedDesigners.slice(0, 3).map((designer, idx) => (
+                <div
+                  key={designer.id}
+                  className="person-avatar-slot"
+                  title={`Editor: ${designer.fullName}`}
+                  style={{ zIndex: idx + 1 }}
+                >
+                  <Avatar
+                    src={designer.avatarUrl}
+                    name={designer.fullName}
+                    size={20}
+                  />
+                </div>
+              ))}
+              {assignedDesigners.length > 3 && (
+                <div
+                  className="avatar-overflow-badge"
+                  style={{ zIndex: 10 }}
+                >
+                  +{assignedDesigners.length - 3}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="unassigned-text" title="Belum ada editor ditugaskan">
+              —
+            </div>
+          )}
         </div>
       </div>
     </div>

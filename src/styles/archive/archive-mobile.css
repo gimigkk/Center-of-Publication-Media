@@ -2,86 +2,28 @@
    Archive Mobile Card View & Responsive Queries
    ========================================================================== */
 
-/* Mobile Card Table Styles */
+/* Mobile Card Layout */
 .archive-mobile-card {
-  background-color: var(--bg-surface);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   cursor: pointer;
-  transition: background-color 100ms ease;
-}
-
-.archive-mobile-card:last-child {
-  border-bottom: none;
-}
-
-.archive-mobile-card:hover {
-  background-color: var(--bg-surface-hover);
+  touch-action: auto;
 }
 
 .archive-mobile-card-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
 }
 
-.archive-mobile-card-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  letter-spacing: -0.1px;
-}
-
-.archive-mobile-card-desc {
-  font-size: 11.5px;
-  color: var(--text-secondary);
-  line-height: 1.4;
+.archive-mobile-card-header .job-card-title {
+  flex: 1;
   margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  word-break: break-word;
 }
 
-.archive-mobile-card-people {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 4px 0;
-  flex-wrap: wrap;
-}
-
-.archive-mobile-person-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.archive-mobile-person-name {
-  font-size: 11.5px;
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-.archive-mobile-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.archive-mobile-deadline {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  color: var(--text-tertiary);
-  font-weight: 500;
+.archive-mobile-card-header .archive-division-badge {
+  flex-shrink: 0;
+  margin-top: -1px;
 }
 
 /* ==========================================================================
@@ -92,7 +34,7 @@
     margin-top: 20px;
   }
 
-  /* Title on Row 1, Search + Filter on Row 2 by themselves */
+  /* Title on Row 1, Search + Filter on Row 2 */
   .archive-top-bar {
     display: flex;
     flex-direction: column;
@@ -111,7 +53,7 @@
     font-size: 13px;
   }
 
-  /* Row 2: Search + Division filter in 1 row by themselves */
+  /* Row 2: Search + Division filter in 1 row */
   .archive-controls-group {
     display: flex;
     flex-direction: row;
@@ -141,6 +83,14 @@
     flex-shrink: 0;
   }
 
+  /* Main Card Container on Mobile: Transparent wrapper with separated cards */
+  .archive-card {
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+    overflow: visible;
+  }
+
   /* Switch from wide table to Card Table View */
   .archive-table-desktop {
     display: none;
@@ -149,6 +99,14 @@
   .archive-cards-mobile {
     display: flex;
     flex-direction: column;
+    gap: 8px;
+  }
+
+  .archive-cards-mobile .archive-empty-state {
+    background-color: var(--bg-surface);
+    border: 1px dashed rgba(0, 0, 0, 0.12);
+    border-radius: var(--radius-sm);
+    padding: 32px 16px;
   }
 
   .archive-footer-bar {
@@ -157,5 +115,10 @@
     gap: 4px;
     padding: 8px 12px;
     font-size: 10.5px;
+    background-color: var(--bg-surface);
+    border: 1px solid rgba(0, 0, 0, 0.07);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-sm);
+    margin-top: 4px;
   }
 }

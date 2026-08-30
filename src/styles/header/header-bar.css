@@ -62,6 +62,11 @@
   font-weight: 500;
   color: rgba(255, 255, 255, 0.78);
   white-space: nowrap;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* Top-right widget — Figma Native Dark */
@@ -490,9 +495,15 @@
 
   .figjam-current-page-name {
     font-size: 12px;
-    max-width: 110px;
+    max-width: 65px;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  @media (max-width: 480px) {
+    .figjam-current-page-name {
+      max-width: 48px;
+    }
   }
 
   .user-profile-text-group {
