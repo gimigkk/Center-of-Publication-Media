@@ -23,7 +23,7 @@ export interface Profile {
   email: string;
   fullName: string;
   phoneNumber?: string | null;
-  avatarUrl: string;
+  avatarUrl?: string | null;
   role: UserRole;
   divisionId: string | null;
   divisionName?: string | null;
@@ -91,7 +91,7 @@ export interface RemoteCursor {
 export interface OnlineUser {
   userId: string;
   userName: string;
-  userAvatar: string;
+  userAvatar?: string | null;
   role: UserRole;
   color: string;
   pageId?: string;

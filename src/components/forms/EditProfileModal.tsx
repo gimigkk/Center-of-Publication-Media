@@ -12,7 +12,7 @@ interface EditProfileModalProps {
   currentUser: Profile;
   onUpdateProfile: (data: {
     fullName: string;
-    avatarUrl: string;
+    avatarUrl?: string | null;
     phoneNumber?: string | null;
   }) => Promise<{ success: boolean; error?: string }>;
 }

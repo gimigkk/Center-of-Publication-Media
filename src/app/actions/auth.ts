@@ -76,14 +76,14 @@ export async function updateProfileAction(
   userId: string,
   data: {
     fullName?: string;
-    avatarUrl?: string;
+    avatarUrl?: string | null;
     phoneNumber?: string | null;
   }
 ): Promise<{ success: boolean; profile?: Profile; error?: string }> {
   if (isMockEnabled()) {
     const store = getMockStore();
     if (data.fullName !== undefined) store.currentUser.fullName = data.fullName.trim();
-    if (data.avatarUrl !== undefined) store.currentUser.avatarUrl = data.avatarUrl.trim();
+    if (data.avatarUrl !== undefined) store.currentUser.avatarUrl = data.avatarUrl ? data.avatarUrl.trim() : null;
     if (data.phoneNumber !== undefined) store.currentUser.phoneNumber = data.phoneNumber?.trim() || null;
     store.currentUser.updatedAt = new Date().toISOString();
 
@@ -108,7 +108,7 @@ export async function updateProfileAction(
       updatedAt: new Date(),
     };
     if (data.fullName !== undefined) updateData.fullName = data.fullName.trim();
-    if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl.trim();
+    if (data.avatarUrl !== undefined) updateData.avatarUrl = data.avatarUrl ? data.avatarUrl.trim() : null;
     if (data.phoneNumber !== undefined) updateData.phoneNumber = data.phoneNumber?.trim() || null;
 
     const [updated] = await db
@@ -323,7 +323,7 @@ export async function signUpUserAction(formData: {
       email: formData.email.toLowerCase().trim(),
       fullName: formData.fullName.trim(),
       phoneNumber: formData.phoneNumber?.trim() || null,
-      avatarUrl: formData.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      avatarUrl: formData.avatarUrl || null,
       role: userRole,
       divisionId: resolvedDivision,
       isApproved: isAutoApproved,
@@ -339,7 +339,7 @@ export async function signUpUserAction(formData: {
   const { id: clientProvidedId, fullName, email, phoneNumber, avatarUrl, divisionId } = formData;
 
   try {
-    const avatar = avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+    const avatar = avatarUrl || null;
     const profileId = clientProvidedId || crypto.randomUUID();
 
     // Resolve division ID (if not provided, default to Creative & Marketing)

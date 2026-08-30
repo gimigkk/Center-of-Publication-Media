@@ -421,7 +421,7 @@ export function useBoardOperations({
 
   // Profile update handler
   const handleUpdateProfile = useCallback(
-    async (data: { fullName: string; avatarUrl: string; phoneNumber?: string | null }) => {
+    async (data: { fullName: string; avatarUrl?: string | null; phoneNumber?: string | null }) => {
       if (!currentUser) return { success: false, error: 'Pengguna tidak ditemukan' };
       const res = await updateProfileAction(currentUser.id, data);
       if (res.success && res.profile) {

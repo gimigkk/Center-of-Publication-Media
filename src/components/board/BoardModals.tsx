@@ -52,7 +52,7 @@ interface BoardModalsProps {
   onRejectUser: (userId: string) => Promise<{ success: boolean; error?: string }>;
   onUpdateProfile: (data: {
     fullName: string;
-    avatarUrl: string;
+    avatarUrl?: string | null;
     phoneNumber?: string | null;
   }) => Promise<{ success: boolean; error?: string }>;
 }

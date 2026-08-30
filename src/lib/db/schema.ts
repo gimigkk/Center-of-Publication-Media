@@ -16,7 +16,7 @@ export const profiles = pgTable('profiles', {
   email: text('email').notNull().unique(),
   fullName: text('full_name').notNull(),
   phoneNumber: text('phone_number'),
-  avatarUrl: text('avatar_url').notNull(),
+  avatarUrl: text('avatar_url'),
   role: userRoleEnum('role').default('requestor').notNull(),
   divisionId: uuid('division_id').references(() => divisions.id, { onDelete: 'set null' }),
   isApproved: boolean('is_approved').default(false).notNull(),
