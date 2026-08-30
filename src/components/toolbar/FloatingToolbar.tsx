@@ -140,14 +140,14 @@ export const FloatingToolbar = memo(function FloatingToolbar({
         {/* 3. Admin Tools */}
         {currentUser.role === 'admin' && (
           <>
-            <button className="toolbar-btn" onClick={onOpenDivisions} title="Kelola Divisi">
+            <button className="toolbar-btn toolbar-btn-collapse" onClick={onOpenDivisions} title="Kelola Divisi">
               <FolderTree size={13} strokeWidth={2} />
-              <span>Divisi</span>
+              <span className="toolbar-btn-text">Divisi</span>
             </button>
 
-            <button className="toolbar-btn" onClick={onOpenApprovals} title="Persetujuan Tertunda">
+            <button className="toolbar-btn toolbar-btn-collapse" onClick={onOpenApprovals} title="Persetujuan Tertunda">
               <UserCheck size={13} strokeWidth={2} />
-              <span>Approval</span>
+              <span className="toolbar-btn-text">Approval</span>
               {pendingCount > 0 && <span className="badge-count">{pendingCount}</span>}
             </button>
           </>
