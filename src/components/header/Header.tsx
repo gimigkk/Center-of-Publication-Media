@@ -82,23 +82,45 @@ export const Header = memo(function Header({
   const previouslyViewedUsers = useMemo(() => {
     const onlineMap = new Map((onlineUsers || []).map((u) => [u.userId, u]));
 
-    // Use allUsers if provided, otherwise fallback to online users
-    const candidateUsers = allUsers.length > 0
-      ? allUsers.filter((u) => u.id !== currentUser.id && u.isApproved !== false)
-      : otherCollaborators.map((ou) => ({
-          id: ou.userId,
-          email: '',
-          fullName: ou.userName,
-          avatarUrl: ou.userAvatar,
-          role: ou.role,
-          divisionId: null,
-          isApproved: true,
-          lastSeenAt: ou.onlineAt,
-          createdAt: ou.onlineAt,
-          updatedAt: ou.onlineAt,
-        }));
+    // Start with all known registered users
+    const userMap = new Map<string, Profile>();
+    for (const u of allUsers) {
+      if (u.id !== currentUser.id && u.isApproved !== false) {
+        userMap.set(u.id, u);
+      }
+    }
 
-    return [...candidateUsers].sort((a, b) => {
+    // ALWAYS merge in onlineUsers so new/active collaborators appear immediately
+    for (const ou of onlineUsers || []) {
+      if (ou.userId && ou.userId !== currentUser.id) {
+        const existing = userMap.get(ou.userId);
+        if (existing) {
+          userMap.set(ou.userId, {
+            ...existing,
+            fullName: ou.userName || existing.fullName,
+            avatarUrl: ou.userAvatar !== undefined ? ou.userAvatar : existing.avatarUrl,
+            lastSeenAt: ou.onlineAt || existing.lastSeenAt,
+          });
+        } else {
+          userMap.set(ou.userId, {
+            id: ou.userId,
+            email: '',
+            fullName: ou.userName,
+            avatarUrl: ou.userAvatar,
+            role: ou.role,
+            divisionId: null,
+            isApproved: true,
+            lastSeenAt: ou.onlineAt,
+            createdAt: ou.onlineAt,
+            updatedAt: ou.onlineAt,
+          });
+        }
+      }
+    }
+
+    const candidateUsers = Array.from(userMap.values());
+
+    return candidateUsers.sort((a, b) => {
       const aIsOnline = onlineMap.has(a.id);
       const bIsOnline = onlineMap.has(b.id);
       if (aIsOnline && !bIsOnline) return -1;
@@ -108,7 +130,7 @@ export const Header = memo(function Header({
       const timeB = b.lastSeenAt ? new Date(b.lastSeenAt).getTime() : new Date(b.updatedAt).getTime();
       return timeB - timeA;
     });
-  }, [allUsers, currentUser.id, onlineUsers, otherCollaborators]);
+  }, [allUsers, currentUser.id, onlineUsers]);
 
   return (
     <header className="figjam-header">
