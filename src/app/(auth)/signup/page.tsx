@@ -86,7 +86,7 @@ export default function SignupPage() {
 
     setIsSubmitting(true);
     try {
-      // 1. Create Supabase Auth user with metadata
+      // 1. Create Supabase Auth user (NO base64 in metadata — it bloats the JWT cookie)
       const supabase = createClient();
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: cleanEmail,
@@ -94,7 +94,6 @@ export default function SignupPage() {
         options: {
           data: {
             full_name: fullName.trim(),
-            avatar_url: avatarPreview,
             phone_number: phoneNumber.trim() || null,
           },
         },
@@ -108,13 +107,20 @@ export default function SignupPage() {
 
       const authUserId = authData.user?.id;
 
-      // 2. Upload avatar to Supabase Storage CDN
+      // 2. Upload avatar to Supabase Storage CDN (returns a short HTTPS URL)
       let publicAvatarUrl: string | null = null;
       if (avatarPreview && authUserId) {
         publicAvatarUrl = await uploadAvatarDataUrlToStorage(avatarPreview, authUserId);
       }
 
-      // 3. Insert into public profiles table
+      // 3. Update auth metadata with CDN URL (safe, ~100 bytes, not base64)
+      if (publicAvatarUrl) {
+        await supabase.auth.updateUser({
+          data: { avatar_url: publicAvatarUrl },
+        });
+      }
+
+      // 4. Insert into public profiles table
       const res = await signUpUserAction({
         id: authUserId,
         fullName: fullName.trim(),
@@ -122,7 +128,7 @@ export default function SignupPage() {
         phoneNumber: phoneNumber.trim() || undefined,
         role,
         divisionId: role === 'requestor' ? (divisionId || divisions[0]?.id) : undefined,
-        avatarUrl: publicAvatarUrl || avatarPreview,
+        avatarUrl: publicAvatarUrl || undefined,
       });
 
       if (res.success) {
