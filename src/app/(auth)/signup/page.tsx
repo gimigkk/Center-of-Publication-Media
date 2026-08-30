@@ -83,11 +83,17 @@ export default function SignupPage() {
 
     setIsSubmitting(true);
     try {
-      // 1. Create Supabase Auth user
+      // 1. Create Supabase Auth user with metadata
       const supabase = createClient();
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: cleanEmail,
         password,
+        options: {
+          data: {
+            full_name: fullName.trim(),
+            avatar_url: avatarPreview,
+          },
+        },
       });
 
       if (authError) {
