@@ -320,8 +320,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-height: 180px;
-  overflow-y: auto;
+  max-height: none;
+  overflow: visible;
 }
 
 .figma-collab-row {
