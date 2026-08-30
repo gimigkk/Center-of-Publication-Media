@@ -104,7 +104,8 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
       const meta = (user.user_metadata || {}) as Record<string, any>;
       const fallbackName = meta.full_name || meta.name || user.email?.split('@')[0] || 'User';
       const fallbackAvatar = meta.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
-      const defaultDiv = divisionsRecords[0]?.id || null;
+      const creativeDiv = divisionsRecords.find((d) => d.name === 'Creative & Marketing');
+      const defaultDiv = creativeDiv?.id || divisionsRecords[0]?.id || null;
 
       try {
         const [newProfile] = await db
@@ -114,7 +115,7 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
             email: user.email || '',
             fullName: fallbackName,
             avatarUrl: fallbackAvatar,
-            role: 'requestor',
+            role: 'designer',
             divisionId: defaultDiv,
             isApproved: true,
           })

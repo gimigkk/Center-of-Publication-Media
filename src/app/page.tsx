@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Job, Page, Profile, Division, AppNotification } from '@/types';
+import { Job, Page, Profile, Division, AppNotification, OnlineUser } from '@/types';
 import { getJobsAction, moveJobAction } from '@/app/actions/jobs';
 import { getInitialBoardDataAction } from '@/app/actions/board';
 
@@ -49,6 +49,29 @@ export default function Home() {
   const { jobs, setJobs, broadcastBoardChange, lastDropEvent } = useRealtimeBoard(activePageId, initialJobs);
   const { cursors, remotelyDraggedJobIds } = useCursors(currentPage, currentUser, activeDraggedJob, modals.currentUserState);
   const { onlineUsers } = usePresence(currentPage, currentUser);
+
+  // Harmonize presence state with active collaborator cursors so avatar stack never drops active users
+  const activeOnlineUsers = useMemo(() => {
+    const map = new Map<string, OnlineUser>();
+    for (const u of onlineUsers) {
+      if (u.userId) map.set(u.userId, u);
+    }
+    for (const c of cursors) {
+      if (c.userId && !map.has(c.userId)) {
+        map.set(c.userId, {
+          userId: c.userId,
+          userName: c.userName,
+          userAvatar: c.userAvatar,
+          role: 'requestor',
+          color: c.color,
+          pageId: c.pageId,
+          pageName: c.pageName,
+          onlineAt: new Date().toISOString(),
+        });
+      }
+    }
+    return Array.from(map.values());
+  }, [onlineUsers, cursors]);
 
   // Operations and business logic encapsulation
   const operations = useBoardOperations({
@@ -176,7 +199,7 @@ export default function Home() {
         currentPage={currentPage}
         currentUser={currentUser}
         allUsers={allUsers}
-        onlineUsers={onlineUsers}
+        onlineUsers={activeOnlineUsers}
         notifications={notifications}
         onMarkAsRead={operations.handleMarkAsRead}
         onMarkAllAsRead={operations.handleMarkAllAsRead}

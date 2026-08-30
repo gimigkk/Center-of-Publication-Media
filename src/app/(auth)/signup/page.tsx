@@ -18,7 +18,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'requestor' | 'designer'>('requestor');
+  const [role, setRole] = useState<'requestor' | 'designer'>('designer');
   const [divisionId, setDivisionId] = useState('');
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

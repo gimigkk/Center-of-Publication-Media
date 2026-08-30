@@ -310,14 +310,13 @@ export async function signUpUserAction(formData: {
     return { success: false, error: validation.error.issues[0]?.message || 'Data pendaftaran tidak valid' };
   }
 
-  const userRole: UserRole = formData.role || 'requestor';
-  const isAutoApproved = userRole === 'requestor';
+  const userRole: UserRole = formData.role || 'designer';
+  const isAutoApproved = true;
 
   if (isMockEnabled()) {
     const store = getMockStore();
-    const resolvedDivision = isAutoApproved
-      ? (formData.divisionId || store.divisions[0]?.id || null)
-      : null;
+    const creativeDiv = store.divisions.find((d) => d.name === 'Creative & Marketing');
+    const resolvedDivision = formData.divisionId || creativeDiv?.id || store.divisions[0]?.id || null;
 
     const newUser: Profile = {
       id: formData.id || `mock-user-${Date.now()}`,
@@ -343,13 +342,12 @@ export async function signUpUserAction(formData: {
     const avatar = avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
     const profileId = clientProvidedId || crypto.randomUUID();
 
-    // Resolve division ID for requestor
-    let resolvedDivisionId = (userRole === 'requestor' && divisionId && divisionId.trim()) ? divisionId.trim() : null;
-    if (userRole === 'requestor' && !resolvedDivisionId) {
-      const divs = await db.select().from(schema.divisions).limit(1);
-      if (divs.length > 0) {
-        resolvedDivisionId = divs[0].id;
-      }
+    // Resolve division ID (if not provided, default to Creative & Marketing)
+    let resolvedDivisionId = divisionId && divisionId.trim() ? divisionId.trim() : null;
+    if (!resolvedDivisionId) {
+      const divs = await db.select().from(schema.divisions);
+      const creativeDiv = divs.find((d) => d.name === 'Creative & Marketing');
+      resolvedDivisionId = creativeDiv ? creativeDiv.id : (divs[0]?.id || null);
     }
 
     const [existing] = await db
