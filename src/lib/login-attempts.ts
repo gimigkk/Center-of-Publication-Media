@@ -1,5 +1,9 @@
 import { headers } from 'next/headers';
+import { sql } from 'drizzle-orm';
 import { db, schema } from '@/lib/db';
+
+export const RATE_LIMIT_WINDOW_MINUTES = 15;
+export const RATE_LIMIT_MAX_FAILURES = 5;
 
 export type LoginAttemptStage =
   | 'validation'
@@ -16,6 +20,8 @@ export type LoginAttemptStage =
   | 'signup_complete'
   | 'signup_client'
   | 'signup_auto_login'
+  | 'password_reset_request'
+  | 'password_reset_update'
   | 'unexpected_error';
 
 export type LoginAttemptStatus = 'success' | 'failed';
@@ -54,6 +60,29 @@ export function isCorrelationId(value: string | undefined): value is string {
 
 export function getCorrelationId(value?: string): string {
   return isCorrelationId(value) ? value : crypto.randomUUID();
+}
+
+export async function checkLoginRateLimit(email: string): Promise<{ limited: boolean; retryAfterSeconds: number }> {
+  if (!db) return { limited: false, retryAfterSeconds: 0 };
+
+  try {
+    const [result] = await db.execute<{ failures: number; oldest_at: string | null }>(
+      sql`SELECT count(*)::int AS failures, min(created_at)::text AS oldest_at
+          FROM login_attempts
+          WHERE email = ${email.trim().toLowerCase()}
+            AND stage = 'supabase_auth'
+            AND status = 'failed'
+            AND created_at > now() - interval '15 minutes'`
+    );
+    const failures = Number(result?.failures || 0);
+    if (failures < RATE_LIMIT_MAX_FAILURES) return { limited: false, retryAfterSeconds: 0 };
+    const oldest = result?.oldest_at ? new Date(result.oldest_at).getTime() : Date.now();
+    const retryAfterSeconds = Math.max(1, Math.ceil((oldest + RATE_LIMIT_WINDOW_MINUTES * 60_000 - Date.now()) / 1000));
+    return { limited: true, retryAfterSeconds };
+  } catch (error) {
+    console.error('Failed to check login rate limit:', error instanceof Error ? error.message : 'Unknown database error');
+    return { limited: false, retryAfterSeconds: 0 };
+  }
 }
 
 export async function recordLoginAttempt(input: LoginAttemptInput): Promise<void> {

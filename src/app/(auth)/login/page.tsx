@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import type { LoginDiagnostic } from '@/lib/login-attempts';
 import Link from 'next/link';
 import { loginAction } from '@/app/actions/login';
+import { requestPasswordReset } from '@/app/actions/password-reset';
 import { AlertCircle } from 'lucide-react';
 import { FullLogoIEEE } from '@/components/ui/FullLogoIEEE';
 import '@/styles/auth.css';
@@ -15,6 +16,20 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [diagnostic, setDiagnostic] = useState<LoginDiagnostic | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+
+  const handlePasswordReset = async () => {
+    if (!email.trim()) {
+      setResetMessage('Masukkan alamat email terlebih dahulu.');
+      return;
+    }
+    setIsResetting(true);
+    setResetMessage(null);
+    const result = await requestPasswordReset(email);
+    setResetMessage(result.diagnostic.message);
+    setIsResetting(false);
+  };
 
   const handleLogin = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -101,6 +116,11 @@ function LoginForm() {
             {isSubmitting ? 'Sedang Masuk...' : 'Masuk ke Board'}
           </button>
         </form>
+
+        <button type="button" className="auth-link auth-reset-link" onClick={handlePasswordReset} disabled={isResetting}>
+          {isResetting ? 'Mengirim tautan...' : 'Lupa kata sandi?'}
+        </button>
+        {resetMessage && <span className="auth-reset-message" role="status">{resetMessage}</span>}
 
         <div className="auth-footer-links">
           <span>Belum punya akun?</span>

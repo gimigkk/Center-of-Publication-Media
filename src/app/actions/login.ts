@@ -5,6 +5,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { db, schema } from '@/lib/db';
 import {
   classifyLoginError,
+  checkLoginRateLimit,
   getCorrelationId,
   recordLoginAttempt,
   type LoginDiagnostic,
@@ -41,6 +42,19 @@ function withTimeout<T>(promise: Promise<T>): Promise<T> {
 export async function loginAction(email: string, password: string, requestedCorrelationId?: string): Promise<LoginResult> {
   const correlationId = getCorrelationId(requestedCorrelationId);
   const cleanEmail = email.trim().toLowerCase();
+
+  const rateLimit = await checkLoginRateLimit(cleanEmail);
+  if (rateLimit.limited) {
+    const result = diagnostic(
+      correlationId,
+      'supabase_auth',
+      'failed',
+      'RATE_LIMITED',
+      `Terlalu banyak percobaan login. Coba lagi dalam ${Math.ceil(rateLimit.retryAfterSeconds / 60)} menit.`
+    );
+    await recordLoginAttempt({ ...result, email: cleanEmail });
+    return { success: false, diagnostic: result };
+  }
 
   const validation = loginSchema.safeParse({ email: cleanEmail, password });
   if (!validation.success) {

@@ -96,6 +96,31 @@
   text-decoration: underline;
 }
 
+.auth-reset-link {
+  align-self: center;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.auth-reset-link:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.auth-reset-message {
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.auth-success-panel {
+  background-color: var(--accent-green-light);
+  border-color: rgba(20, 174, 92, 0.35);
+  color: var(--accent-green-text);
+}
+
 /* Modern Circular Avatar Uploader */
 .auth-avatar-uploader {
   display: flex;
