@@ -33,7 +33,7 @@ export const jobFormSchema = z.object({
 export const signupSchema = z.object({
   fullName: z.string().min(2, 'Nama lengkap minimal 2 karakter'),
   email: z.string().email('Harap masukkan alamat email yang valid'),
-  phoneNumber: z.string().optional().nullable(),
+  phoneNumber: z.string().trim().min(1, 'Nomor WhatsApp / HP wajib diisi'),
   role: z.enum(['requestor', 'designer'] as const),
   divisionId: z.string().optional().nullable(),
   avatarUrl: z.string().optional().nullable(),

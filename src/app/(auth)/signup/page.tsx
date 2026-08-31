@@ -76,6 +76,11 @@ export default function SignupPage() {
       setSignupError('Harap masukkan alamat email Anda', 'signup_validation', 'INVALID_EMAIL');
       return;
     }
+    const cleanPhoneNumber = phoneNumber.trim();
+    if (!cleanPhoneNumber) {
+      setSignupError('Nomor WhatsApp / HP wajib diisi', 'signup_validation', 'INVALID_PHONE');
+      return;
+    }
     if (!password || password.length < 6) {
       setSignupError('Kata sandi minimal harus 6 karakter', 'signup_validation', 'INVALID_PASSWORD');
       return;
@@ -95,7 +100,7 @@ export default function SignupPage() {
         fullName: fullName.trim(),
         email: cleanEmail,
         password,
-        phoneNumber: phoneNumber.trim() || undefined,
+        phoneNumber: cleanPhoneNumber,
         role,
         divisionId: role === 'requestor' ? (divisionId || divisions[0]?.id) : undefined,
         avatarDataUrl: avatarPreview,
@@ -286,7 +291,7 @@ export default function SignupPage() {
 
             <div className="form-group">
               <label className="form-label">
-                Nomor WhatsApp / HP
+                Nomor WhatsApp / HP <span className="required-star">*</span>
               </label>
               <input
                 type="tel"
@@ -294,6 +299,7 @@ export default function SignupPage() {
                 placeholder="cth. 08123456789"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
+                required
               />
             </div>
           </div>
