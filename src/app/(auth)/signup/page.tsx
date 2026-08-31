@@ -27,6 +27,14 @@ export default function SignupPage() {
   const [isSubmittedPending, setIsSubmittedPending] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const setSignupError = (message: string, stage: string, details?: string) => {
+    setError(`${message} (Tahap: ${stage}${details ? ` · ${details}` : ''})`);
+  };
+
+  const handleExistingAccount = () => {
+    window.location.href = `/login?email=${encodeURIComponent(email.trim().toLowerCase())}`;
+  };
+
   useEffect(() => {
     getDivisionsAction().then((divs) => {
       const sorted = [...divs].sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
@@ -100,24 +108,38 @@ export default function SignupPage() {
       });
 
       if (authError) {
-        setError(authError.message || 'Gagal mendaftarkan akun di autentikasi');
-        setIsSubmitting(false);
+        const message = authError.message?.toLowerCase().includes('already registered')
+          ? 'Email ini sudah terdaftar. Gunakan halaman login untuk melanjutkan.'
+          : (authError.message || 'Gagal mendaftarkan akun di autentikasi');
+        setSignupError(message, 'pembuatan akun autentikasi');
         return;
       }
 
       const authUserId = authData.user?.id;
+      if (!authUserId) {
+        setSignupError('Akun autentikasi tidak mengembalikan identitas pengguna.', 'pembuatan akun autentikasi');
+        return;
+      }
 
       // 2. Upload avatar to Supabase Storage CDN (returns a short HTTPS URL)
       let publicAvatarUrl: string | null = null;
       if (avatarPreview && authUserId) {
         publicAvatarUrl = await uploadAvatarDataUrlToStorage(avatarPreview, authUserId);
+        if (!publicAvatarUrl) {
+          setSignupError('Foto profil gagal diunggah. Akun autentikasi sudah dibuat; ulangi dari halaman ini setelah memeriksa koneksi.', 'unggah avatar');
+          return;
+        }
       }
 
       // 3. Update auth metadata with CDN URL (safe, ~100 bytes, not base64)
       if (publicAvatarUrl) {
-        await supabase.auth.updateUser({
+        const { error: metadataError } = await supabase.auth.updateUser({
           data: { avatar_url: publicAvatarUrl },
         });
+        if (metadataError) {
+          setSignupError(metadataError.message || 'Gagal menyimpan foto profil.', 'sinkronisasi avatar');
+          return;
+        }
       }
 
       // 4. Insert into public profiles table
@@ -142,6 +164,7 @@ export default function SignupPage() {
             router.push('/');
             router.refresh();
           } else {
+            setSignupError(signInErr.message || 'Akun dibuat, tetapi login otomatis gagal. Silakan login manual.', 'login otomatis');
             router.push('/login');
           }
         } else {
@@ -222,21 +245,16 @@ export default function SignupPage() {
         </div>
 
         {error && (
-          <div
-            style={{
-              padding: '8px 12px',
-              background: 'var(--accent-red-light)',
-              border: '1px solid #fca5a5',
-              borderRadius: 'var(--radius-sm)',
-              color: 'var(--accent-red)',
-              fontSize: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
+          <div className="auth-error-panel" role="alert" aria-live="assertive">
             <AlertCircle size={14} style={{ flexShrink: 0 }} />
-            <span>{error}</span>
+            <div className="auth-error-content">
+              <strong>{error}</strong>
+              {error.includes('sudah terdaftar') && (
+                <button type="button" className="auth-error-action" onClick={handleExistingAccount}>
+                  Lanjut ke login
+                </button>
+              )}
+            </div>
           </div>
         )}
 

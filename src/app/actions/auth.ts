@@ -370,10 +370,28 @@ export async function signUpUserAction(formData: {
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
   const { id: clientProvidedId, fullName, email, phoneNumber, avatarUrl, divisionId } = formData;
+  const profileId = clientProvidedId?.trim();
+  const normalizedEmail = email.toLowerCase().trim();
+
+  if (!profileId) {
+    return { success: false, error: 'Identitas akun autentikasi tidak ditemukan. Silakan ulangi pendaftaran.' };
+  }
 
   try {
+    // Bind profile creation to the Auth identity instead of trusting a browser-only session.
+    // This also recovers signups where Supabase created the Auth user but did not return a session.
+    const supabaseAdmin = createAdminClient();
+    if (!supabaseAdmin) {
+      return { success: false, error: 'Layanan autentikasi server belum dikonfigurasi.' };
+    }
+
+    const { data: authData, error: authLookupError } = await supabaseAdmin.auth.admin.getUserById(profileId);
+    const authEmail = authData.user?.email?.toLowerCase().trim();
+    if (authLookupError || !authData.user || authEmail !== normalizedEmail) {
+      return { success: false, error: 'Identitas akun tidak cocok dengan email pendaftaran.' };
+    }
+
     const avatar = avatarUrl || null;
-    const profileId = clientProvidedId || crypto.randomUUID();
 
     // Resolve division ID (if not provided, default to Creative & Marketing)
     let resolvedDivisionId = divisionId && divisionId.trim() ? divisionId.trim() : null;
@@ -386,7 +404,7 @@ export async function signUpUserAction(formData: {
     const [existing] = await db
       .select()
       .from(schema.profiles)
-      .where(eq(schema.profiles.email, email.toLowerCase().trim()));
+      .where(eq(schema.profiles.email, normalizedEmail));
 
     let inserted;
     if (existing) {
