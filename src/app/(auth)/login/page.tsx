@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, Suspense } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { checkLoginRateLimitAction, completeLoginAction, recordLoginFailureAction } from '@/app/actions/login';
+import { classifyLoginError } from '@/lib/auth-errors';
 import { useSearchParams } from 'next/navigation';
 import type { LoginDiagnostic } from '@/lib/login-attempts';
 import Link from 'next/link';
-import { loginAction } from '@/app/actions/login';
 import { requestPasswordReset } from '@/app/actions/password-reset';
 import { AlertCircle } from 'lucide-react';
 import { FullLogoIEEE } from '@/components/ui/FullLogoIEEE';
@@ -16,6 +18,7 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [diagnostic, setDiagnostic] = useState<LoginDiagnostic | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
@@ -37,13 +40,41 @@ function LoginForm() {
     setIsSubmitting(true);
 
     try {
-      const result = await loginAction(email, password);
-      setDiagnostic(result.diagnostic);
+      const correlationId = crypto.randomUUID();
+      const supabase = createClient();
+      const rateLimit = await checkLoginRateLimitAction(email, correlationId);
+      if (rateLimit.limited) {
+        setDiagnostic(rateLimit.diagnostic || {
+          correlationId,
+          stage: 'supabase_auth',
+          status: 'failed',
+          code: 'RATE_LIMITED',
+          message: 'Terlalu banyak percobaan login. Coba lagi nanti.',
+        });
+        return;
+      }
 
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      if (error || !data.user) {
+        const mapped = classifyLoginError(error || new Error('No user returned'));
+        const result = await recordLoginFailureAction(email, correlationId, mapped.code, mapped.message, mapped.providerStatus);
+        setDiagnostic(result.diagnostic);
+        return;
+      }
+
+      setIsVerifying(true);
+      const result = await completeLoginAction(email, correlationId);
+      setIsVerifying(false);
       if (result.success) {
-        window.location.href = '/';
+        window.location.replace('/');
+      } else {
+        setDiagnostic(result.diagnostic);
       }
     } catch (error: unknown) {
+      setIsVerifying(false);
       setDiagnostic({
         correlationId: crypto.randomUUID(),
         stage: 'unexpected_error',
@@ -113,7 +144,7 @@ function LoginForm() {
             disabled={isSubmitting}
             style={{ width: '100%', padding: '10px', marginTop: '4px' }}
           >
-            {isSubmitting ? 'Sedang Masuk...' : 'Masuk ke Board'}
+            {isSubmitting ? (isVerifying ? 'Memverifikasi sesi...' : 'Sedang Masuk...') : 'Masuk ke Board'}
           </button>
         </form>
 

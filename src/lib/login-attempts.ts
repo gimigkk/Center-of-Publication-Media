@@ -8,6 +8,7 @@ export const RATE_LIMIT_MAX_FAILURES = 5;
 export type LoginAttemptStage =
   | 'validation'
   | 'supabase_auth'
+  | 'session_check'
   | 'profile_lookup'
   | 'approval_check'
   | 'complete'

@@ -4,15 +4,13 @@ import { eq } from 'drizzle-orm';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { db, schema } from '@/lib/db';
 import {
-  classifyLoginError,
   checkLoginRateLimit,
   getCorrelationId,
   recordLoginAttempt,
   type LoginDiagnostic,
 } from '@/lib/login-attempts';
+import { classifyLoginError } from '@/lib/auth-errors';
 import { loginSchema } from '@/lib/validations';
-
-const LOGIN_TIMEOUT_MS = 10000;
 
 export interface LoginResult {
   success: boolean;
@@ -30,40 +28,68 @@ function diagnostic(
   return { correlationId, stage, status, code, message, providerStatus };
 }
 
-function withTimeout<T>(promise: Promise<T>): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => {
-      setTimeout(() => reject(new Error('LOGIN_TIMEOUT')), LOGIN_TIMEOUT_MS);
-    }),
-  ]);
-}
-
-export async function loginAction(email: string, password: string, requestedCorrelationId?: string): Promise<LoginResult> {
+export async function checkLoginRateLimitAction(
+  email: string,
+  requestedCorrelationId?: string
+): Promise<{ limited: boolean; retryAfterSeconds: number; diagnostic?: LoginDiagnostic }> {
   const correlationId = getCorrelationId(requestedCorrelationId);
   const cleanEmail = email.trim().toLowerCase();
-
   const rateLimit = await checkLoginRateLimit(cleanEmail);
-  if (rateLimit.limited) {
-    const result = diagnostic(
-      correlationId,
-      'supabase_auth',
-      'failed',
-      'RATE_LIMITED',
-      `Terlalu banyak percobaan login. Coba lagi dalam ${Math.ceil(rateLimit.retryAfterSeconds / 60)} menit.`
-    );
-    await recordLoginAttempt({ ...result, email: cleanEmail });
-    return { success: false, diagnostic: result };
-  }
 
-  const validation = loginSchema.safeParse({ email: cleanEmail, password });
+  if (!rateLimit.limited) return rateLimit;
+
+  const result = diagnostic(
+    correlationId,
+    'supabase_auth',
+    'failed',
+    'RATE_LIMITED',
+    `Terlalu banyak percobaan login. Coba lagi dalam ${Math.ceil(rateLimit.retryAfterSeconds / 60)} menit.`
+  );
+  await recordLoginAttempt({ ...result, email: cleanEmail });
+  return { ...rateLimit, diagnostic: result };
+}
+
+export async function recordLoginFailureAction(
+  email: string,
+  requestedCorrelationId: string,
+  providerCode?: string,
+  providerMessage?: string,
+  providerStatus?: number
+): Promise<LoginResult> {
+  const correlationId = getCorrelationId(requestedCorrelationId);
+  const cleanEmail = email.trim().toLowerCase();
+  const mapped = classifyLoginError({
+    code: providerCode,
+    message: providerMessage,
+    status: providerStatus,
+  });
+  const result = diagnostic(
+    correlationId,
+    'supabase_auth',
+    'failed',
+    mapped.code,
+    mapped.message,
+    mapped.providerStatus
+  );
+  await recordLoginAttempt({ ...result, email: cleanEmail });
+  return { success: false, diagnostic: result };
+}
+
+export async function completeLoginAction(
+  email: string,
+  requestedCorrelationId: string
+): Promise<LoginResult> {
+  const correlationId = getCorrelationId(requestedCorrelationId);
+  const cleanEmail = email.trim().toLowerCase();
+  const validation = loginSchema.shape.email.safeParse(cleanEmail);
+
   if (!validation.success) {
     const result = diagnostic(
       correlationId,
       'validation',
       'failed',
-      'INVALID_INPUT',
-      validation.error.issues[0]?.message || 'Periksa kembali email dan kata sandi.'
+      'INVALID_EMAIL',
+      'Periksa kembali alamat email Anda.'
     );
     await recordLoginAttempt({ ...result, email: cleanEmail });
     return { success: false, diagnostic: result };
@@ -83,27 +109,25 @@ export async function loginAction(email: string, password: string, requestedCorr
 
   try {
     const supabase = await createServerSupabaseClient();
-    const { data, error } = await withTimeout(
-      supabase.auth.signInWithPassword({ email: cleanEmail, password })
-    );
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    const user = authData.user;
 
-    if (error || !data.user) {
-      const mapped = classifyLoginError(error || new Error('No user returned'));
+    if (authError || !user || user.email?.toLowerCase() !== cleanEmail) {
       const result = diagnostic(
         correlationId,
-        'supabase_auth',
+        'session_check',
         'failed',
-        mapped.code,
-        mapped.message,
-        mapped.providerStatus
+        'SESSION_NOT_FOUND',
+        'Login berhasil di perangkat, tetapi sesi belum dapat diverifikasi. Muat ulang halaman dan coba lagi.'
       );
       await recordLoginAttempt({ ...result, email: cleanEmail });
       return { success: false, diagnostic: result };
     }
 
-    const [profile] = await withTimeout(
-      db.select().from(schema.profiles).where(eq(schema.profiles.id, data.user.id))
-    );
+    const [profile] = await db
+      .select()
+      .from(schema.profiles)
+      .where(eq(schema.profiles.id, user.id));
 
     if (!profile) {
       const result = diagnostic(
@@ -114,7 +138,6 @@ export async function loginAction(email: string, password: string, requestedCorr
         'Login berhasil, tetapi profil akun tidak ditemukan. Hubungi administrator.'
       );
       await recordLoginAttempt({ ...result, email: cleanEmail });
-      await supabase.auth.signOut();
       return { success: false, diagnostic: result };
     }
 
@@ -127,7 +150,6 @@ export async function loginAction(email: string, password: string, requestedCorr
         'Akun Anda sedang menunggu persetujuan administrator.'
       );
       await recordLoginAttempt({ ...result, email: cleanEmail });
-      await supabase.auth.signOut();
       return { success: false, diagnostic: result };
     }
 
@@ -144,7 +166,7 @@ export async function loginAction(email: string, password: string, requestedCorr
     const mapped = classifyLoginError(error);
     const result = diagnostic(
       correlationId,
-      mapped.code === 'TIMEOUT' || mapped.code === 'NETWORK_ERROR' ? 'supabase_auth' : 'unexpected_error',
+      'session_check',
       'failed',
       mapped.code,
       mapped.message,
@@ -154,3 +176,6 @@ export async function loginAction(email: string, password: string, requestedCorr
     return { success: false, diagnostic: result };
   }
 }
+
+// Kept as a compatibility alias for callers that used the former action name.
+export const loginAction = completeLoginAction;
