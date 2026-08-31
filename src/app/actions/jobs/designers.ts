@@ -54,11 +54,31 @@ export async function setJobDesignersAction(
     return { success: false, error: 'Job tidak ditemukan' };
   }
 
-  const users = await getAllUsersAction();
-  const userMap = new Map(users.map((u) => [u.id, u]));
+  const userIds = Array.from(new Set([currentJob.requestorId, actor.id, ...designerIds]));
+  const userRecords = await db
+    .select()
+    .from(schema.profiles)
+    .where(inArray(schema.profiles.id, userIds));
+  const profileMap = new Map(
+    userRecords.map((user) => [
+      user.id,
+      {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        phoneNumber: user.phoneNumber,
+        avatarUrl: user.avatarUrl,
+        role: user.role,
+        divisionId: user.divisionId,
+        isApproved: user.isApproved,
+        createdAt: user.createdAt.toISOString(),
+        updatedAt: user.updatedAt.toISOString(),
+      } satisfies Profile,
+    ])
+  );
 
   const primaryDesignerId = designerIds[0] || null;
-  const designersList = designerIds.map((id) => userMap.get(id)).filter(Boolean) as Profile[];
+  const designersList = designerIds.map((id) => profileMap.get(id)).filter(Boolean) as Profile[];
   const newStatus = designerIds.length === 0
     ? 'in_queue'
     : (currentJob.status === 'in_queue' ? 'wip' : currentJob.status);
@@ -95,7 +115,7 @@ export async function setJobDesignersAction(
     return { success: false, error: e instanceof Error ? e.message : 'Kesalahan saat menugaskan editor' };
   }
 
-  const requestor = userMap.get(currentJob.requestorId);
+  const requestor = profileMap.get(currentJob.requestorId);
   const recipients: string[] = designersList.map((d) => d.email);
   if (requestor) recipients.push(requestor.email);
 

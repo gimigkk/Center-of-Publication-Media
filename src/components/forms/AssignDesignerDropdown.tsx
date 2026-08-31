@@ -77,6 +77,7 @@ export function AssignDesignerDropdown({
     const nextAssignedIds = isCurrentlyAssigned
       ? assignedIds.filter((id) => id !== designerId)
       : [...assignedIds, designerId];
+    const previousAssignedIds = assignedIds;
 
     setAssignedIds(nextAssignedIds);
     setSubmittingDesignerId(designerId);
@@ -86,11 +87,11 @@ export function AssignDesignerDropdown({
       const res = await onAssign(job.id, nextAssignedIds.join(','));
       if (!res.success) {
         // Revert on error
-        setAssignedIds(assignedIds);
+        setAssignedIds(previousAssignedIds);
         setError(res.error || 'Gagal memperbarui penugasan');
       }
     } catch {
-      setAssignedIds(assignedIds);
+      setAssignedIds(previousAssignedIds);
       setError('Terjadi kesalahan saat penugasan');
     } finally {
       setSubmittingDesignerId(null);

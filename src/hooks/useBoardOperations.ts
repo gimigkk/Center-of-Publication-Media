@@ -151,15 +151,25 @@ export function useBoardOperations({
 
       const res = await assignDesignerAction(jobId, designerId, currentUser);
       if (res.success) {
-        const fresh = await getJobsAction(activePageId);
-        setJobs(fresh);
+        // The assignment is already persisted. Do not keep the checklist locked
+        // while waiting for unrelated board/workload reads to finish.
         broadcastBoardChange();
-        const suggestions = await getDesignerSuggestionsAction();
-        setDesignerSuggestions(suggestions);
-        const updatedJob = fresh.find((j) => j.id === jobId);
-        if (updatedJob) {
-          setSelectedJobForDetail(updatedJob);
-        }
+
+        void Promise.all([
+          getJobsAction(activePageId),
+          getDesignerSuggestionsAction(),
+        ])
+          .then(([fresh, suggestions]) => {
+            setJobs(fresh);
+            setDesignerSuggestions(suggestions);
+            const updatedJob = fresh.find((j) => j.id === jobId);
+            if (updatedJob) {
+              setSelectedJobForDetail(updatedJob);
+            }
+          })
+          .catch((error) => {
+            console.error('Failed to refresh assignment data:', error);
+          });
       }
       return res;
     },
