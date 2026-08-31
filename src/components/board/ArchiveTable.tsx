@@ -35,8 +35,8 @@ export const ArchiveTable = React.memo(function ArchiveTable({
 }: ArchiveTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDivision, setSelectedDivision] = useState<string>('all');
-  const [sortField, setSortField] = useState<SortField>('archivedAt');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [sortField, setSortField] = useState<SortField>('deadline');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
   const { setNodeRef } = useDroppable({ id: ARCHIVE_DROP_ZONE_ID });
 

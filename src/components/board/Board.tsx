@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, memo } from 'react';
+import React, { useState, useRef, memo, useMemo } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -21,6 +21,7 @@ import { JobCard } from './JobCard';
 import { ArchiveTable } from './ArchiveTable';
 import { ChevronRight } from 'lucide-react';
 import { CardDropEvent } from '@/hooks/useRealtimeBoard';
+import { compareJobsByDeadline } from '@/lib/utils';
 
 export const ARCHIVE_DROP_ZONE_ID = 'archive-drop-zone';
 
@@ -217,9 +218,14 @@ export const Board = memo(function Board({
 
   const sensors = useSensors(mouseSensor);
 
-  // Separate active kanban jobs from archived table jobs
-  const activeJobs = jobs.filter((j) => !j.isArchived);
-  const archivedJobs = jobs.filter((j) => !!j.isArchived);
+  // Separate and sort jobs by nearest deadline without mutating shared state
+  const [activeJobs, archivedJobs] = useMemo(() => {
+    const sortedJobs = [...jobs].sort(compareJobsByDeadline);
+    return [
+      sortedJobs.filter((j) => !j.isArchived),
+      sortedJobs.filter((j) => !!j.isArchived),
+    ];
+  }, [jobs]);
 
   // Filter active jobs by division and search query
   const filteredJobs = activeJobs.filter((job) => {
