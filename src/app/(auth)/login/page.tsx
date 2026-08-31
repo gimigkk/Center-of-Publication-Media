@@ -2,8 +2,7 @@
 
 import { useState, Suspense } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { checkLoginRateLimitAction, completeLoginAction, recordLoginFailureAction } from '@/app/actions/login';
-import { classifyLoginError } from '@/lib/auth-errors';
+import { loginAction } from '@/app/actions/login';
 import { useSearchParams } from 'next/navigation';
 import type { LoginDiagnostic } from '@/lib/login-attempts';
 import Link from 'next/link';
@@ -18,7 +17,6 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [diagnostic, setDiagnostic] = useState<LoginDiagnostic | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
 
@@ -34,47 +32,19 @@ function LoginForm() {
     setIsResetting(false);
   };
 
-  const handleLogin = async (e: React.SyntheticEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleLogin = async (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setDiagnostic(null);
     setIsSubmitting(true);
 
     try {
-      const correlationId = crypto.randomUUID();
-      const supabase = createClient();
-      const rateLimit = await checkLoginRateLimitAction(email, correlationId);
-      if (rateLimit.limited) {
-        setDiagnostic(rateLimit.diagnostic || {
-          correlationId,
-          stage: 'supabase_auth',
-          status: 'failed',
-          code: 'RATE_LIMITED',
-          message: 'Terlalu banyak percobaan login. Coba lagi nanti.',
-        });
-        return;
-      }
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-      if (error || !data.user) {
-        const mapped = classifyLoginError(error || new Error('No user returned'));
-        const result = await recordLoginFailureAction(email, correlationId, mapped.code, mapped.message, mapped.providerStatus);
-        setDiagnostic(result.diagnostic);
-        return;
-      }
-
-      setIsVerifying(true);
-      const result = await completeLoginAction(email, correlationId);
-      setIsVerifying(false);
+      const result = await loginAction(email, password);
       if (result.success) {
         window.location.replace('/');
       } else {
         setDiagnostic(result.diagnostic);
       }
     } catch (error: unknown) {
-      setIsVerifying(false);
       setDiagnostic({
         correlationId: crypto.randomUUID(),
         stage: 'unexpected_error',
@@ -102,10 +72,7 @@ function LoginForm() {
             <AlertCircle size={15} />
             <div className="auth-error-content">
               <strong>{diagnostic.message}</strong>
-              <span>
-                Tahap: {diagnostic.stage} · Kode: {diagnostic.code}
-                {diagnostic.providerStatus ? ` · Status: ${diagnostic.providerStatus}` : ''}
-              </span>
+              <span>Tahap: {diagnostic.stage} · Kode: {diagnostic.code}{diagnostic.providerStatus ? ` · Status: ${diagnostic.providerStatus}` : ''}</span>
               <small>Referensi: {diagnostic.correlationId}</small>
             </div>
           </div>
@@ -114,37 +81,14 @@ function LoginForm() {
         <form onSubmit={handleLogin} className="auth-form">
           <div className="form-group">
             <label className="form-label">Alamat Email</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="email"
-                className="form-input"
-                placeholder="nama@perusahaan.org"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
+            <input type="email" className="form-input" placeholder="nama@perusahaan.org" value={email} onChange={(event) => setEmail(event.target.value)} required />
           </div>
-
           <div className="form-group">
             <label className="form-label">Kata Sandi</label>
-            <input
-              type="password"
-              className="form-input"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <input type="password" className="form-input" placeholder="••••••••" value={password} onChange={(event) => setPassword(event.target.value)} required />
           </div>
-
-          <button
-            type="submit"
-            className="btn-primary"
-            disabled={isSubmitting}
-            style={{ width: '100%', padding: '10px', marginTop: '4px' }}
-          >
-            {isSubmitting ? (isVerifying ? 'Memverifikasi sesi...' : 'Sedang Masuk...') : 'Masuk ke Board'}
+          <button type="submit" className="btn-primary" disabled={isSubmitting} style={{ width: '100%', padding: '10px', marginTop: '4px' }}>
+            {isSubmitting ? 'Sedang Masuk...' : 'Masuk ke Board'}
           </button>
         </form>
 
@@ -155,9 +99,7 @@ function LoginForm() {
 
         <div className="auth-footer-links">
           <span>Belum punya akun?</span>
-          <Link href="/signup" className="auth-link">
-            Daftar Sekarang
-          </Link>
+          <Link href="/signup" className="auth-link">Daftar Sekarang</Link>
         </div>
       </div>
     </div>
@@ -165,10 +107,5 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
-  return (
-    <Suspense fallback={null}>
-      <LoginForm />
-    </Suspense>
-  );
+  return <Suspense fallback={null}><LoginForm /></Suspense>;
 }
-
