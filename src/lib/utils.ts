@@ -94,8 +94,10 @@ export function getWhatsAppUrl(phoneNumber?: string | null): string | null {
   const digits = phoneNumber?.replace(/\D/g, '');
   if (!digits) return null;
 
-  const internationalNumber = digits.startsWith('0') ? `62${digits.slice(1)}` : digits;
-  return `https://wa.me/${internationalNumber}`;
+  // Stored numbers are national format without country code (e.g. 89518113420).
+  // Normalize 0-prefixed and 62-prefixed variants, then always prepend 62.
+  const national = digits.startsWith('0') ? digits.slice(1) : digits.replace(/^62/, '');
+  return `https://wa.me/62${national}`;
 }
 
 export function getRelativeTime(dateInput: string | Date | undefined | null): string {

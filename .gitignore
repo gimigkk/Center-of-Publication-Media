@@ -46,4 +46,8 @@ next-env.d.ts
 /scripts/
 *.csv
 
+# claude code local state
+.claude/
+
+
 
