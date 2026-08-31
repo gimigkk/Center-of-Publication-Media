@@ -90,6 +90,14 @@ export function formatDateTime(dateInput: string | Date): string {
   });
 }
 
+export function getWhatsAppUrl(phoneNumber?: string | null): string | null {
+  const digits = phoneNumber?.replace(/\D/g, '');
+  if (!digits) return null;
+
+  const internationalNumber = digits.startsWith('0') ? `62${digits.slice(1)}` : digits;
+  return `https://wa.me/${internationalNumber}`;
+}
+
 export function getRelativeTime(dateInput: string | Date | undefined | null): string {
   if (!dateInput) return 'Pernah aktif';
   const date = new Date(dateInput);

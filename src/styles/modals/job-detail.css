@@ -165,6 +165,15 @@
   min-width: 0;
 }
 
+.simple-prop-value a {
+  color: inherit;
+}
+
+.simple-prop-value a:hover span {
+  color: #0284c7 !important;
+  text-decoration: underline;
+}
+
 .simple-prop-edit-btn {
   display: inline-flex;
   align-items: center;

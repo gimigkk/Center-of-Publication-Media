@@ -1,7 +1,9 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { Job, Profile } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
-import { getDeadlineStatus, formatDate } from '@/lib/utils';
+import { getDeadlineStatus, formatDate, getWhatsAppUrl } from '@/lib/utils';
 import { Pencil, Check, X, Loader2 } from 'lucide-react';
 
 interface JobDetailPropertiesProps {
@@ -92,27 +94,60 @@ export const JobDetailProperties = React.memo(function JobDetailProperties({
                 width: '100%',
               }}
             >
-              {assignedDesigners.map((designer) => (
-                <div
-                  key={designer.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-end',
-                    gap: '6px',
-                    minHeight: '20px',
-                  }}
-                >
-                  <Avatar
-                    src={designer.avatarUrl}
-                    name={designer.fullName}
-                    size={18}
-                  />
-                  <span style={{ fontSize: '12px', color: '#0f172a' }} title={designer.email}>
-                    {designer.fullName}
-                  </span>
-                </div>
-              ))}
+              {assignedDesigners.map((designer) => {
+                const whatsappUrl = getWhatsAppUrl(designer.phoneNumber);
+                const designerContent = (
+                  <>
+                    <Avatar
+                      src={designer.avatarUrl}
+                      name={designer.fullName}
+                      size={18}
+                    />
+                    <span style={{ fontSize: '12px', color: '#0f172a' }} title={designer.email}>
+                      {designer.fullName}
+                    </span>
+                  </>
+                );
+
+                if (!whatsappUrl) {
+                  return (
+                    <div
+                      key={designer.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'flex-end',
+                        gap: '6px',
+                        minHeight: '20px',
+                      }}
+                    >
+                      {designerContent}
+                    </div>
+                  );
+                }
+
+                return (
+                  <a
+                    key={designer.id}
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={`Chat WhatsApp dengan ${designer.fullName}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-end',
+                      gap: '6px',
+                      minHeight: '20px',
+                      color: 'inherit',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    {designerContent}
+                  </a>
+                );
+              })}
+
             </div>
           ) : (
             <span style={{ color: '#94a3b8' }}>Belum Ditugaskan</span>

@@ -334,6 +334,8 @@
   border-radius: var(--radius-sm);
   transition: background-color 80ms ease;
   cursor: pointer;
+  color: inherit;
+  text-decoration: none;
 }
 
 .figma-collab-row:hover {

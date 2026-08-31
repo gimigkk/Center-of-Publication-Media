@@ -7,7 +7,7 @@ import { NotificationInbox } from './NotificationInbox';
 import { Avatar } from '@/components/ui/Avatar';
 import { useSafeZone } from '@/hooks/useSafeZone';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
-import { getRelativeTime } from '@/lib/utils';
+import { getRelativeTime, getWhatsAppUrl } from '@/lib/utils';
 import { User, LogOut } from 'lucide-react';
 
 interface HeaderProps {
@@ -271,12 +271,9 @@ export const Header = memo(function Header({
                     {previouslyViewedUsers.length > 0 ? (
                       previouslyViewedUsers.map((user) => {
                         const isOnline = (onlineUsers || []).some((ou) => ou.userId === user.id);
-                        return (
-                          <div
-                            key={user.id}
-                            className="figma-collab-row"
-                            title={`${user.fullName} (${user.email || user.role})`}
-                          >
+                        const whatsappUrl = getWhatsAppUrl(user.phoneNumber);
+                        const collaboratorContent = (
+                          <>
                             <div className="figma-collab-avatar-slot">
                               <Avatar
                                 src={user.avatarUrl}
@@ -292,6 +289,31 @@ export const Header = memo(function Header({
                                 {isOnline ? 'Online sekarang' : getRelativeTime(user.lastSeenAt || user.updatedAt || user.createdAt)}
                               </span>
                             </div>
+                          </>
+                        );
+
+                        if (whatsappUrl) {
+                          return (
+                            <a
+                              key={user.id}
+                              href={whatsappUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="figma-collab-row"
+                              title={`Chat WhatsApp dengan ${user.fullName}`}
+                            >
+                              {collaboratorContent}
+                            </a>
+                          );
+                        }
+
+                        return (
+                          <div
+                            key={user.id}
+                            className="figma-collab-row"
+                            title={`${user.fullName} (${user.email || user.role})`}
+                          >
+                            {collaboratorContent}
                           </div>
                         );
                       })
