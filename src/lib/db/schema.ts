@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer, uuid, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, integer, uuid, pgEnum, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 export const userRoleEnum = pgEnum('user_role', ['requestor', 'designer', 'admin']);
@@ -23,6 +23,27 @@ export const profiles = pgTable('profiles', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const loginAttempts = pgTable(
+  'login_attempts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    correlationId: uuid('correlation_id').notNull(),
+    email: text('email').notNull(),
+    stage: text('stage').notNull(),
+    status: text('status').notNull(),
+    errorCode: text('error_code'),
+    errorMessage: text('error_message'),
+    providerStatus: integer('provider_status'),
+    userAgent: text('user_agent'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('login_attempts_correlation_id_idx').on(table.correlationId),
+    index('login_attempts_email_created_at_idx').on(table.email, table.createdAt),
+    index('login_attempts_status_created_at_idx').on(table.status, table.createdAt),
+  ]
+);
 
 
 export const pages = pgTable('pages', {

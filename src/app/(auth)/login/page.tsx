@@ -1,62 +1,39 @@
 'use client';
 
 import { useState } from 'react';
+import type { LoginDiagnostic } from '@/lib/login-attempts';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { getAllUsersAction } from '@/app/actions/auth';
+import { loginAction } from '@/app/actions/login';
 import { AlertCircle } from 'lucide-react';
 import { FullLogoIEEE } from '@/components/ui/FullLogoIEEE';
 import '@/styles/auth.css';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [diagnostic, setDiagnostic] = useState<LoginDiagnostic | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
+    setDiagnostic(null);
     setIsSubmitting(true);
 
-    const cleanEmail = email.trim().toLowerCase();
-
     try {
-      const supabase = createClient();
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password,
+      const result = await loginAction(email, password);
+      setDiagnostic(result.diagnostic);
+
+      if (result.success) {
+        window.location.href = '/';
+      }
+    } catch (error: unknown) {
+      setDiagnostic({
+        correlationId: crypto.randomUUID(),
+        stage: 'unexpected_error',
+        status: 'failed',
+        code: 'CLIENT_ERROR',
+        message: error instanceof Error ? error.message : 'Terjadi kesalahan saat masuk.',
       });
-
-      if (authError || !data.user) {
-        if (authError?.message?.toLowerCase().includes('email not confirmed')) {
-          setError('Email belum dikonfirmasi atau administrator belum menyetujui akun.');
-        } else if (authError?.message?.toLowerCase().includes('invalid login credentials')) {
-          setError('Email atau kata sandi tidak cocok.');
-        } else {
-          setError(authError?.message || 'Email atau kata sandi tidak valid.');
-        }
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Check profile approval status
-      const users = await getAllUsersAction();
-      const userProfile = users.find((u) => u.id === data.user.id || u.email.toLowerCase() === cleanEmail);
-
-      if (userProfile && !userProfile.isApproved) {
-        await supabase.auth.signOut();
-        setError('Akun Anda sedang menunggu persetujuan administrator.');
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Successful login
-      window.location.href = '/';
-    } catch {
-      setError('Terjadi kesalahan saat masuk.');
     } finally {
       setIsSubmitting(false);
     }
@@ -72,22 +49,17 @@ export default function LoginPage() {
           <p className="auth-subtitle">Masuk ke ruang kerja operasional kreatif Anda</p>
         </div>
 
-        {error && (
-          <div
-            style={{
-              padding: '10px 12px',
-              background: 'var(--accent-red-light)',
-              border: '1px solid #fca5a5',
-              borderRadius: 'var(--radius-sm)',
-              color: 'var(--accent-red)',
-              fontSize: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
+        {diagnostic && (
+          <div className="auth-error-panel" role="alert" aria-live="assertive">
             <AlertCircle size={15} />
-            <span>{error}</span>
+            <div className="auth-error-content">
+              <strong>{diagnostic.message}</strong>
+              <span>
+                Tahap: {diagnostic.stage} · Kode: {diagnostic.code}
+                {diagnostic.providerStatus ? ` · Status: ${diagnostic.providerStatus}` : ''}
+              </span>
+              <small>Referensi: {diagnostic.correlationId}</small>
+            </div>
           </div>
         )}
 

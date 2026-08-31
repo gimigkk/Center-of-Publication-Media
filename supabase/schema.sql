@@ -36,7 +36,33 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
--- 4. Pages Table (FigJam style workspaces)
+-- 4. Login Attempt Diagnostics (no passwords, tokens, or auth headers)
+CREATE TABLE IF NOT EXISTS public.login_attempts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    correlation_id UUID NOT NULL,
+    email TEXT NOT NULL,
+    stage TEXT NOT NULL,
+    status TEXT NOT NULL,
+    error_code TEXT,
+    error_message TEXT,
+    provider_status INTEGER,
+    user_agent TEXT,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS login_attempts_correlation_id_idx
+    ON public.login_attempts (correlation_id);
+CREATE INDEX IF NOT EXISTS login_attempts_email_created_at_idx
+    ON public.login_attempts (email, created_at DESC);
+CREATE INDEX IF NOT EXISTS login_attempts_status_created_at_idx
+    ON public.login_attempts (status, created_at DESC);
+
+ALTER TABLE public.login_attempts ENABLE ROW LEVEL SECURITY;
+
+-- No public policies: attempts are written by the trusted server connection
+-- and must not be readable directly by browser clients.
+
+-- 5. Pages Table (FigJam style workspaces)
 CREATE TABLE IF NOT EXISTS public.pages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,

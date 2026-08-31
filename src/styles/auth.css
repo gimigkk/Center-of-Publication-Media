@@ -54,6 +54,40 @@
   gap: 13px;
 }
 
+.auth-error-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #fca5a5;
+  border-radius: var(--radius-sm);
+  background-color: var(--accent-red-light);
+  color: var(--accent-red-text);
+  font-size: 12px;
+}
+
+.auth-error-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.auth-error-content strong {
+  font-weight: 600;
+}
+
+.auth-error-content span,
+.auth-error-content small {
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.auth-error-content small {
+  font-size: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
 /* Modern Circular Avatar Uploader */
 .auth-avatar-uploader {
   display: flex;
