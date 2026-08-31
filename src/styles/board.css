@@ -10,7 +10,10 @@
   align-items: flex-start;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  background: transparent;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.13) 1px, transparent 1.6px);
+  background-size: 20px 20px;
+  background-color: var(--bg-canvas);
+  background-attachment: local;
 }
 
 .board-canvas-flow {

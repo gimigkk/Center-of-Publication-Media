@@ -20,6 +20,10 @@
     max-width: none;
     width: auto;
   }
+
+  .figma-detail-card {
+    min-width: 380px;
+  }
 }
 
 .modal-dual-container.is-closing {

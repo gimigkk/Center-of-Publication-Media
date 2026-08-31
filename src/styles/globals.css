@@ -93,7 +93,6 @@ body {
   background-image: radial-gradient(rgba(0, 0, 0, 0.13) 1px, transparent 1.6px);
   background-size: 20px 20px;
   background-color: var(--bg-canvas);
-  background-attachment: fixed;
   display: flex;
   flex-direction: column;
   overflow: hidden;
