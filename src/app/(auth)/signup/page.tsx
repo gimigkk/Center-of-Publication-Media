@@ -5,12 +5,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { signUpUserAction } from '@/app/actions/auth';
+import { createSignupAction } from '@/app/actions/signup';
+import type { LoginDiagnostic } from '@/lib/login-attempts';
 import { getDivisionsAction } from '@/app/actions/divisions';
 import { Division } from '@/types';
 import { Camera, AlertCircle, Clock, Check } from 'lucide-react';
 import { FullLogoIEEE } from '@/components/ui/FullLogoIEEE';
 import { compressImageToAvatarDataUrl } from '@/lib/utils';
-import { uploadAvatarDataUrlToStorage } from '@/lib/storage';
 import '@/styles/auth.css';
 
 export default function SignupPage() {
@@ -23,12 +24,12 @@ export default function SignupPage() {
   const [role, setRole] = useState<'requestor' | 'designer'>('designer');
   const [divisionId, setDivisionId] = useState('');
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<LoginDiagnostic | null>(null);
   const [isSubmittedPending, setIsSubmittedPending] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const setSignupError = (message: string, stage: string, details?: string) => {
-    setError(`${message} (Tahap: ${stage}${details ? ` · ${details}` : ''})`);
+  const setSignupError = (message: string, stage: LoginDiagnostic['stage'], code = 'SIGNUP_ERROR') => {
+    setError({ correlationId: crypto.randomUUID(), stage, status: 'failed', code, message });
   };
 
   const handleExistingAccount = () => {
@@ -49,7 +50,7 @@ export default function SignupPage() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      setError('Harap pilih file gambar yang valid (JPG, PNG, WebP)');
+      setSignupError('Harap pilih file gambar yang valid (JPG, PNG, WebP)', 'signup_avatar_upload', 'INVALID_AVATAR');
       return;
     }
 
@@ -58,7 +59,7 @@ export default function SignupPage() {
       setAvatarPreview(compressed);
       setError(null);
     } catch {
-      setError('Gagal memproses gambar');
+      setSignupError('Gagal memproses gambar', 'signup_avatar_upload', 'AVATAR_PROCESSING_FAILED');
     }
   };
 
@@ -67,120 +68,57 @@ export default function SignupPage() {
     setError(null);
 
     if (!fullName.trim()) {
-      setError('Harap masukkan nama lengkap Anda');
+      setSignupError('Harap masukkan nama lengkap Anda', 'signup_validation', 'INVALID_NAME');
       return;
     }
-
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail) {
-      setError('Harap masukkan alamat email Anda');
+      setSignupError('Harap masukkan alamat email Anda', 'signup_validation', 'INVALID_EMAIL');
       return;
     }
-
     if (!password || password.length < 6) {
-      setError('Kata sandi minimal harus 6 karakter');
+      setSignupError('Kata sandi minimal harus 6 karakter', 'signup_validation', 'INVALID_PASSWORD');
       return;
     }
-
     if (!avatarPreview) {
-      setError('Foto profil wajib diunggah untuk avatar kartu & kursor kolaborator.');
+      setSignupError('Foto profil wajib diunggah untuk avatar kartu & kursor kolaborator.', 'signup_avatar_upload', 'AVATAR_REQUIRED');
       return;
     }
-
     if (role === 'requestor' && divisions.length > 0 && (!divisionId || divisionId.trim() === '')) {
-      setError('Harap pilih divisi Requester Anda');
+      setSignupError('Harap pilih divisi Requester Anda', 'signup_validation', 'DIVISION_REQUIRED');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // 1. Create Supabase Auth user (NO base64 in metadata — it bloats the JWT cookie)
-      const supabase = createClient();
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: cleanEmail,
-        password,
-        options: {
-          data: {
-            full_name: fullName.trim(),
-            phone_number: phoneNumber.trim() || null,
-          },
-        },
-      });
-
-      if (authError) {
-        const message = authError.message?.toLowerCase().includes('already registered')
-          ? 'Email ini sudah terdaftar. Gunakan halaman login untuk melanjutkan.'
-          : (authError.message || 'Gagal mendaftarkan akun di autentikasi');
-        setSignupError(message, 'pembuatan akun autentikasi');
-        return;
-      }
-
-      const authUserId = authData.user?.id;
-      if (!authUserId) {
-        setSignupError('Akun autentikasi tidak mengembalikan identitas pengguna.', 'pembuatan akun autentikasi');
-        return;
-      }
-
-      // 2. Upload avatar to Supabase Storage CDN (returns a short HTTPS URL)
-      let publicAvatarUrl: string | null = null;
-      if (avatarPreview && authUserId) {
-        publicAvatarUrl = await uploadAvatarDataUrlToStorage(avatarPreview, authUserId);
-        if (!publicAvatarUrl) {
-          setSignupError('Foto profil gagal diunggah. Akun autentikasi sudah dibuat; ulangi dari halaman ini setelah memeriksa koneksi.', 'unggah avatar');
-          return;
-        }
-      }
-
-      // 3. Update auth metadata with CDN URL (safe, ~100 bytes, not base64)
-      if (publicAvatarUrl) {
-        const { error: metadataError } = await supabase.auth.updateUser({
-          data: { avatar_url: publicAvatarUrl },
-        });
-        if (metadataError) {
-          setSignupError(metadataError.message || 'Gagal menyimpan foto profil.', 'sinkronisasi avatar');
-          return;
-        }
-      }
-
-      // 4. Insert into public profiles table
-      const res = await signUpUserAction({
-        id: authUserId,
+      const result = await createSignupAction({
         fullName: fullName.trim(),
         email: cleanEmail,
+        password,
         phoneNumber: phoneNumber.trim() || undefined,
         role,
         divisionId: role === 'requestor' ? (divisionId || divisions[0]?.id) : undefined,
-        avatarUrl: publicAvatarUrl || undefined,
+        avatarDataUrl: avatarPreview,
       });
-
-      if (res.success) {
-        if (res.profile?.isApproved) {
-          // Requestor gets instant access: sign in and redirect to dashboard
-          const { error: signInErr } = await supabase.auth.signInWithPassword({
-            email: cleanEmail,
-            password,
-          });
-          if (!signInErr) {
-            router.push('/');
-            router.refresh();
-          } else {
-            setSignupError(signInErr.message || 'Akun dibuat, tetapi login otomatis gagal. Silakan login manual.', 'login otomatis');
-            router.push('/login');
-          }
-        } else {
-          // Designer needs admin verification
-          setIsSubmittedPending(true);
-        }
-      } else {
-        setError(res.error || 'Gagal membuat akun');
+      if (!result.success) {
+        setError(result.diagnostic);
+        return;
       }
-    } catch {
-      setError('Terjadi kesalahan saat mendaftar');
+
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+      if (signInError) {
+        setSignupError('Akun dibuat, tetapi login otomatis gagal. Silakan login manual.', 'signup_auto_login', 'AUTO_LOGIN_FAILED');
+        return;
+      }
+      router.push('/');
+      router.refresh();
+    } catch (error: unknown) {
+      setSignupError(error instanceof Error ? error.message : 'Terjadi kesalahan saat mendaftar', 'signup_client', 'CLIENT_ERROR');
     } finally {
       setIsSubmitting(false);
     }
   };
-
 
 
   if (isSubmittedPending) {
@@ -248,8 +186,10 @@ export default function SignupPage() {
           <div className="auth-error-panel" role="alert" aria-live="assertive">
             <AlertCircle size={14} style={{ flexShrink: 0 }} />
             <div className="auth-error-content">
-              <strong>{error}</strong>
-              {error.includes('sudah terdaftar') && (
+              <strong>{error.message}</strong>
+              <span>Tahap: {error.stage} · Kode: {error.code}</span>
+              <small>Referensi: {error.correlationId}</small>
+              {error.code === 'EXISTING_ACCOUNT' && (
                 <button type="button" className="auth-error-action" onClick={handleExistingAccount}>
                   Lanjut ke login
                 </button>

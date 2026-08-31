@@ -7,6 +7,15 @@ export type LoginAttemptStage =
   | 'profile_lookup'
   | 'approval_check'
   | 'complete'
+  | 'signup_validation'
+  | 'signup_auth_create'
+  | 'signup_auth_session'
+  | 'signup_existing_account'
+  | 'signup_profile_upsert'
+  | 'signup_avatar_upload'
+  | 'signup_complete'
+  | 'signup_client'
+  | 'signup_auto_login'
   | 'unexpected_error';
 
 export type LoginAttemptStatus = 'success' | 'failed';
