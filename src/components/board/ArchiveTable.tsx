@@ -12,6 +12,7 @@ import {
 import { ArchiveTableRow } from './archive/ArchiveTableRow';
 import { ArchiveMobileCard } from './archive/ArchiveMobileCard';
 import { ARCHIVE_DROP_ZONE_ID } from './Board';
+import { compareJobsByDeadline } from '@/lib/utils';
 
 interface ArchiveTableProps {
   archivedJobs: Job[];
@@ -73,15 +74,17 @@ export const ArchiveTable = React.memo(function ArchiveTable({
   // Sort filtered jobs
   const sortedJobs = useMemo(() => {
     return [...filteredJobs].sort((a, b) => {
+      if (sortField === 'deadline') {
+        const comparison = compareJobsByDeadline(a, b);
+        return sortOrder === 'asc' ? comparison : -comparison;
+      }
+
       let valA: string | number = '';
       let valB: string | number = '';
 
       if (sortField === 'title') {
         valA = a.title.toLowerCase();
         valB = b.title.toLowerCase();
-      } else if (sortField === 'deadline') {
-        valA = new Date(a.deadline).getTime();
-        valB = new Date(b.deadline).getTime();
       } else if (sortField === 'division') {
         valA = (a.divisionName || '').toLowerCase();
         valB = (b.divisionName || '').toLowerCase();
@@ -92,7 +95,7 @@ export const ArchiveTable = React.memo(function ArchiveTable({
 
       if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
       if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-      return 0;
+      return a.id.localeCompare(b.id);
     });
   }, [filteredJobs, sortField, sortOrder]);
 
