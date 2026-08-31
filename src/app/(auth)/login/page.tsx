@@ -47,14 +47,14 @@ export default function LoginPage() {
       const userProfile = users.find((u) => u.id === data.user.id || u.email.toLowerCase() === cleanEmail);
 
       if (userProfile && !userProfile.isApproved) {
+        await supabase.auth.signOut();
         setError('Akun Anda sedang menunggu persetujuan administrator.');
         setIsSubmitting(false);
         return;
       }
 
       // Successful login
-      router.push('/');
-      router.refresh();
+      window.location.href = '/';
     } catch {
       setError('Terjadi kesalahan saat masuk.');
     } finally {

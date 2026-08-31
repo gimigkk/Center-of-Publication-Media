@@ -22,10 +22,43 @@ export async function getCurrentUserAction(): Promise<Profile | null> {
 
     if (!user || !db) return null;
 
-    const [profile] = await db
+    let [profile] = await db
       .select()
       .from(schema.profiles)
       .where(eq(schema.profiles.id, user.id));
+
+    if (!profile) {
+      const meta = (user.user_metadata || {}) as Record<string, any>;
+      const fallbackName = meta.full_name || meta.name || user.email?.split('@')[0] || 'User';
+      const fallbackAvatar = meta.avatar_url || null;
+      const fallbackPhone = meta.phone_number || user.phone || null;
+      const divs = await db.select().from(schema.divisions);
+      const creativeDiv = divs.find((d) => d.name === 'Creative & Marketing');
+      const defaultDiv = creativeDiv?.id || divs[0]?.id || null;
+
+      try {
+        const [newProfile] = await db
+          .insert(schema.profiles)
+          .values({
+            id: user.id,
+            email: user.email || '',
+            fullName: fallbackName,
+            phoneNumber: fallbackPhone,
+            avatarUrl: fallbackAvatar,
+            role: 'designer',
+            divisionId: defaultDiv,
+            isApproved: true,
+          })
+          .onConflictDoUpdate({
+            target: schema.profiles.id,
+            set: { updatedAt: new Date() },
+          })
+          .returning();
+        profile = newProfile;
+      } catch (err) {
+        console.error('Failed to auto-heal profile in getCurrentUserAction:', err);
+      }
+    }
 
     if (!profile) return null;
 
