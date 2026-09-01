@@ -205,19 +205,13 @@ export function useCursors(
       lastPointerPos.current = { clientX, clientY };
 
       const now = Date.now();
-      if (!force && now - lastBroadcastTime.current < 32) return;
+      if (!force && now - lastBroadcastTime.current < 50) return;
       lastBroadcastTime.current = now;
 
-      // Direct board relative position
-      const boardEl = document.querySelector('.kanban-board');
-      let worldX: number | undefined = undefined;
-      let worldY: number | undefined = undefined;
-
-      if (boardEl) {
-        const bRect = boardEl.getBoundingClientRect();
-        worldX = clientX - bRect.left;
-        worldY = clientY - bRect.top;
-      }
+      // Reuse the rect updated by the resize/scroll observer above.
+      const boardRect = cachedBoardRect.current;
+      const worldX = boardRect ? clientX - boardRect.left : undefined;
+      const worldY = boardRect ? clientY - boardRect.top : undefined;
 
       const payload = {
         userId: currentUser.id,
@@ -230,7 +224,15 @@ export function useCursors(
         worldY,
         pageId: currentPageRef.current?.id,
         pageName: currentPageRef.current?.name,
-        draggedJob: draggedJobRef.current,
+        // Keep the remote drag ghost useful without repeatedly shipping nested profiles.
+        draggedJob: draggedJobRef.current
+          ? {
+              ...draggedJobRef.current,
+              requestor: undefined,
+              designer: undefined,
+              designers: undefined,
+            }
+          : null,
         userState: userStateRef.current,
       };
 

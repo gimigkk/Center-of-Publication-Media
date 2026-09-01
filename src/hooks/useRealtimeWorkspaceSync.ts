@@ -9,6 +9,7 @@ import { getJobsAction } from '@/app/actions/jobs';
 import { getDivisionsAction } from '@/app/actions/divisions';
 import { getPagesAction } from '@/app/actions/pages';
 import { getNotificationsAction } from '@/app/actions/notifications';
+import type { BoardRefreshReason } from './useRealtimeBoard';
 
 interface UseRealtimeWorkspaceSyncProps {
   activePageId: string;
@@ -21,6 +22,7 @@ interface UseRealtimeWorkspaceSyncProps {
   setDivisions: React.Dispatch<React.SetStateAction<Division[]>>;
   setPages: React.Dispatch<React.SetStateAction<Page[]>>;
   setNotifications: React.Dispatch<React.SetStateAction<AppNotification[]>>;
+  requestBoardRefresh?: (reason: BoardRefreshReason, immediate?: boolean) => void;
 }
 
 export function useRealtimeWorkspaceSync({
@@ -34,6 +36,7 @@ export function useRealtimeWorkspaceSync({
   setDivisions,
   setPages,
   setNotifications,
+  requestBoardRefresh,
 }: UseRealtimeWorkspaceSyncProps) {
   const bcRef = useRef<BroadcastChannel | null>(null);
   const activePageIdRef = useRef(activePageId);
@@ -47,7 +50,29 @@ export function useRealtimeWorkspaceSync({
     currentUserIdRef.current = currentUser?.id;
   }, [currentUser?.id]);
 
-  // Sync users & workloads
+  // Sync jobs
+  const syncJobs = useCallback(async () => {
+    if (requestBoardRefresh) {
+      requestBoardRefresh('realtime');
+      try {
+        const suggestions = await getDesignerSuggestionsAction();
+        setDesignerSuggestions(suggestions);
+      } catch (err) {
+        console.error('Failed to sync designer suggestions:', err);
+      }
+      return;
+    }
+    if (!activePageIdRef.current) return;
+    try {
+      const freshJobs = await getJobsAction(activePageIdRef.current);
+      setJobs(freshJobs);
+      const suggestions = await getDesignerSuggestionsAction();
+      setDesignerSuggestions(suggestions);
+    } catch (err) {
+      console.error('Failed to sync jobs:', err);
+    }
+  }, [requestBoardRefresh, setJobs, setDesignerSuggestions]);
+
   const syncUsers = useCallback(async () => {
     try {
       const users = await getAllUsersAction();
@@ -61,28 +86,11 @@ export function useRealtimeWorkspaceSync({
 
       const suggestions = await getDesignerSuggestionsAction();
       setDesignerSuggestions(suggestions);
-
-      if (activePageIdRef.current) {
-        const freshJobs = await getJobsAction(activePageIdRef.current);
-        setJobs(freshJobs);
-      }
+      if (requestBoardRefresh) requestBoardRefresh('realtime');
     } catch (err) {
       console.error('Failed to sync users:', err);
     }
-  }, [setAllUsers, setPendingUsers, setCurrentUser, setDesignerSuggestions, setJobs]);
-
-  // Sync jobs
-  const syncJobs = useCallback(async () => {
-    if (!activePageIdRef.current) return;
-    try {
-      const freshJobs = await getJobsAction(activePageIdRef.current);
-      setJobs(freshJobs);
-      const suggestions = await getDesignerSuggestionsAction();
-      setDesignerSuggestions(suggestions);
-    } catch (err) {
-      console.error('Failed to sync jobs:', err);
-    }
-  }, [setJobs, setDesignerSuggestions]);
+  }, [requestBoardRefresh, setAllUsers, setPendingUsers, setCurrentUser, setDesignerSuggestions]);
 
   // Sync divisions
   const syncDivisions = useCallback(async () => {
@@ -154,25 +162,22 @@ export function useRealtimeWorkspaceSync({
       }
     );
 
-    // B. Job designers table (assignment / unassignment)
+    // Job assignments change board data, so route them to the same
+    // page-scoped coordinator rather than fetching independently.
     channel.on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'job_designers' },
       () => {
-        syncJobs();
+        if (requestBoardRefresh) requestBoardRefresh('realtime');
+        else syncJobs();
       }
     );
 
-    // C. Jobs table (any job change, move, creation, archive)
-    channel.on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'jobs' },
-      () => {
-        syncJobs();
-      }
-    );
+    // Jobs changes are owned by useRealtimeBoard, which has the active-page
+    // filter and coalesced refresh coordinator. Keeping a second global jobs
+    // listener here would duplicate every board refresh.
 
-    // D. Divisions table
+    // C. Divisions table
     channel.on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'divisions' },
@@ -208,7 +213,7 @@ export function useRealtimeWorkspaceSync({
       }
       supabase.removeChannel(channel);
     };
-  }, [syncUsers, syncJobs, syncDivisions, syncPages, syncNotifications]);
+  }, [syncUsers, syncJobs, syncDivisions, syncPages, syncNotifications, requestBoardRefresh]);
 
   const broadcastSync = useCallback((type: 'sync-users' | 'sync-jobs' | 'sync-divisions' | 'sync-pages' | 'sync-notifications') => {
     if (bcRef.current) {

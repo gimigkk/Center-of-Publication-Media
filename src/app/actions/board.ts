@@ -1,7 +1,7 @@
 'use server';
 
 import { db, schema } from '@/lib/db';
-import { eq, inArray, and } from 'drizzle-orm';
+import { eq, inArray, and, sql } from 'drizzle-orm';
 import { Profile, Page, Division, Job, AppNotification, NotificationType } from '@/types';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
@@ -63,21 +63,17 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
     if (!user) return null;
 
 
-    // Run ALL queries in parallel in a SINGLE database roundtrip
-    const [
-      profilesRecords,
-      divisionsRecords,
-      pagesRecords,
-      notificationsRecords,
-      allJobsRecords,
-      allJobDesignersRecords,
-    ] = await Promise.all([
+    // Load workspace metadata first; jobs are scoped after the active page is known.
+    const [profilesRecords, divisionsRecords, pagesRecords, notificationsRecords] = await Promise.all([
       db.select().from(schema.profiles),
       db.select().from(schema.divisions),
       db.select().from(schema.pages),
-      db.select().from(schema.notifications).where(eq(schema.notifications.userId, user.id)),
-      db.select().from(schema.jobs),
-      db.select().from(schema.jobDesigners),
+      db
+        .select()
+        .from(schema.notifications)
+        .where(eq(schema.notifications.userId, user.id))
+        .orderBy(schema.notifications.createdAt)
+        .limit(50),
     ]);
 
     const divMap = new Map(divisionsRecords.map((d) => [d.id, d.name]));
@@ -175,19 +171,40 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
 
     const currentPage = pages[0] || null;
 
-    // Build map of job designer assignments from allJobDesignersRecords in memory
+    const [pageJobsRecords, workloadRows, allJobDesignersRecords] = await Promise.all([
+      currentPage
+        ? db.select().from(schema.jobs).where(eq(schema.jobs.pageId, currentPage.id)).orderBy(schema.jobs.kanbanOrder, schema.jobs.id)
+        : Promise.resolve([]),
+      db.execute(sql`
+        WITH active_jobs AS (
+          SELECT id, designer_id
+          FROM ${schema.jobs}
+          WHERE is_archived = false AND status IN ('wip', 'revisions')
+        ), normalized_assignments AS (
+          SELECT ajd.designer_id FROM active_jobs aj
+          INNER JOIN ${schema.jobDesigners} ajd ON ajd.job_id = aj.id
+          UNION ALL
+          SELECT aj.designer_id FROM active_jobs aj
+          WHERE aj.designer_id IS NOT NULL AND NOT EXISTS (
+            SELECT 1 FROM ${schema.jobDesigners} legacy_check
+            WHERE legacy_check.job_id = aj.id AND legacy_check.designer_id = aj.designer_id
+          )
+        )
+        SELECT designer_id, COUNT(*)::int AS active_wip_count
+        FROM normalized_assignments GROUP BY designer_id
+      `),
+      db.select().from(schema.jobDesigners),
+    ]);
+
+    // Build map of job designer assignments in memory.
     const jobDesignersMap = new Map<string, string[]>();
-    const wipCountMap = new Map<string, number>();
     allJobDesignersRecords.forEach((da) => {
       const existing = jobDesignersMap.get(da.jobId) || [];
       existing.push(da.designerId);
       jobDesignersMap.set(da.jobId, existing);
     });
 
-    // Map jobs for the current active page
-    const pageJobsRecords = currentPage
-      ? allJobsRecords.filter((j) => j.pageId === currentPage.id)
-      : allJobsRecords;
+    // Jobs are already scoped to the current active page above.
 
     const initialJobs: Job[] = pageJobsRecords.map((r) => {
       let rawIds = jobDesignersMap.get(r.id) || [];
@@ -225,22 +242,20 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
     // Pending users computed in memory from profiles
     const pendingUsers = allUsers.filter((u) => !u.isApproved);
 
-    // Compute active WIP counts across all active jobs in memory
-    const activeJobs = allJobsRecords.filter(
-      (j) => !j.isArchived && (j.status === 'wip' || j.status === 'revisions')
-    );
+    const wipCountMap = new Map<string, number>();
+    for (const row of workloadRows) {
+      wipCountMap.set(String(row.designer_id), Number(row.active_wip_count));
+    }
 
     const designers = allUsers.filter(
       (u) => u.isApproved && (u.role === 'designer' || u.role === 'admin')
     );
-    designers.forEach((d) => wipCountMap.set(d.id, 0));
-
-    activeJobs.forEach((job) => {
-      const assignedIds = jobDesignersMap.get(job.id) || (job.designerId ? [job.designerId] : []);
-      assignedIds.forEach((dId) => {
-        wipCountMap.set(dId, (wipCountMap.get(dId) || 0) + 1);
-      });
+    designers.forEach((d) => {
+      if (!wipCountMap.has(d.id)) wipCountMap.set(d.id, 0);
     });
+
+    // Counts are computed by the database; assignment rows above remain needed
+    // to hydrate the initial job DTOs.
 
     const designerSuggestions = designers.map((d) => ({
       designer: d,

@@ -19,8 +19,7 @@ export async function getJobsAction(pageId: string): Promise<Job[]> {
 
   if (!db) return [];
 
-  const users = await getAllUsersAction();
-  const divisions = await getDivisionsAction();
+  const [users, divisions] = await Promise.all([getAllUsersAction(), getDivisionsAction()]);
 
   const userMap = new Map(users.map((u) => [u.id, u]));
   const divMap = new Map(divisions.map((d) => [d.id, d.name]));
@@ -29,7 +28,8 @@ export async function getJobsAction(pageId: string): Promise<Job[]> {
     const records = await db
       .select()
       .from(schema.jobs)
-      .where(eq(schema.jobs.pageId, pageId));
+      .where(eq(schema.jobs.pageId, pageId))
+      .orderBy(schema.jobs.kanbanOrder, schema.jobs.id);
 
     if (!records || records.length === 0) return [];
 

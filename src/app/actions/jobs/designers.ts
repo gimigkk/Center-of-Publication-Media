@@ -1,7 +1,7 @@
 'use server';
 
 import { db, schema } from '@/lib/db';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { Profile } from '@/types';
 import { sendJobStatusEmail } from '@/lib/email';
@@ -182,38 +182,40 @@ export async function getDesignerWorkloadsAction(): Promise<{ designer: Profile;
   }
 
   try {
-    const activeJobs = await db
-      .select()
-      .from(schema.jobs)
-      .where(
-        and(
-          eq(schema.jobs.isArchived, false),
-          inArray(schema.jobs.status, ['wip', 'revisions'])
-        )
-      );
+    const workloadRows = await db.execute(sql`
+      WITH active_jobs AS (
+        SELECT id, designer_id
+        FROM ${schema.jobs}
+        WHERE is_archived = false
+          AND status IN ('wip', 'revisions')
+      ), normalized_assignments AS (
+        SELECT ajd.designer_id
+        FROM active_jobs aj
+        INNER JOIN ${schema.jobDesigners} ajd ON ajd.job_id = aj.id
+        UNION ALL
+        SELECT aj.designer_id
+        FROM active_jobs aj
+        WHERE aj.designer_id IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1
+            FROM ${schema.jobDesigners} legacy_check
+            WHERE legacy_check.job_id = aj.id
+              AND legacy_check.designer_id = aj.designer_id
+          )
+      )
+      SELECT designer_id, COUNT(*)::int AS active_wip_count
+      FROM normalized_assignments
+      GROUP BY designer_id
+    `);
 
     const wipCountMap = new Map<string, number>();
     designers.forEach((d) => wipCountMap.set(d.id, 0));
-
-    if (activeJobs.length > 0) {
-      const activeJobIds = activeJobs.map((j) => j.id);
-      const assignments = await db
-        .select()
-        .from(schema.jobDesigners)
-        .where(inArray(schema.jobDesigners.jobId, activeJobIds));
-
-      assignments.forEach((a) => {
-        const count = wipCountMap.get(a.designerId) || 0;
-        wipCountMap.set(a.designerId, count + 1);
-      });
-
-      activeJobs.forEach((j) => {
-        if (j.designerId && !assignments.some((a) => a.jobId === j.id && a.designerId === j.designerId)) {
-          const count = wipCountMap.get(j.designerId) || 0;
-          wipCountMap.set(j.designerId, count + 1);
-        }
-      });
+    for (const row of workloadRows) {
+      const designerId = String(row.designer_id);
+      wipCountMap.set(designerId, Number(row.active_wip_count));
     }
+
+
 
     const suggestions = designers.map((d) => ({
       designer: d,

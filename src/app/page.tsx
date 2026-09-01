@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import { Job, Page, Profile, Division, AppNotification, OnlineUser } from '@/types';
 import { getJobsAction, moveJobAction } from '@/app/actions/jobs';
 import { getInitialBoardDataAction } from '@/app/actions/board';
@@ -20,8 +19,6 @@ import { CursorOverlay } from '@/components/cursors/CursorOverlay';
 import { BoardModals } from '@/components/board/BoardModals';
 
 export default function Home() {
-  const router = useRouter();
-
   // Primary Workspace state
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [allUsers, setAllUsers] = useState<Profile[]>([]);
@@ -47,7 +44,7 @@ export default function Home() {
   const activePageId = currentPage?.id || 'default-page';
 
   // Realtime hooks
-  const { jobs, setJobs, broadcastBoardChange, lastDropEvent } = useRealtimeBoard(activePageId, initialJobs);
+  const { jobs, setJobs, broadcastBoardChange, requestBoardRefresh, lastDropEvent } = useRealtimeBoard(activePageId, initialJobs);
   const { cursors, remotelyDraggedJobIds } = useCursors(currentPage, currentUser, activeDraggedJob, modals.currentUserState);
   const { onlineUsers } = usePresence(currentPage, currentUser);
 
@@ -63,6 +60,7 @@ export default function Home() {
     setDivisions,
     setPages,
     setNotifications,
+    requestBoardRefresh,
   });
 
   // Harmonize presence state with active collaborator cursors so avatar stack never drops active users

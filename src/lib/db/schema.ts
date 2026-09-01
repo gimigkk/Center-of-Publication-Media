@@ -74,7 +74,9 @@ export const jobs = pgTable('jobs', {
   archivedAt: timestamp('archived_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('jobs_page_status_order_idx').on(table.pageId, table.isArchived, table.status, table.kanbanOrder),
+]);
 
 export const deliverables = pgTable('deliverables', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -113,7 +115,9 @@ export const jobActivity = pgTable('job_activity', {
   toStatus: jobStatusEnum('to_status').notNull(),
   note: text('note'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('job_activity_job_created_at_idx').on(table.jobId, table.createdAt),
+]);
 
 export const divisionsRelations = relations(divisions, ({ many }) => ({
   profiles: many(profiles),
@@ -200,7 +204,9 @@ export const notifications = pgTable('notifications', {
   note: text('note'),
   isRead: boolean('is_read').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('notifications_user_created_at_idx').on(table.userId, table.createdAt),
+]);
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   user: one(profiles, {
