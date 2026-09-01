@@ -90,7 +90,9 @@ export function usePresence(currentPage: Page | null, currentUser: Profile | nul
     if (channelRef.current) {
       channelRef.current.track(myUser);
     }
-    recomputeOnlineUsers();
+    // Defer the state recompute out of the effect body to avoid a cascading render.
+    const frame = window.setTimeout(recomputeOnlineUsers, 0);
+    return () => window.clearTimeout(frame);
   }, [currentPage, currentUser, recomputeOnlineUsers]);
 
   // Workspace-wide hybrid Realtime presence

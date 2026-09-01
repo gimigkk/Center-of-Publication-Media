@@ -1,8 +1,9 @@
-import { pgTable, text, timestamp, boolean, integer, uuid, pgEnum, index } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, integer, uuid, pgEnum, index, uniqueIndex } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 export const userRoleEnum = pgEnum('user_role', ['requestor', 'designer', 'admin']);
 export const jobStatusEnum = pgEnum('job_status', ['in_queue', 'wip', 'revisions', 'done']);
+export const deliverableStatusEnum = pgEnum('deliverable_status', ['pending', 'ready']);
 
 export const divisions = pgTable('divisions', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -75,6 +76,25 @@ export const jobs = pgTable('jobs', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const deliverables = pgTable('deliverables', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  jobId: uuid('job_id').references(() => jobs.id, { onDelete: 'cascade' }).notNull(),
+  version: integer('version').notNull(),
+  storageKey: text('storage_key').notNull(),
+  originalFilename: text('original_filename').notNull(),
+  mimeType: text('mime_type').notNull(),
+  sizeBytes: integer('size_bytes').notNull(),
+  uploadedBy: uuid('uploaded_by').references(() => profiles.id).notNull(),
+  status: deliverableStatusEnum('status').default('pending').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  registeredAt: timestamp('registered_at', { withTimezone: true }),
+}, (table) => [
+  uniqueIndex('deliverables_job_version_idx').on(table.jobId, table.version),
+  uniqueIndex('deliverables_storage_key_idx').on(table.storageKey),
+  index('deliverables_job_id_idx').on(table.jobId),
+  index('deliverables_uploader_id_idx').on(table.uploadedBy),
+]);
+
 export const jobDesigners = pgTable('job_designers', {
   id: uuid('id').primaryKey().defaultRandom(),
   jobId: uuid('job_id').references(() => jobs.id, { onDelete: 'cascade' }).notNull(),
@@ -117,6 +137,7 @@ export const profilesRelations = relations(profiles, ({ one, many }) => ({
   createdPages: many(pages),
   requestedJobs: many(jobs, { relationName: 'requestorJobs' }),
   assignedJobs: many(jobs, { relationName: 'designerJobs' }),
+  deliverables: many(deliverables),
   activities: many(jobActivity),
 }));
 
@@ -148,6 +169,7 @@ export const jobsRelations = relations(jobs, ({ one, many }) => ({
     relationName: 'designerJobs',
   }),
   activities: many(jobActivity),
+  deliverables: many(deliverables),
 }));
 
 export const jobActivityRelations = relations(jobActivity, ({ one }) => ({

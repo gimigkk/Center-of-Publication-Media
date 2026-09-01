@@ -147,16 +147,18 @@ export default function Home() {
       setPendingUsers(data.pendingUsers || []);
       setDesignerSuggestions(data.designerSuggestions || []);
       setNotifications(data.notifications || []);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to load board data:', error);
-      setLoadError(error?.message || 'Terjadi kesalahan saat memuat papan kerja.');
+      setLoadError(error instanceof Error ? error.message : 'Terjadi kesalahan saat memuat papan kerja.');
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadData();
+    // Defer the async load out of the effect body to avoid cascading renders.
+    const frame = window.setTimeout(() => void loadData(), 0);
+    return () => window.clearTimeout(frame);
   }, [loadData]);
 
   if (loadError) {

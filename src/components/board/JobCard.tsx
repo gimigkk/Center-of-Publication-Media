@@ -71,7 +71,7 @@ export const JobCard = memo(function JobCard({
           cardEl.style.transition = 'none';
 
           // 2. Play: animate smoothly into target slot in next frame
-          let rafId = requestAnimationFrame(() => {
+          const rafId = requestAnimationFrame(() => {
             cardEl.style.transition = 'transform 220ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 220ms ease';
             cardEl.style.transform = 'translate3d(0, 0, 0) scale(1) rotate(0deg)';
             cardEl.style.boxShadow = '';

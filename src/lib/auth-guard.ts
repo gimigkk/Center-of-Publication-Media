@@ -29,7 +29,12 @@ export async function getAuthenticatedUser(): Promise<Profile | null> {
       .where(eq(schema.profiles.id, user.id));
 
     if (!profile) {
-      const meta = (user.user_metadata || {}) as Record<string, any>;
+      const meta = (user.user_metadata || {}) as {
+        full_name?: string;
+        name?: string;
+        avatar_url?: string;
+        phone_number?: string;
+      };
       const fallbackName = meta.full_name || meta.name || user.email?.split('@')[0] || 'User';
       const fallbackAvatar = meta.avatar_url || null;
       const fallbackPhone = meta.phone_number || user.phone || null;

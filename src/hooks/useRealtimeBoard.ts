@@ -18,9 +18,13 @@ export function useRealtimeBoard(pageId: string, initialJobs: Job[]) {
   const [lastDropEvent, setLastDropEvent] = useState<CardDropEvent | null>(null);
   const bcRef = useRef<BroadcastChannel | null>(null);
 
-  useEffect(() => {
+  // Sync prop updates into local state during render.
+  // (Render-phase state adjustment — https://react.dev/learn/you-might-not-need-an-effect)
+  const [prevInitialJobs, setPrevInitialJobs] = useState<Job[]>(initialJobs);
+  if (prevInitialJobs !== initialJobs) {
+    setPrevInitialJobs(initialJobs);
     setJobs(initialJobs);
-  }, [initialJobs]);
+  }
 
   const refreshBoard = useCallback(async () => {
     if (!pageId) return;

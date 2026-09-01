@@ -13,7 +13,7 @@
   margin: auto;
 }
 
-@media (min-width: 840px) {
+@media (min-width: 1180px) {
   .modal-dual-container {
     flex-direction: row;
     align-items: flex-start;

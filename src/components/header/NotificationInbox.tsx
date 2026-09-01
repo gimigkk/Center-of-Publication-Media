@@ -118,6 +118,12 @@ export const NotificationInbox = memo(function NotificationInbox({
             <span className="figma-notif-actor">{actorName}</span> menandai <span className="figma-notif-target">{targetTitle}</span> selesai
           </>
         );
+      case 'deliverable_uploaded':
+        return (
+          <>
+            <span className="figma-notif-actor">{actorName}</span> mengunggah hasil desain untuk <span className="figma-notif-target">{targetTitle}</span>
+          </>
+        );
       case 'user_signup_pending':
         return (
           <>

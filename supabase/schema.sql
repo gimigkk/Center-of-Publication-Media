@@ -15,6 +15,12 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
+DO $$ BEGIN
+    CREATE TYPE deliverable_status AS ENUM ('pending', 'ready');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
 -- 2. Divisions Table
 CREATE TABLE IF NOT EXISTS public.divisions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -28,7 +34,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT UNIQUE NOT NULL,
     full_name TEXT NOT NULL,
-    avatar_url TEXT NOT NULL,
+    avatar_url TEXT,
+    phone_number TEXT,
     role user_role DEFAULT 'requestor'::user_role NOT NULL,
     division_id UUID REFERENCES public.divisions(id) ON DELETE SET NULL,
     is_approved BOOLEAN DEFAULT false NOT NULL,
@@ -79,6 +86,7 @@ CREATE TABLE IF NOT EXISTS public.jobs (
     title TEXT NOT NULL,
     description TEXT,
     brief_link TEXT NOT NULL,
+    brief_title TEXT,
     division_id UUID REFERENCES public.divisions(id) NOT NULL,
     publication_media TEXT NOT NULL,
     deadline TIMESTAMPTZ NOT NULL,
@@ -86,11 +94,36 @@ CREATE TABLE IF NOT EXISTS public.jobs (
     kanban_order INTEGER DEFAULT 0 NOT NULL,
     requestor_id UUID REFERENCES public.profiles(id) NOT NULL,
     designer_id UUID REFERENCES public.profiles(id),
+    is_archived BOOLEAN DEFAULT false NOT NULL,
+    archived_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
--- 6. Job Activity Log Table
+-- 6. Deliverables Table (private files are stored in Cloudflare R2)
+CREATE TABLE IF NOT EXISTS public.deliverables (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    job_id UUID REFERENCES public.jobs(id) ON DELETE CASCADE NOT NULL,
+    version INTEGER NOT NULL,
+    storage_key TEXT UNIQUE NOT NULL,
+    original_filename TEXT NOT NULL,
+    mime_type TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    uploaded_by UUID REFERENCES public.profiles(id) NOT NULL,
+    status deliverable_status DEFAULT 'pending'::deliverable_status NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    registered_at TIMESTAMPTZ,
+    CONSTRAINT deliverables_job_version_unique UNIQUE (job_id, version)
+);
+
+CREATE INDEX IF NOT EXISTS deliverables_job_id_idx ON public.deliverables (job_id);
+CREATE INDEX IF NOT EXISTS deliverables_uploader_id_idx ON public.deliverables (uploaded_by);
+
+ALTER TABLE public.deliverables ENABLE ROW LEVEL SECURITY;
+
+-- Browser clients never access deliverables directly. Server actions use Drizzle.
+
+-- 7. Job Activity Log Table
 CREATE TABLE IF NOT EXISTS public.job_activity (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     job_id UUID REFERENCES public.jobs(id) ON DELETE CASCADE NOT NULL,
@@ -101,8 +134,9 @@ CREATE TABLE IF NOT EXISTS public.job_activity (
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
--- 7. Realtime Enablement
+-- 8. Realtime Enablement
 ALTER PUBLICATION supabase_realtime ADD TABLE public.jobs;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.deliverables;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.pages;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
 

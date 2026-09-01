@@ -65,7 +65,7 @@
   order: 2; /* Place at the BOTTOM on mobile */
 }
 
-@media (min-width: 840px) {
+@media (min-width: 1180px) {
   .assign-dropdown-popover.position-modal-left {
     width: 240px;
     min-width: 240px;

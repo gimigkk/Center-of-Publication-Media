@@ -39,9 +39,9 @@ export function JobFormModal({
 }: JobFormModalProps) {
   const { shouldRender, isClosing } = useAnimatePresence(isOpen, 110);
 
-  // Default deadline set to 7 days in the future (H-7 minimum rule)
-  const defaultDeadlineDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const minDeadlineDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  // Default deadline set to 7 days in the future (H-7 minimum rule).
+  // Snapshot once at mount so the value stays stable across re-renders.
+  const [minDeadlineDate] = useState(() => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
   const minDateStr = minDeadlineDate.toISOString().split('T')[0];
 
   const [title, setTitle] = useState('');
@@ -52,7 +52,7 @@ export function JobFormModal({
     currentUser.divisionId || (divisions[0]?.id ?? '')
   );
   const [publicationMedia, setPublicationMedia] = useState('');
-  const [deadline, setDeadline] = useState(defaultDeadlineDate.toISOString().split('T')[0]);
+  const [deadline, setDeadline] = useState(minDateStr);
   const sortedDivisions = useMemo(() => {
     return [...divisions].sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
   }, [divisions]);
@@ -76,6 +76,9 @@ export function JobFormModal({
   // Validate Google Docs link
   const isGoogleDoc = GOOGLE_DOCS_REGEX.test(briefLink.trim());
 
+  // Derived: the fetched title is only meaningful for valid Google Docs links.
+  const effectiveBriefTitle = isGoogleDoc ? briefTitle : null;
+
   useEffect(() => {
     if (isGoogleDoc) {
       const timer = setTimeout(() => {
@@ -89,8 +92,6 @@ export function JobFormModal({
         });
       }, 400);
       return () => clearTimeout(timer);
-    } else {
-      setBriefTitle(null);
     }
   }, [briefLink, isGoogleDoc, title]);
 
@@ -136,7 +137,7 @@ export function JobFormModal({
         title: title.trim(),
         description: description.trim() || undefined,
         briefLink: briefLink.trim(),
-        briefTitle: briefTitle || undefined,
+        briefTitle: effectiveBriefTitle || undefined,
         divisionId,
         publicationMedia: publicationMedia.trim(),
         deadline: new Date(deadline).toISOString(),
@@ -296,10 +297,10 @@ export function JobFormModal({
                     </div>
                   )}
                 </div>
-                {briefTitle && (
+                {effectiveBriefTitle && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: '#0284c7', marginTop: '3px' }}>
                     <GoogleDocsIcon size={14} />
-                    <span>Judul Dokumen: <strong>{briefTitle}</strong></span>
+                    <span>Judul Dokumen: <strong>{effectiveBriefTitle}</strong></span>
                   </div>
                 )}
                 <span className="form-help">

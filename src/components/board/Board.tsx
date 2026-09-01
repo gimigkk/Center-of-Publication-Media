@@ -276,7 +276,7 @@ export const Board = memo(function Board({
       setActiveJob(job);
       onDragStateChange?.(job);
 
-      const activatorEvent = (event as any).activatorEvent;
+      const activatorEvent = event.activatorEvent as PointerEvent | MouseEvent | KeyboardEvent | null;
       if (activatorEvent) {
         lastPointerXRef.current = 'clientX' in activatorEvent ? activatorEvent.clientX : null;
       } else {
@@ -286,7 +286,7 @@ export const Board = memo(function Board({
   };
 
   const handleDragMove = (event: DragMoveEvent) => {
-    const actEvent = (event as any).activatorEvent;
+    const actEvent = event.activatorEvent as PointerEvent | MouseEvent | KeyboardEvent | null;
     if (actEvent) {
       const actX = 'clientX' in actEvent ? actEvent.clientX : 0;
       const currentX = actX + event.delta.x;
@@ -322,7 +322,7 @@ export const Board = memo(function Board({
     let releaseWorldY: number | undefined;
 
     const boardEl = document.querySelector('.kanban-board');
-    const actEvent = (event as any).activatorEvent;
+    const actEvent = event.activatorEvent as PointerEvent | MouseEvent | KeyboardEvent | null;
     if (boardEl && actEvent) {
       const bRect = boardEl.getBoundingClientRect();
       const delta = event.delta;

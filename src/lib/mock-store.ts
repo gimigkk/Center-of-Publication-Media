@@ -290,7 +290,6 @@ class MockStore {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
   var __COPM_MOCK_STORE__: MockStore | undefined;
 }
 

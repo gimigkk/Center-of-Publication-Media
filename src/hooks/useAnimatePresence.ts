@@ -12,24 +12,29 @@ export function useAnimatePresence(isOpen: boolean, durationMs = 140) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-      setShouldRender(true);
-      setIsClosing(false);
-    } else {
-      setIsClosing(true);
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      timeoutRef.current = setTimeout(() => {
-        setShouldRender(false);
+    // Defer state updates out of the effect body to avoid cascading renders.
+    const frame = window.setTimeout(() => {
+      if (isOpen) {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+        setShouldRender(true);
         setIsClosing(false);
-        timeoutRef.current = null;
-      }, durationMs);
-    }
+      } else {
+        setIsClosing(true);
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+        timeoutRef.current = setTimeout(() => {
+          setShouldRender(false);
+          setIsClosing(false);
+          timeoutRef.current = null;
+        }, durationMs);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(frame);
   }, [isOpen, durationMs]);
 
   useEffect(() => {

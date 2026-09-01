@@ -6,7 +6,6 @@ const connectionString = process.env.DATABASE_URL || '';
 
 // Cache client across hot-reloads & serverless warm invocations
 declare global {
-  // eslint-disable-next-line no-var
   var _globalPostgresClient: postgres.Sql | undefined;
 }
 

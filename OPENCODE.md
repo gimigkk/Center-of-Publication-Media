@@ -51,4 +51,7 @@ src/
 - `npm run db:push`: Push Drizzle schema updates to Postgres
 - `npm run db:seed`: Seed local/staging database
 
-@AGENTS.md
+## Agent Execution Guidelines
+- **Fast Edits**: Immediately apply required file edits. Keep reasoning concise and avoid overthinking.
+- **Scope Restriction**: Search only inside `src/`. Never grep in `node_modules/`, `.next/`, or dist directories.
+

@@ -1,0 +1,13 @@
+node_modules/
+.next/
+dist/
+build/
+out/
+coverage/
+*.log
+*.csv
+.env*
+!.env.example
+.git/
+.claude/
+.opencode/

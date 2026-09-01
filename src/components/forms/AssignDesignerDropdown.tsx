@@ -35,12 +35,16 @@ export function AssignDesignerDropdown({
 
   const [assignedIds, setAssignedIds] = useState<string[]>(initialAssignedIds);
 
-  useEffect(() => {
-    const freshIds = job.designerIds && job.designerIds.length > 0
-      ? job.designerIds
-      : (job.designerId ? [job.designerId] : []);
-    setAssignedIds(freshIds);
-  }, [job.designerIds, job.designerId]);
+  // Reset pending selection when the underlying job assignment changes.
+  // (Render-phase state adjustment — https://react.dev/learn/you-might-not-need-an-effect)
+  const [prevAssignment, setPrevAssignment] = useState({
+    designerIds: job.designerIds,
+    designerId: job.designerId,
+  });
+  if (prevAssignment.designerIds !== job.designerIds || prevAssignment.designerId !== job.designerId) {
+    setPrevAssignment({ designerIds: job.designerIds, designerId: job.designerId });
+    setAssignedIds(initialAssignedIds);
+  }
 
   // Close on outside click or Escape key
   useEffect(() => {

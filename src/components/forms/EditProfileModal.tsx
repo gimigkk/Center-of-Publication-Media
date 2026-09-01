@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Profile } from '@/types';
 import { Modal } from '@/components/ui/Modal';
 import { Avatar } from '@/components/ui/Avatar';
@@ -32,14 +32,18 @@ export function EditProfileModal({
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  // Reset form fields when the modal opens or the profile updates.
+  // (Render-phase state adjustment — https://react.dev/learn/you-might-not-need-an-effect)
+  const [prevFormState, setPrevFormState] = useState({ isOpen, user: currentUser });
+  if (prevFormState.isOpen !== isOpen || prevFormState.user !== currentUser) {
+    setPrevFormState({ isOpen, user: currentUser });
     if (isOpen) {
       setFullName(currentUser.fullName);
       setAvatarPreview(currentUser.avatarUrl);
       setPhoneNumber(currentUser.phoneNumber || '');
       setError(null);
     }
-  }, [isOpen, currentUser]);
+  }
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

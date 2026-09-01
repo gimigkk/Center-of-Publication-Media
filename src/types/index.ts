@@ -70,6 +70,20 @@ export interface JobActivity {
   createdAt: string;
 }
 
+export interface Deliverable {
+  id: string;
+  jobId: string;
+  version: number;
+  originalFilename: string;
+  mimeType: string;
+  sizeBytes: number;
+  uploadedBy: string;
+  uploaderName?: string | null;
+  createdAt: string;
+  registeredAt: string;
+  previewUrl: string;
+}
+
 export interface RemoteCursor {
   userId: string;
   userName: string;
@@ -105,6 +119,7 @@ export type NotificationType =
   | 'job_status_changed'
   | 'job_revisions'
   | 'job_completed'
+  | 'deliverable_uploaded'
   | 'user_signup_pending'
   | 'user_approved'
   | 'user_rejected';

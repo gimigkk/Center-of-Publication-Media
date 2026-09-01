@@ -7,6 +7,7 @@ import { formatDate } from '@/lib/utils';
 import { JobDetailProperties } from './job-detail/JobDetailProperties';
 import { JobDetailBriefBox } from './job-detail/JobDetailBriefBox';
 import { JobDetailFooterActions } from './job-detail/JobDetailFooterActions';
+import { JobDeliverablesPanel } from './job-detail/JobDeliverablesPanel';
 import { X } from 'lucide-react';
 
 interface JobDetailModalProps {
@@ -179,6 +180,12 @@ export const JobDetailModal = React.memo(function JobDetailModal({
             onClose={onClose}
           />
         </div>
+
+        <JobDeliverablesPanel
+          job={activeJob}
+          currentUser={currentUser}
+          isOpen={isOpen}
+        />
 
         {/* Permanent Editor panel: placed next to the modal panel for admins */}
         {currentUser.role === 'admin' && onAssign && (

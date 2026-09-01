@@ -1,0 +1,312 @@
+'use server';
+
+import { randomUUID } from 'node:crypto';
+import { and, desc, eq } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
+import { getAuthenticatedUser } from '@/lib/auth-guard';
+import { db, schema } from '@/lib/db';
+import {
+  createDeliverableDownloadUrl,
+  createDeliverableKey,
+  createDeliverablePreviewUrl,
+  createDeliverableUploadUrl,
+  deleteDeliverableObject,
+  inspectDeliverable,
+  isDeliverableKeyForJob,
+} from '@/lib/r2';
+import { Deliverable } from '@/types';
+import { isMockEnabled } from '@/lib/mock-store';
+
+const MAX_DELIVERABLE_SIZE = 15 * 1024 * 1024;
+const uploadInputSchema = z.object({
+  filename: z.string().trim().min(1).max(255).regex(/\.(jpe?g)$/i, 'File harus berformat JPG atau JPEG'),
+  mimeType: z.literal('image/jpeg'),
+  sizeBytes: z.number().int().positive().max(MAX_DELIVERABLE_SIZE),
+});
+
+type ActionResult<T = undefined> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+};
+
+function unavailableInMock<T>(): ActionResult<T> {
+  return { success: false, error: 'Upload deliverable tersedia setelah koneksi penyimpanan aktif' };
+}
+
+async function getAuthorizedJob(jobId: string, mode: 'read' | 'upload') {
+  const user = await getAuthenticatedUser();
+  if (!user) return { error: 'Sesi pengguna tidak valid' } as const;
+  if (!db) return { error: 'Database belum terhubung' } as const;
+
+  const [job] = await db.select().from(schema.jobs).where(eq(schema.jobs.id, jobId));
+  if (!job) return { error: 'Job tidak ditemukan' } as const;
+
+  const assignments = await db
+    .select({ designerId: schema.jobDesigners.designerId })
+    .from(schema.jobDesigners)
+    .where(eq(schema.jobDesigners.jobId, jobId));
+  const isAssignedDesigner =
+    user.role === 'designer' &&
+    (job.designerId === user.id || assignments.some((assignment) => assignment.designerId === user.id));
+  const canRead = user.role === 'admin' || user.id === job.requestorId || isAssignedDesigner;
+  const canUpload =
+    (user.role === 'admin' || isAssignedDesigner) &&
+    !job.isArchived &&
+    (job.status === 'wip' || job.status === 'revisions');
+
+  if (mode === 'read' && !canRead) return { error: 'Anda tidak memiliki akses ke deliverable ini' } as const;
+  if (mode === 'upload' && !canUpload) {
+    return { error: 'Hanya editor yang ditugaskan atau admin yang dapat mengunggah JPG saat job aktif' } as const;
+  }
+
+  return { user, job } as const;
+}
+
+function toDeliverable(record: typeof schema.deliverables.$inferSelect, uploaderName: string | null, previewUrl: string): Deliverable {
+  return {
+    id: record.id,
+    jobId: record.jobId,
+    version: record.version,
+    originalFilename: record.originalFilename,
+    mimeType: record.mimeType,
+    sizeBytes: record.sizeBytes,
+    uploadedBy: record.uploadedBy,
+    uploaderName,
+    createdAt: record.createdAt.toISOString(),
+    registeredAt: (record.registeredAt || record.createdAt).toISOString(),
+    previewUrl,
+  };
+}
+
+export async function getDeliverablesAction(jobId: string): Promise<ActionResult<Deliverable[]>> {
+  if (isMockEnabled()) return { success: true, data: [] };
+
+  const auth = await getAuthorizedJob(jobId, 'read');
+  if ('error' in auth) return { success: false, error: auth.error };
+  const database = db;
+  if (!database) return { success: false, error: 'Database belum terhubung' };
+
+  try {
+    const records = await database
+      .select({ deliverable: schema.deliverables, uploaderName: schema.profiles.fullName })
+      .from(schema.deliverables)
+      .leftJoin(schema.profiles, eq(schema.profiles.id, schema.deliverables.uploadedBy))
+      .where(and(eq(schema.deliverables.jobId, jobId), eq(schema.deliverables.status, 'ready')))
+      .orderBy(desc(schema.deliverables.version));
+
+    const data = await Promise.all(
+      records.map(async ({ deliverable, uploaderName }) =>
+        toDeliverable(deliverable, uploaderName, await createDeliverablePreviewUrl(deliverable.storageKey))
+      )
+    );
+    return { success: true, data };
+  } catch (error) {
+    console.error('Failed to get deliverables:', error);
+    return { success: false, error: 'Gagal memuat deliverable' };
+  }
+}
+
+export async function initiateDeliverableUploadAction(
+  jobId: string,
+  input: { filename: string; mimeType: string; sizeBytes: number }
+): Promise<ActionResult<{ uploadId: string; version: number; uploadUrl: string; expiresAt: string }>> {
+  if (isMockEnabled()) return unavailableInMock();
+
+  const parsed = uploadInputSchema.safeParse(input);
+  if (!parsed.success) return { success: false, error: 'Pilih file JPG maksimal 15 MB' };
+
+  const auth = await getAuthorizedJob(jobId, 'upload');
+  if ('error' in auth) return { success: false, error: auth.error };
+  const database = db;
+  if (!database) return { success: false, error: 'Database belum terhubung' };
+
+  try {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const [latest] = await database
+        .select({ version: schema.deliverables.version })
+        .from(schema.deliverables)
+        .where(eq(schema.deliverables.jobId, jobId))
+        .orderBy(desc(schema.deliverables.version))
+        .limit(1);
+      const version = (latest?.version || 0) + 1;
+      const uploadId = randomUUID();
+      const storageKey = createDeliverableKey(jobId, uploadId);
+
+      try {
+        await database.insert(schema.deliverables).values({
+          id: uploadId,
+          jobId,
+          version,
+          storageKey,
+          originalFilename: parsed.data.filename,
+          mimeType: parsed.data.mimeType,
+          sizeBytes: parsed.data.sizeBytes,
+          uploadedBy: auth.user.id,
+          status: 'pending',
+        });
+        const uploadUrl = await createDeliverableUploadUrl(storageKey);
+        return {
+          success: true,
+          data: {
+            uploadId,
+            version,
+            uploadUrl,
+            expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+          },
+        };
+      } catch (error) {
+        if (error instanceof Error && 'code' in error && error.code === '23505' && attempt < 2) {
+          continue;
+        }
+        await database.delete(schema.deliverables).where(eq(schema.deliverables.id, uploadId));
+        throw error;
+      }
+    }
+    throw new Error('Gagal menentukan versi deliverable');
+  } catch (error) {
+    console.error('Failed to initiate deliverable upload:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Gagal menyiapkan upload' };
+  }
+}
+
+export async function completeDeliverableUploadAction(uploadId: string): Promise<ActionResult<Deliverable>> {
+  if (isMockEnabled()) return unavailableInMock();
+  if (!db) return { success: false, error: 'Database belum terhubung' };
+
+  const user = await getAuthenticatedUser();
+  if (!user) return { success: false, error: 'Sesi pengguna tidak valid' };
+
+  try {
+    const [record] = await db.select().from(schema.deliverables).where(eq(schema.deliverables.id, uploadId));
+    if (!record) return { success: false, error: 'Upload tidak ditemukan' };
+    if (record.status === 'ready') {
+      const auth = await getAuthorizedJob(record.jobId, 'read');
+      if ('error' in auth) return { success: false, error: auth.error };
+      const [uploader] = await db.select({ fullName: schema.profiles.fullName }).from(schema.profiles).where(eq(schema.profiles.id, record.uploadedBy));
+      return { success: true, data: toDeliverable(record, uploader?.fullName || null, await createDeliverablePreviewUrl(record.storageKey)) };
+    }
+
+    const auth = await getAuthorizedJob(record.jobId, 'upload');
+    if ('error' in auth || record.uploadedBy !== user.id) {
+      return { success: false, error: 'Upload ini tidak dapat diselesaikan oleh pengguna ini' };
+    }
+    if (!isDeliverableKeyForJob(record.storageKey, record.jobId)) {
+      return { success: false, error: 'Kunci penyimpanan tidak valid' };
+    }
+
+    const inspected = await inspectDeliverable(record.storageKey);
+    if (inspected.sizeBytes <= 0 || inspected.sizeBytes > MAX_DELIVERABLE_SIZE || inspected.contentType !== 'image/jpeg' || !inspected.isJpeg) {
+      return { success: false, error: 'Objek R2 bukan JPG valid atau melebihi batas 15 MB' };
+    }
+
+    const registeredAt = new Date();
+    const updated = await db.transaction(async (tx) => {
+      const [readyRecord] = await tx
+        .update(schema.deliverables)
+        .set({ status: 'ready', sizeBytes: inspected.sizeBytes, mimeType: 'image/jpeg', registeredAt })
+        .where(and(eq(schema.deliverables.id, uploadId), eq(schema.deliverables.status, 'pending')))
+        .returning();
+      if (!readyRecord) return null;
+
+      await tx.insert(schema.jobActivity).values({
+        jobId: record.jobId,
+        actorId: user.id,
+        fromStatus: auth.job.status,
+        toStatus: auth.job.status,
+        note: `Hasil desain v${record.version} diunggah`,
+      });
+
+      await tx.insert(schema.notifications).values({
+        userId: auth.job.requestorId,
+        title: 'Hasil Desain Baru',
+        message: `${user.fullName} mengunggah hasil desain v${record.version} untuk "${auth.job.title}"`,
+        type: 'deliverable_uploaded',
+        jobId: auth.job.id,
+        jobTitle: auth.job.title,
+        actorId: user.id,
+        actorName: user.fullName,
+        actorAvatar: user.avatarUrl,
+        note: `Deliverable v${record.version} siap ditinjau`,
+        isRead: false,
+      });
+      return readyRecord;
+    });
+
+    if (!updated) {
+      const [readyRecord] = await db
+        .select()
+        .from(schema.deliverables)
+        .where(and(eq(schema.deliverables.id, uploadId), eq(schema.deliverables.status, 'ready')));
+      if (!readyRecord) return { success: false, error: 'Upload sedang diproses, silakan coba lagi' };
+      const [uploader] = await db
+        .select({ fullName: schema.profiles.fullName })
+        .from(schema.profiles)
+        .where(eq(schema.profiles.id, readyRecord.uploadedBy));
+      return {
+        success: true,
+        data: toDeliverable(
+          readyRecord,
+          uploader?.fullName || null,
+          await createDeliverablePreviewUrl(readyRecord.storageKey)
+        ),
+      };
+    }
+
+    revalidatePath('/');
+    return {
+      success: true,
+      data: toDeliverable(updated, user.fullName, await createDeliverablePreviewUrl(updated.storageKey)),
+    };
+  } catch (error) {
+    console.error('Failed to complete deliverable upload:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Gagal menyelesaikan upload' };
+  }
+}
+
+export async function getDeliverableDownloadUrlAction(deliverableId: string): Promise<ActionResult<{ url: string }>> {
+  if (isMockEnabled()) return { success: false, error: 'Deliverable belum tersedia dalam mode demo' };
+  const user = await getAuthenticatedUser();
+  if (!user || !db) return { success: false, error: 'Sesi pengguna tidak valid' };
+
+  try {
+    const [record] = await db.select().from(schema.deliverables).where(eq(schema.deliverables.id, deliverableId));
+    if (!record || record.status !== 'ready') return { success: false, error: 'Deliverable tidak ditemukan' };
+    const auth = await getAuthorizedJob(record.jobId, 'read');
+    if ('error' in auth) return { success: false, error: auth.error };
+    return { success: true, data: { url: await createDeliverableDownloadUrl(record.storageKey, record.originalFilename) } };
+  } catch (error) {
+    console.error('Failed to create deliverable download URL:', error);
+    return { success: false, error: 'Gagal menyiapkan download' };
+  }
+}
+
+export async function deleteDeliverableAction(deliverableId: string): Promise<ActionResult> {
+  if (isMockEnabled()) return { success: false, error: 'Hapus deliverable belum tersedia dalam mode demo' };
+
+  const user = await getAuthenticatedUser();
+  if (!user || user.role !== 'admin') {
+    return { success: false, error: 'Hanya admin yang dapat menghapus deliverable' };
+  }
+  if (!db) return { success: false, error: 'Database belum terhubung' };
+
+  try {
+    const [record] = await db
+      .select()
+      .from(schema.deliverables)
+      .where(eq(schema.deliverables.id, deliverableId));
+    if (!record) return { success: true };
+    if (!isDeliverableKeyForJob(record.storageKey, record.jobId)) {
+      return { success: false, error: 'Kunci penyimpanan tidak valid' };
+    }
+
+    await deleteDeliverableObject(record.storageKey);
+    await db.delete(schema.deliverables).where(eq(schema.deliverables.id, deliverableId));
+    revalidatePath('/');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to delete deliverable:', error);
+    return { success: false, error: 'Gagal menghapus deliverable' };
+  }
+}
