@@ -77,6 +77,8 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
   const [isDragActive, setIsDragActive] = useState(false);
   const dragDepthRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLDivElement>(null);
+  const [hasGalleryOverflow, setHasGalleryOverflow] = useState(false);
   const requestIdRef = useRef(0);
   const isRefreshingRef = useRef(false);
 
@@ -329,6 +331,25 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
     }
   };
 
+  useEffect(() => {
+    const gallery = galleryRef.current;
+    if (!gallery) return;
+
+    const updateEdges = () => {
+      const maxScrollTop = gallery.scrollHeight - gallery.clientHeight;
+      setHasGalleryOverflow(maxScrollTop - gallery.scrollTop > 2);
+    };
+
+    updateEdges();
+    gallery.addEventListener('scroll', updateEdges, { passive: true });
+    const observer = new ResizeObserver(updateEdges);
+    observer.observe(gallery);
+    return () => {
+      gallery.removeEventListener('scroll', updateEdges);
+      observer.disconnect();
+    };
+  }, [deliverables.length]);
+
   const galleryColumns: Array<Array<{ deliverable: Deliverable; index: number }>> = [[], []];
   const galleryHeights = [0, 0];
   const areAllImageRatiosKnown = deliverables.every((deliverable) => imageRatios[deliverable.id] !== undefined);
@@ -492,7 +513,7 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
             <span>{canUpload ? 'Unggah JPG pertama untuk requestor.' : 'Hasil desain akan muncul di sini setelah dikirim.'}</span>
           </div>
         ) : (
-          <div className="job-deliverables-gallery" aria-label="Submitted design previews">
+          <div className={`job-deliverables-gallery ${hasGalleryOverflow ? 'has-bottom-overflow' : ''}`} ref={galleryRef} aria-label="Submitted design previews">
             <div className="job-deliverables-masonry">
               {galleryColumns.map((column, columnIndex) => (
                 <div className="job-deliverables-list" key={columnIndex}>

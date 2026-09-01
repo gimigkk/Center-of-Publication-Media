@@ -619,6 +619,39 @@
 }
 
 @media (min-width: 1180px) {
+  .job-deliverables-gallery {
+    min-height: 0;
+    max-height: min(58vh, 520px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .job-deliverables-gallery:focus-visible {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 2px;
+  }
+
+  .job-deliverables-gallery::after {
+    position: sticky;
+    right: 0;
+    bottom: 0;
+    display: block;
+    height: 64px;
+    margin-top: -64px;
+    background: linear-gradient(to bottom, transparent, var(--bg-surface));
+    content: '';
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms ease;
+  }
+
+  .job-deliverables-gallery.has-bottom-overflow::after {
+    opacity: 1;
+  }
+
   .job-deliverables-masonry {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
