@@ -1,6 +1,7 @@
 'use server';
 
 import { randomUUID } from 'node:crypto';
+import { unstable_cache } from 'next/cache';
 import { and, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -9,6 +10,8 @@ import { db, schema } from '@/lib/db';
 import {
   createDeliverableDownloadUrl,
   createDeliverableKey,
+  createDeliverablePreviewKey,
+  createDeliverablePreviewUploadUrl,
   createDeliverablePreviewUrl,
   createDeliverableUploadUrl,
   deleteDeliverableObject,
@@ -30,6 +33,13 @@ type ActionResult<T = undefined> = {
   data?: T;
   error?: string;
 };
+
+// Reuse the same signed URL so repeat opens do not spend time signing every preview again.
+const getCachedDeliverablePreviewUrl = unstable_cache(
+  async (storageKey: string) => createDeliverablePreviewUrl(storageKey),
+  ['deliverable-preview-url'],
+  { revalidate: 240 }
+);
 
 type DeliverableReadTimings = {
   authenticationMs?: number;
@@ -64,7 +74,17 @@ async function getAuthorizedJob(jobId: string, mode: 'read' | 'upload', timings?
 
   const authorizationStartedAt = performance.now();
   const [jobs, assignments] = await Promise.all([
-    database.select().from(schema.jobs).where(eq(schema.jobs.id, jobId)),
+    database
+      .select({
+        id: schema.jobs.id,
+        requestorId: schema.jobs.requestorId,
+        designerId: schema.jobs.designerId,
+        status: schema.jobs.status,
+        isArchived: schema.jobs.isArchived,
+        title: schema.jobs.title,
+      })
+      .from(schema.jobs)
+      .where(eq(schema.jobs.id, jobId)),
     user.role === 'designer'
       ? database
           .select({ id: schema.jobDesigners.id })
@@ -134,7 +154,11 @@ export async function getDeliverablesAction(jobId: string): Promise<ActionResult
     const previewStartedAt = performance.now();
     const data = await Promise.all(
       records.map(async ({ deliverable, uploaderName }) =>
-        toDeliverable(deliverable, uploaderName, await createDeliverablePreviewUrl(deliverable.storageKey))
+        toDeliverable(
+          deliverable,
+          uploaderName,
+          await getCachedDeliverablePreviewUrl(deliverable.previewStorageKey || deliverable.storageKey)
+        )
       )
     );
     timings.previewUrlsMs = elapsedMs(previewStartedAt);
@@ -150,7 +174,7 @@ export async function getDeliverablesAction(jobId: string): Promise<ActionResult
 export async function initiateDeliverableUploadAction(
   jobId: string,
   input: { filename: string; mimeType: string; sizeBytes: number }
-): Promise<ActionResult<{ uploadId: string; version: number; uploadUrl: string; expiresAt: string }>> {
+): Promise<ActionResult<{ uploadId: string; version: number; uploadUrl: string; previewUploadUrl: string; expiresAt: string }>> {
   if (isMockEnabled()) return unavailableInMock();
 
   const parsed = uploadInputSchema.safeParse(input);
@@ -179,19 +203,24 @@ export async function initiateDeliverableUploadAction(
           jobId,
           version,
           storageKey,
+          previewStorageKey: createDeliverablePreviewKey(storageKey),
           originalFilename: parsed.data.filename,
           mimeType: parsed.data.mimeType,
           sizeBytes: parsed.data.sizeBytes,
           uploadedBy: auth.user.id,
           status: 'pending',
         });
-        const uploadUrl = await createDeliverableUploadUrl(storageKey);
+        const [uploadUrl, previewUploadUrl] = await Promise.all([
+          createDeliverableUploadUrl(storageKey),
+          createDeliverablePreviewUploadUrl(storageKey),
+        ]);
         return {
           success: true,
           data: {
             uploadId,
             version,
             uploadUrl,
+            previewUploadUrl,
             expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
           },
         };
@@ -224,7 +253,14 @@ export async function completeDeliverableUploadAction(uploadId: string): Promise
       const auth = await getAuthorizedJob(record.jobId, 'read');
       if ('error' in auth) return { success: false, error: auth.error };
       const [uploader] = await db.select({ fullName: schema.profiles.fullName }).from(schema.profiles).where(eq(schema.profiles.id, record.uploadedBy));
-      return { success: true, data: toDeliverable(record, uploader?.fullName || null, await createDeliverablePreviewUrl(record.storageKey)) };
+      return {
+        success: true,
+        data: toDeliverable(
+          record,
+          uploader?.fullName || null,
+          await getCachedDeliverablePreviewUrl(record.previewStorageKey || record.storageKey)
+        ),
+      };
     }
 
     const auth = await getAuthorizedJob(record.jobId, 'upload');
@@ -244,7 +280,13 @@ export async function completeDeliverableUploadAction(uploadId: string): Promise
     const updated = await db.transaction(async (tx) => {
       const [readyRecord] = await tx
         .update(schema.deliverables)
-        .set({ status: 'ready', sizeBytes: inspected.sizeBytes, mimeType: 'image/jpeg', registeredAt })
+        .set({
+          status: 'ready',
+          sizeBytes: inspected.sizeBytes,
+          mimeType: 'image/jpeg',
+          previewStorageKey: createDeliverablePreviewKey(record.storageKey),
+          registeredAt,
+        })
         .where(and(eq(schema.deliverables.id, uploadId), eq(schema.deliverables.status, 'pending')))
         .returning();
       if (!readyRecord) return null;
@@ -288,7 +330,7 @@ export async function completeDeliverableUploadAction(uploadId: string): Promise
         data: toDeliverable(
           readyRecord,
           uploader?.fullName || null,
-          await createDeliverablePreviewUrl(readyRecord.storageKey)
+          await getCachedDeliverablePreviewUrl(readyRecord.previewStorageKey || readyRecord.storageKey)
         ),
       };
     }
@@ -296,7 +338,11 @@ export async function completeDeliverableUploadAction(uploadId: string): Promise
     revalidatePath('/');
     return {
       success: true,
-      data: toDeliverable(updated, user.fullName, await createDeliverablePreviewUrl(updated.storageKey)),
+      data: toDeliverable(
+        updated,
+        user.fullName,
+        await getCachedDeliverablePreviewUrl(updated.previewStorageKey || updated.storageKey)
+      ),
     };
   } catch (error) {
     console.error('Failed to complete deliverable upload:', error);

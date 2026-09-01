@@ -71,6 +71,10 @@ export function createDeliverableKey(jobId: string, uploadId: string): string {
   return `jobs/${jobId}/deliverables/${uploadId}.jpg`;
 }
 
+export function createDeliverablePreviewKey(storageKey: string): string {
+  return `${storageKey}.preview.jpg`;
+}
+
 export function isDeliverableKeyForJob(key: string, jobId: string): boolean {
   return new RegExp(`^jobs/${escapeRegExp(jobId)}/deliverables/[0-9a-f-]{36}\\.jpe?g$`, 'i').test(key);
 }
@@ -79,7 +83,7 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-export async function createDeliverableUploadUrl(key: string): Promise<string> {
+async function createImageUploadUrl(key: string): Promise<string> {
   const config = getR2Config();
   const command = new PutObjectCommand({
     Bucket: config.bucket,
@@ -90,6 +94,26 @@ export async function createDeliverableUploadUrl(key: string): Promise<string> {
   return getSignedUrl(getClient(config.endpoint, config.accessKeyId, config.secretAccessKey), command, {
     expiresIn: config.putTtlSeconds,
   });
+}
+
+export async function createDeliverableUploadUrl(key: string): Promise<string> {
+  return createImageUploadUrl(key);
+}
+
+export async function createDeliverablePreviewUploadUrl(key: string): Promise<string> {
+  return createImageUploadUrl(createDeliverablePreviewKey(key));
+}
+
+export async function hasDeliverableObject(key: string): Promise<boolean> {
+  const config = getR2Config();
+  try {
+    await getClient(config.endpoint, config.accessKeyId, config.secretAccessKey).send(
+      new HeadObjectCommand({ Bucket: config.bucket, Key: key })
+    );
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function inspectDeliverable(key: string) {
@@ -120,6 +144,22 @@ export async function createDeliverableDownloadUrl(key: string, filename: string
     Key: key,
     ResponseContentType: 'image/jpeg',
     ResponseContentDisposition: `attachment; filename="${safeFilename}"`,
+    ResponseCacheControl: 'public, max-age=31536000, immutable',
+  });
+
+  return getSignedUrl(getClient(config.endpoint, config.accessKeyId, config.secretAccessKey), command, {
+    expiresIn: config.getTtlSeconds,
+  });
+}
+
+async function createImagePreviewUrl(key: string): Promise<string> {
+  const config = getR2Config();
+  const command = new GetObjectCommand({
+    Bucket: config.bucket,
+    Key: key,
+    ResponseContentType: 'image/jpeg',
+    ResponseContentDisposition: 'inline',
+    ResponseCacheControl: 'public, max-age=31536000, immutable',
   });
 
   return getSignedUrl(getClient(config.endpoint, config.accessKeyId, config.secretAccessKey), command, {
@@ -128,22 +168,18 @@ export async function createDeliverableDownloadUrl(key: string, filename: string
 }
 
 export async function createDeliverablePreviewUrl(key: string): Promise<string> {
-  const config = getR2Config();
-  const command = new GetObjectCommand({
-    Bucket: config.bucket,
-    Key: key,
-    ResponseContentType: 'image/jpeg',
-    ResponseContentDisposition: 'inline',
-  });
+  return createImagePreviewUrl(key);
+}
 
-  return getSignedUrl(getClient(config.endpoint, config.accessKeyId, config.secretAccessKey), command, {
-    expiresIn: config.getTtlSeconds,
-  });
+export async function createDeliverableThumbnailUrl(key: string): Promise<string> {
+  return createImagePreviewUrl(key);
 }
 
 export async function deleteDeliverableObject(key: string): Promise<void> {
   const config = getR2Config();
-  await getClient(config.endpoint, config.accessKeyId, config.secretAccessKey).send(
-    new DeleteObjectCommand({ Bucket: config.bucket, Key: key })
-  );
+  const r2 = getClient(config.endpoint, config.accessKeyId, config.secretAccessKey);
+  await Promise.all([
+    r2.send(new DeleteObjectCommand({ Bucket: config.bucket, Key: key })),
+    r2.send(new DeleteObjectCommand({ Bucket: config.bucket, Key: createDeliverablePreviewKey(key) })),
+  ]);
 }

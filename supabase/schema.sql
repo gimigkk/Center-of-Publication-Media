@@ -114,6 +114,7 @@ CREATE TABLE IF NOT EXISTS public.deliverables (
     job_id UUID REFERENCES public.jobs(id) ON DELETE CASCADE NOT NULL,
     version INTEGER NOT NULL,
     storage_key TEXT UNIQUE NOT NULL,
+    preview_storage_key TEXT,
     original_filename TEXT NOT NULL,
     mime_type TEXT NOT NULL,
     size_bytes INTEGER NOT NULL,
@@ -123,6 +124,9 @@ CREATE TABLE IF NOT EXISTS public.deliverables (
     registered_at TIMESTAMPTZ,
     CONSTRAINT deliverables_job_version_unique UNIQUE (job_id, version)
 );
+
+ALTER TABLE public.deliverables
+    ADD COLUMN IF NOT EXISTS preview_storage_key TEXT;
 
 CREATE INDEX IF NOT EXISTS deliverables_job_id_idx ON public.deliverables (job_id);
 CREATE INDEX IF NOT EXISTS deliverables_uploader_id_idx ON public.deliverables (uploaded_by);

@@ -81,6 +81,7 @@ export const deliverables = pgTable('deliverables', {
   jobId: uuid('job_id').references(() => jobs.id, { onDelete: 'cascade' }).notNull(),
   version: integer('version').notNull(),
   storageKey: text('storage_key').notNull(),
+  previewStorageKey: text('preview_storage_key'),
   originalFilename: text('original_filename').notNull(),
   mimeType: text('mime_type').notNull(),
   sizeBytes: integer('size_bytes').notNull(),

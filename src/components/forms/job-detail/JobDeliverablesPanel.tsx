@@ -12,10 +12,50 @@ import {
   initiateDeliverableUploadAction,
 } from '@/app/actions/deliverables';
 import { Deliverable, Job, Profile } from '@/types';
-import { formatDateTime } from '@/lib/utils';
+import { compressImageToJpeg, formatDateTime } from '@/lib/utils';
 
 const MAX_DELIVERABLE_SIZE = 15 * 1024 * 1024;
+const DELIVERABLE_CACHE_MAX_AGE_MS = 2 * 60 * 1000;
 type LoadMode = 'initial' | 'silent';
+
+type CachedDeliverables = {
+  cachedAt: number;
+  data: Deliverable[];
+};
+
+// Keep the last result available between modal opens and full page refreshes.
+const deliverablesCache = new Map<string, Deliverable[]>();
+
+function readCachedDeliverables(jobId: string): Deliverable[] | undefined {
+  const memoryCached = deliverablesCache.get(jobId);
+  if (memoryCached) return memoryCached;
+
+  try {
+    const raw = window.sessionStorage.getItem(`deliverables:${jobId}`);
+    if (!raw) return undefined;
+    const cached = JSON.parse(raw) as CachedDeliverables;
+    if (!cached.cachedAt || Date.now() - cached.cachedAt > DELIVERABLE_CACHE_MAX_AGE_MS) {
+      window.sessionStorage.removeItem(`deliverables:${jobId}`);
+      return undefined;
+    }
+    deliverablesCache.set(jobId, cached.data);
+    return cached.data;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeCachedDeliverables(jobId: string, data: Deliverable[]) {
+  deliverablesCache.set(jobId, data);
+  try {
+    window.sessionStorage.setItem(
+      `deliverables:${jobId}`,
+      JSON.stringify({ cachedAt: Date.now(), data } satisfies CachedDeliverables)
+    );
+  } catch {
+    // Storage can be unavailable in private browsing or when quota is exhausted.
+  }
+}
 
 interface JobDeliverablesPanelProps {
   job: Job;
@@ -32,6 +72,7 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [imageResolutions, setImageResolutions] = useState<Record<string, string>>({});
   const [imageRatios, setImageRatios] = useState<Record<string, number>>({});
+  const [loadedPreviewIds, setLoadedPreviewIds] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
   const dragDepthRef = useRef(0);
@@ -63,8 +104,15 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
       isRefreshingRef.current = true;
       setIsRefreshing(true);
     } else {
-      setIsLoading(true);
-      setDeliverables([]);
+      const cached = readCachedDeliverables(job.id);
+      if (cached) {
+        // Show the previous result immediately while the background refresh runs.
+        setDeliverables(cached);
+        setIsLoading(false);
+      } else {
+        setIsLoading(true);
+        setDeliverables([]);
+      }
     }
 
     const requestId = ++requestIdRef.current;
@@ -73,7 +121,9 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
       const result = await getDeliverablesAction(job.id);
       if (requestId !== requestIdRef.current) return;
       if (result.success) {
-        setDeliverables(result.data || []);
+        const nextDeliverables = result.data || [];
+        writeCachedDeliverables(job.id, nextDeliverables);
+        setDeliverables(nextDeliverables);
       } else {
         setError(result.error || 'Gagal memuat deliverable');
       }
@@ -129,6 +179,8 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
     setIsUploading(true);
     setError(null);
     try {
+      // Keep the original for downloads, but use a small derivative for the gallery preview.
+      const previewBlob = await compressImageToJpeg(file);
       const prepared = await initiateDeliverableUploadAction(job.id, {
         filename: file.name,
         mimeType: file.type,
@@ -139,13 +191,23 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
         return;
       }
 
-      const uploadResponse = await fetch(prepared.data.uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'image/jpeg' },
-        body: file,
-      });
+      const [uploadResponse, previewUploadResponse] = await Promise.all([
+        fetch(prepared.data.uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'image/jpeg' },
+          body: file,
+        }),
+        fetch(prepared.data.previewUploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'image/jpeg' },
+          body: previewBlob,
+        }),
+      ]);
       if (!uploadResponse.ok) {
         throw new Error(`Upload ke penyimpanan gagal (HTTP ${uploadResponse.status}).`);
+      }
+      if (!previewUploadResponse.ok) {
+        throw new Error(`Upload preview ke penyimpanan gagal (HTTP ${previewUploadResponse.status}).`);
       }
 
       const completed = await completeDeliverableUploadAction(prepared.data.uploadId);
@@ -307,13 +369,44 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
     const uploadDescription = `Hasil desain versi ${deliverable.version}, diunggah ${formatDateTime(deliverable.registeredAt)} oleh ${deliverable.uploaderName || 'editor'}`;
     const isDeleting = deletingId === deliverable.id;
     return (
-      <article className={`job-deliverable-item ${index === 0 ? 'is-latest' : ''} ${isDeleting ? 'is-deleting' : ''}`} key={deliverable.id} title={uploadDescription}>
-        <a className="job-deliverable-preview-link" href={deliverable.previewUrl} target="_blank" rel="noopener noreferrer" aria-label={`Buka preview ${uploadDescription}`}>
-          <img className="job-deliverable-preview" src={deliverable.previewUrl} alt={`Preview ${uploadDescription}`} onLoad={(event) => {
-            const image = event.currentTarget;
-            setImageResolutions((current) => ({ ...current, [deliverable.id]: `${image.naturalWidth} × ${image.naturalHeight}px` }));
-            setImageRatios((current) => ({ ...current, [deliverable.id]: image.naturalWidth / image.naturalHeight }));
-          }} />
+      <article
+        className={`job-deliverable-item float-up-entry ${index === 0 ? 'is-latest' : ''} ${isDeleting ? 'is-deleting' : ''}`}
+        style={{
+          '--float-up-duration': '900ms',
+          '--float-up-delay': `${Math.min(index, 7) * 140}ms`,
+        } as React.CSSProperties}
+        key={deliverable.id}
+        title={uploadDescription}
+      >
+        <a
+          className={`job-deliverable-preview-link ${loadedPreviewIds[deliverable.id] ? 'is-image-loaded' : 'is-loading-preview'}`}
+          href={deliverable.previewUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Buka preview ${uploadDescription}`}
+        >
+          {!loadedPreviewIds[deliverable.id] && (
+            <span className="deliverables-loading-dots preview-loading-dots" aria-label="Loading preview">
+              <i /><i /><i />
+            </span>
+          )}
+          <img
+            className="job-deliverable-preview"
+            src={deliverable.previewUrl}
+            alt={`Preview ${uploadDescription}`}
+            loading={index === 0 ? 'eager' : 'lazy'}
+            decoding="async"
+            fetchPriority={index === 0 ? 'high' : 'auto'}
+            onLoad={(event) => {
+              const image = event.currentTarget;
+              const markLoaded = () => {
+                setLoadedPreviewIds((current) => ({ ...current, [deliverable.id]: true }));
+                setImageResolutions((current) => ({ ...current, [deliverable.id]: `${image.naturalWidth} × ${image.naturalHeight}px` }));
+                setImageRatios((current) => ({ ...current, [deliverable.id]: image.naturalWidth / image.naturalHeight }));
+              };
+              void image.decode().then(markLoaded, markLoaded);
+            }}
+          />
         </a>
         <div className="job-deliverable-details job-deliverable-overlay">
           <div className="job-deliverable-info">

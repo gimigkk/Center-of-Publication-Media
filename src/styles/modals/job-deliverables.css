@@ -317,15 +317,21 @@
 }
 
 .job-deliverable-preview-link {
+  position: relative;
   display: grid;
   place-items: center;
   width: 100%;
+  min-height: 120px;
   height: auto;
   overflow: hidden;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   border: 1px solid var(--border-default);
   background: var(--bg-canvas);
   transition: border-color 100ms ease, box-shadow 100ms ease;
+}
+
+.job-deliverable-preview-link.is-loading-preview .job-deliverable-preview {
+  visibility: hidden;
 }
 
 .job-deliverable-preview-link:hover,
@@ -341,6 +347,16 @@
   height: auto;
   object-fit: contain;
   transition: filter 160ms ease, transform 160ms ease;
+}
+
+.job-deliverable-preview-link.is-image-loaded .job-deliverable-preview {
+  visibility: visible;
+}
+
+.preview-loading-dots {
+  position: absolute;
+  z-index: 1;
+  color: var(--accent-blue);
 }
 
 @media (max-width: 1179px) {

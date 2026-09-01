@@ -213,6 +213,28 @@ textarea:focus-visible {
   }
 }
 
+/* Float-up entry animation. Override --float-up-delay per item for staggering. */
+@keyframes floatUp {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+.float-up-entry {
+  --float-up-duration: 420ms;
+  --float-up-delay: 0ms;
+  animation: floatUp var(--float-up-duration) cubic-bezier(0.16, 1, 0.3, 1) var(--float-up-delay) both;
+  will-change: opacity, filter, transform;
+}
+
 /* Modal Dialog / Card animations */
 @keyframes modalScaleIn {
   from {
@@ -438,6 +460,13 @@ textarea:focus-visible {
   animation: figmaRotate 1.4s linear infinite;
   width: 16px;
   height: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .float-up-entry {
+    animation: none;
+    will-change: auto;
+  }
 }
 
 .figjam-spinner-svg .spinner-track {
