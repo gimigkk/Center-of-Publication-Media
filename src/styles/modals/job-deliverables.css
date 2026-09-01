@@ -11,6 +11,7 @@
 }
 
 .job-deliverables-panel {
+  position: relative;
   width: 100%;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
@@ -240,6 +241,44 @@
   color: var(--accent-blue-text);
 }
 
+.job-deliverables-panel.is-drag-active {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px var(--accent-blue-light), var(--shadow-float);
+}
+
+.job-deliverables-drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  border: 2px dashed var(--accent-blue);
+  border-radius: var(--radius-md);
+  background: rgba(239, 248, 255, 0.94);
+  color: var(--accent-blue-text);
+  pointer-events: none;
+}
+
+.job-deliverables-drop-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.job-deliverables-drop-message strong {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.job-deliverables-drop-message > span:last-child {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
 .job-deliverables-masonry {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -329,12 +368,14 @@
     transition: opacity 180ms ease;
   }
 
-  .job-deliverable-item:focus-within .job-deliverable-overlay {
+  .job-deliverable-item:focus-within .job-deliverable-overlay,
+  .job-deliverable-item.is-deleting .job-deliverable-overlay {
     opacity: 1;
     pointer-events: auto;
   }
 
-  .job-deliverable-item:focus-within .job-deliverable-preview {
+  .job-deliverable-item:focus-within .job-deliverable-preview,
+  .job-deliverable-item.is-deleting .job-deliverable-preview {
     filter: blur(5px);
     transform: scale(1.04);
   }
@@ -599,7 +640,8 @@
   }
 
   .job-deliverable-item:hover .job-deliverable-preview,
-  .job-deliverable-item:focus-within .job-deliverable-preview {
+  .job-deliverable-item:focus-within .job-deliverable-preview,
+  .job-deliverable-item.is-deleting .job-deliverable-preview {
     filter: blur(5px);
     transform: scale(1.04);
   }
@@ -618,7 +660,8 @@
   }
 
   .job-deliverable-item:hover .job-deliverable-overlay,
-  .job-deliverable-item:focus-within .job-deliverable-overlay {
+  .job-deliverable-item:focus-within .job-deliverable-overlay,
+  .job-deliverable-item.is-deleting .job-deliverable-overlay {
     opacity: 1;
     pointer-events: auto;
   }

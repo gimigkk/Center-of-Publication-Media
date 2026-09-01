@@ -33,6 +33,8 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
   const [imageResolutions, setImageResolutions] = useState<Record<string, string>>({});
   const [imageRatios, setImageRatios] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
+  const [isDragActive, setIsDragActive] = useState(false);
+  const dragDepthRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLDivElement>(null);
   const [hasGalleryOverflow, setHasGalleryOverflow] = useState(false);
@@ -114,11 +116,7 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
     };
   }, [isOpen, job.id, loadDeliverables]);
 
-  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-
+  const uploadFile = async (file: File) => {
     if (!/\.(jpe?g)$/i.test(file.name) || file.type !== 'image/jpeg') {
       setError('Pilih file JPG atau JPEG dengan format image/jpeg.');
       return;
@@ -161,6 +159,47 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (file) void uploadFile(file);
+  };
+
+  const handleDragEnter = (event: React.DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!canUpload || isUploading || !Array.from(event.dataTransfer.types).includes('Files')) return;
+    dragDepthRef.current += 1;
+    setIsDragActive(true);
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (canUpload && !isUploading && Array.from(event.dataTransfer.types).includes('Files')) {
+      event.dataTransfer.dropEffect = 'copy';
+    }
+  };
+
+  const handleDragLeave = (event: React.DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!canUpload || isUploading || !Array.from(event.dataTransfer.types).includes('Files')) return;
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) setIsDragActive(false);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragDepthRef.current = 0;
+    setIsDragActive(false);
+    if (!canUpload || isUploading) return;
+
+    const file = event.dataTransfer.files?.[0];
+    if (file) void uploadFile(file);
   };
 
   const handleDownload = async (deliverable: Deliverable) => {
@@ -268,7 +307,7 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
     const uploadDescription = `Hasil desain versi ${deliverable.version}, diunggah ${formatDateTime(deliverable.registeredAt)} oleh ${deliverable.uploaderName || 'editor'}`;
     const isDeleting = deletingId === deliverable.id;
     return (
-      <article className={`job-deliverable-item ${index === 0 ? 'is-latest' : ''}`} key={deliverable.id} title={uploadDescription}>
+      <article className={`job-deliverable-item ${index === 0 ? 'is-latest' : ''} ${isDeleting ? 'is-deleting' : ''}`} key={deliverable.id} title={uploadDescription}>
         <a className="job-deliverable-preview-link" href={deliverable.previewUrl} target="_blank" rel="noopener noreferrer" aria-label={`Buka preview ${uploadDescription}`}>
           <img className="job-deliverable-preview" src={deliverable.previewUrl} alt={`Preview ${uploadDescription}`} onLoad={(event) => {
             const image = event.currentTarget;
@@ -294,8 +333,12 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
     <div
       className="job-deliverables-column"
       onClick={(event) => event.stopPropagation()}
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
-       <aside className="job-deliverables-panel" aria-label="Submitted Design">
+      <aside className={`job-deliverables-panel ${isDragActive ? 'is-drag-active' : ''}`} aria-label="Submitted Design">
         <div className="job-deliverables-header">
           <div className="job-deliverables-heading">
             <div>
@@ -356,6 +399,15 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
             )}
           </div>
         </div>
+
+        {isDragActive && (
+          <div className="job-deliverables-drop-overlay" role="status" aria-live="polite">
+            <div className="job-deliverables-drop-message">
+              <strong>Drop file to upload</strong>
+              <span>Release to add this JPG or JPEG</span>
+            </div>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="job-deliverables-state" aria-live="polite">
