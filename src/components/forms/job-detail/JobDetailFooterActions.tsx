@@ -1,7 +1,6 @@
 import React from 'react';
 import { Job, JobStatus, Profile } from '@/types';
 import { RotateCcw } from 'lucide-react';
-import { formatDate } from '@/lib/utils';
 
 interface JobDetailFooterActionsProps {
   job: Job;
@@ -33,22 +32,12 @@ export const JobDetailFooterActions = React.memo(function JobDetailFooterActions
   }
 
   return (
-    <div className="simple-modal-footer" style={{ justifyContent: 'flex-end' }}>
+    <div className="simple-modal-footer simple-modal-footer-actions">
       {/* Action buttons on bottom right */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          flexWrap: 'nowrap',
-          justifyContent: 'flex-end',
-          width: '100%',
-        }}
-      >
-
+      <div className="simple-modal-action-group">
         {/* Admin quick stage switcher */}
         {hasAdminStageSwitcher && (
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div className="simple-modal-action-item">
             <select
               className="modal-stage-select"
               value={job.status}
@@ -71,18 +60,20 @@ export const JobDetailFooterActions = React.memo(function JobDetailFooterActions
 
         {/* Archive / Restore actions */}
         {hasUnarchiveAction && onUnarchive && (
-          <button
-            className="btn-secondary"
+          <div className="simple-modal-action-item">
+            <button
+              className="btn-secondary"
             disabled={isSubmitting}
             onClick={async () => {
               await onUnarchive(job.id);
               onClose();
             }}
-            title="Pulihkan kartu job ini kembali ke papan Kanban aktif"
-          >
-            <RotateCcw size={13} />
-            <span>Pulihkan ke Board</span>
-          </button>
+              title="Pulihkan kartu job ini kembali ke papan Kanban aktif"
+            >
+              <RotateCcw size={13} />
+              <span>Pulihkan ke Board</span>
+            </button>
+          </div>
         )}
       </div>
     </div>

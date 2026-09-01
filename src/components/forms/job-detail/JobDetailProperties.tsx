@@ -68,42 +68,19 @@ export const JobDetailProperties = React.memo(function JobDetailProperties({
       </div>
 
       {/* Editor(s) */}
-      <div
-        className="simple-prop-row"
-        style={{
-          alignItems: assignedDesigners.length > 1 ? 'flex-start' : 'center',
-        }}
-      >
-        <span
-          className="simple-prop-label"
-          style={{ paddingTop: assignedDesigners.length > 1 ? '2px' : '0' }}
-        >
+      <div className={`simple-prop-row ${assignedDesigners.length > 1 ? 'has-multiple-values' : ''}`}>
+        <span className="simple-prop-label">
           {assignedDesigners.length > 1 ? 'Daftar Editor' : 'Editor'}
         </span>
-        <div
-          className="simple-prop-value"
-          style={{ flexDirection: 'column', alignItems: 'flex-end', gap: '5px' }}
-        >
+        <div className="simple-prop-value simple-editor-list-value">
           {assignedDesigners.length > 0 ? (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-end',
-                gap: '5px',
-                width: '100%',
-              }}
-            >
+            <div className="simple-editor-list">
               {assignedDesigners.map((designer) => {
                 const whatsappUrl = getWhatsAppUrl(designer.phoneNumber);
                 const designerContent = (
                   <>
-                    <Avatar
-                      src={designer.avatarUrl}
-                      name={designer.fullName}
-                      size={18}
-                    />
-                    <span style={{ fontSize: '12px', color: '#0f172a' }} title={designer.email}>
+                    <Avatar src={designer.avatarUrl} name={designer.fullName} size={18} />
+                    <span className="simple-profile-chip-name" title={designer.email}>
                       {designer.fullName}
                     </span>
                   </>
@@ -111,16 +88,7 @@ export const JobDetailProperties = React.memo(function JobDetailProperties({
 
                 if (!whatsappUrl) {
                   return (
-                    <div
-                      key={designer.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'flex-end',
-                        gap: '6px',
-                        minHeight: '20px',
-                      }}
-                    >
+                    <div key={designer.id} className="simple-profile-chip simple-profile-chip-plain">
                       {designerContent}
                     </div>
                   );
@@ -133,27 +101,15 @@ export const JobDetailProperties = React.memo(function JobDetailProperties({
                     target="_blank"
                     rel="noopener noreferrer"
                     title={`Chat WhatsApp dengan ${designer.fullName}`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'flex-end',
-                      gap: '4px',
-                      minHeight: '20px',
-                      color: 'inherit',
-                      textDecoration: 'none',
-                      background: '#ededed',
-                      borderRadius: '999px',
-                      padding: '2px 8px 2px 2px'
-                    }}
+                    className="simple-profile-chip"
                   >
                     {designerContent}
                   </a>
                 );
               })}
-
             </div>
           ) : (
-            <span style={{ color: '#94a3b8' }}>Belum Ditugaskan</span>
+            <span className="simple-prop-empty">Belum Ditugaskan</span>
           )}
         </div>
       </div>

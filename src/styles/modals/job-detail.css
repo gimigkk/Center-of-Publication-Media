@@ -171,6 +171,65 @@
   color: inherit;
 }
 
+.simple-profile-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  min-height: 20px;
+  padding: 2px 7px 2px 3px;
+  color: var(--text-primary);
+  background-color: rgba(0, 0, 0, 0.04);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.simple-profile-chip a,
+a.simple-profile-chip {
+  color: inherit;
+  text-decoration: none;
+}
+
+.simple-profile-chip-plain {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.simple-profile-chip-name {
+  font-size: 11px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.simple-prop-row.has-multiple-values {
+  align-items: flex-start;
+}
+
+.simple-prop-row.has-multiple-values .simple-prop-label {
+  padding-top: 2px;
+}
+
+.simple-editor-list-value {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.simple-editor-list {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  width: 100%;
+}
+
+.simple-prop-empty {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
 .simple-prop-value a:hover span {
   color: #0284c7 !important;
   text-decoration: underline;
@@ -416,6 +475,29 @@
   gap: 6px;
   flex-wrap: nowrap;
   overflow: hidden;
+}
+
+.simple-modal-footer-actions {
+  justify-content: flex-end;
+}
+
+.simple-modal-action-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.simple-modal-action-item {
+  display: flex;
+  align-items: center;
+}
+
+.simple-profile-chip-plain {
+  background-color: rgba(0, 0, 0, 0.04);
+  padding: 2px 7px 2px 3px;
 }
 
 .modal-stage-select {

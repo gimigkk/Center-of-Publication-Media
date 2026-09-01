@@ -92,21 +92,15 @@ export const ArchiveTableRow = React.memo(function ArchiveTableRow({
       {/* Requestor */}
       <td className="archive-td">
         <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-          }}
+          className="archive-person-chip"
           title={`Requester: ${job.requestor?.fullName || 'Anonim'}`}
         >
           <Avatar
             src={job.requestor?.avatarUrl}
             name={job.requestor?.fullName || 'Requester'}
-            size={18}
+            size={16}
           />
-          <span style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>
-            {job.requestor?.fullName.split(' ')[0] || 'Anonim'}
-          </span>
+          <span>{job.requestor?.fullName.split(' ')[0] || 'Anonim'}</span>
         </div>
       </td>
 
