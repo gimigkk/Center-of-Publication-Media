@@ -370,7 +370,7 @@ textarea:focus-visible {
 .form-label span.required {
   color: var(--accent-red) !important;
   font-weight: 700;
-  margin-left: 2px;
+  /* margin-left: 2px; */
   font-size: 12px;
 }
 

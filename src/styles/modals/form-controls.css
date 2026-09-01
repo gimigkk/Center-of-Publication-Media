@@ -12,12 +12,21 @@
 .form-label {
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
+  color: var(--text-primary);
+  /* text-transform: uppercase; */
   letter-spacing: 0.3px;
 }
 
-.form-input,
+.form-input{
+  color: var(--text-tertiary);
+
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  /* background-color: var(--bg-surface); */
+}
 .form-select,
 .form-textarea {
   width: 100%;
@@ -25,9 +34,10 @@
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: var(--radius-sm);
   background-color: var(--bg-surface);
-  color: var(--text-primary);
+  color: var(--text-secondary);
   font-size: 13px;
   transition: border-color 100ms ease;
+  /* opacity: 0.5; */
 }
 
 .form-input:focus,

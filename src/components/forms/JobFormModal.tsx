@@ -126,7 +126,7 @@ export function JobFormModal({
 
     const selectedDate = new Date(deadline);
     if (selectedDate < minDeadlineDate) {
-      setError('Deadline paling minimal seminggu (H-7) dari pengiriman request COPM.');
+      setError('Deadline paling minimal H-10.');
       return;
     }
 
@@ -165,9 +165,9 @@ export function JobFormModal({
   if (!shouldRender) return null;
 
   return (
-    <div className={`modal-backdrop ${isClosing ? 'is-closing' : ''}`} onClick={onClose}>
+    <div className={`modal-backdrop copm-request-backdrop ${isClosing ? 'is-closing' : ''}`} onClick={onClose}>
       <div
-        className={`modal-dual-container ${isClosing ? 'is-closing' : ''}`}
+        className={`modal-dual-container copm-request-container ${isClosing ? 'is-closing' : ''}`}
         onClick={(e) => {
           if (e.target === e.currentTarget) {
             onClose();
@@ -176,15 +176,15 @@ export function JobFormModal({
       >
         {/* Rules of COPM 2026 Side Panel */}
         <div className="copm-rules-sidebar-panel" onClick={(e) => e.stopPropagation()}>
-          <div className="copm-rules-sidebar-header">
+          {/* <div className="copm-rules-sidebar-header">
             <span className="copm-rules-sidebar-title">Rules of COPM 2026</span>
-          </div>
+          </div> */}
 
           <div className="copm-rules-sidebar-body">
             <div className="copm-rule-row">
               <span className="copm-rule-index">01</span>
               <div className="copm-rule-content">
-                Deadline paling minimal <strong>seminggu (H-7)</strong> dari pengiriman request COPM.
+                Deadline paling minimal <strong>(H-10)</strong> dari pengiriman request COPM.
               </div>
             </div>
 
@@ -303,9 +303,9 @@ export function JobFormModal({
                     <span>Judul Dokumen: <strong>{effectiveBriefTitle}</strong></span>
                   </div>
                 )}
-                <span className="form-help">
+                {/* <span className="form-help">
                   Hanya URL Google Docs yang diterima sesuai standar organisasi.
-                </span>
+                </span> */}
               </div>
 
               <div className="form-row-dual">
@@ -346,7 +346,7 @@ export function JobFormModal({
 
               <div className="form-group">
                 <label className="form-label">
-                  Deadline Waktu / Deadline (Minimal Seminggu / H-7) <span className="required-star">*</span>
+                  Deadline  <span className="required-star">*</span>
                 </label>
                 <input
                   type="date"
@@ -362,7 +362,7 @@ export function JobFormModal({
               </div>
 
               <div className="form-group">
-                <label className="form-label">Deskripsi / Konteks (Opsional)</label>
+                <label className="form-label">Deskripsi</label>
                 <textarea
                   className="form-textarea"
                   rows={3}

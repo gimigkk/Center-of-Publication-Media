@@ -6,6 +6,32 @@
   max-width: 480px;
 }
 
+/* Request COPM modal: scope layout overrides to this modal only */
+@media (min-width: 1180px) {
+  .copm-request-backdrop {
+    width: auto;
+    justify-content: center;
+  }
+
+  .copm-request-backdrop .copm-request-container {
+    display: flex;
+    flex: 0 0 auto;
+    align-self: center;
+    width: fit-content !important;
+    max-width: calc(100vw - 48px);
+    margin: 0 auto;
+  }
+
+  /* Rules panel sits on the right of the request form */
+  .copm-request-container .copm-rules-sidebar-panel {
+    order: 2;
+  }
+
+  .copm-request-container .modal-dual-form-card {
+    order: 1;
+  }
+}
+
 .modal-form-body {
   padding: 14px 16px;
 }
@@ -91,16 +117,16 @@
   gap: 10px;
   padding: 10px 14px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-  transition: background-color 100ms ease;
+  /* transition: background-color 100ms ease; */
 }
 
 .copm-rule-row:last-child {
   border-bottom: none;
 }
 
-.copm-rule-row:hover {
+/* .copm-rule-row:hover {
   background-color: #f8fafc;
-}
+} */
 
 .copm-rule-index {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
