@@ -73,7 +73,6 @@ export interface JobActivity {
 export interface Deliverable {
   id: string;
   jobId: string;
-  version: number;
   originalFilename: string;
   mimeType: string;
   sizeBytes: number;

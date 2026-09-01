@@ -119,7 +119,6 @@ function toDeliverable(record: typeof schema.deliverables.$inferSelect, uploader
   return {
     id: record.id,
     jobId: record.jobId,
-    version: record.version,
     originalFilename: record.originalFilename,
     mimeType: record.mimeType,
     sizeBytes: record.sizeBytes,
@@ -148,7 +147,7 @@ export async function getDeliverablesAction(jobId: string): Promise<ActionResult
       .from(schema.deliverables)
       .leftJoin(schema.profiles, eq(schema.profiles.id, schema.deliverables.uploadedBy))
       .where(and(eq(schema.deliverables.jobId, jobId), eq(schema.deliverables.status, 'ready')))
-      .orderBy(desc(schema.deliverables.version));
+      .orderBy(desc(schema.deliverables.registeredAt), desc(schema.deliverables.createdAt));
     timings.deliverablesQueryMs = elapsedMs(queryStartedAt);
 
     const previewStartedAt = performance.now();
@@ -174,7 +173,7 @@ export async function getDeliverablesAction(jobId: string): Promise<ActionResult
 export async function initiateDeliverableUploadAction(
   jobId: string,
   input: { filename: string; mimeType: string; sizeBytes: number }
-): Promise<ActionResult<{ uploadId: string; version: number; uploadUrl: string; previewUploadUrl: string; expiresAt: string }>> {
+): Promise<ActionResult<{ uploadId: string; uploadUrl: string; previewUploadUrl: string; expiresAt: string }>> {
   if (isMockEnabled()) return unavailableInMock();
 
   const parsed = uploadInputSchema.safeParse(input);
@@ -185,56 +184,40 @@ export async function initiateDeliverableUploadAction(
   const database = db;
   if (!database) return { success: false, error: 'Database belum terhubung' };
 
+  const uploadId = randomUUID();
+  const storageKey = createDeliverableKey(jobId, uploadId);
   try {
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const [latest] = await database
-        .select({ version: schema.deliverables.version })
-        .from(schema.deliverables)
-        .where(eq(schema.deliverables.jobId, jobId))
-        .orderBy(desc(schema.deliverables.version))
-        .limit(1);
-      const version = (latest?.version || 0) + 1;
-      const uploadId = randomUUID();
-      const storageKey = createDeliverableKey(jobId, uploadId);
-
-      try {
-        await database.insert(schema.deliverables).values({
-          id: uploadId,
-          jobId,
-          version,
-          storageKey,
-          previewStorageKey: createDeliverablePreviewKey(storageKey),
-          originalFilename: parsed.data.filename,
-          mimeType: parsed.data.mimeType,
-          sizeBytes: parsed.data.sizeBytes,
-          uploadedBy: auth.user.id,
-          status: 'pending',
-        });
-        const [uploadUrl, previewUploadUrl] = await Promise.all([
-          createDeliverableUploadUrl(storageKey),
-          createDeliverablePreviewUploadUrl(storageKey),
-        ]);
-        return {
-          success: true,
-          data: {
-            uploadId,
-            version,
-            uploadUrl,
-            previewUploadUrl,
-            expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-          },
-        };
-      } catch (error) {
-        if (error instanceof Error && 'code' in error && error.code === '23505' && attempt < 2) {
-          continue;
-        }
-        await database.delete(schema.deliverables).where(eq(schema.deliverables.id, uploadId));
-        throw error;
-      }
-    }
-    throw new Error('Gagal menentukan versi deliverable');
+    await database.insert(schema.deliverables).values({
+      id: uploadId,
+      jobId,
+      storageKey,
+      previewStorageKey: createDeliverablePreviewKey(storageKey),
+      originalFilename: parsed.data.filename,
+      mimeType: parsed.data.mimeType,
+      sizeBytes: parsed.data.sizeBytes,
+      uploadedBy: auth.user.id,
+      status: 'pending',
+    });
+    const [uploadUrl, previewUploadUrl] = await Promise.all([
+      createDeliverableUploadUrl(storageKey),
+      createDeliverablePreviewUploadUrl(storageKey),
+    ]);
+    return {
+      success: true,
+      data: {
+        uploadId,
+        uploadUrl,
+        previewUploadUrl,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      },
+    };
   } catch (error) {
     console.error('Failed to initiate deliverable upload:', error);
+    try {
+      await database.delete(schema.deliverables).where(eq(schema.deliverables.id, uploadId));
+    } catch (cleanupError) {
+      console.error('Failed to clean up initiated deliverable:', cleanupError);
+    }
     return { success: false, error: error instanceof Error ? error.message : 'Gagal menyiapkan upload' };
   }
 }
@@ -296,20 +279,20 @@ export async function completeDeliverableUploadAction(uploadId: string): Promise
         actorId: user.id,
         fromStatus: auth.job.status,
         toStatus: auth.job.status,
-        note: `Hasil desain v${record.version} diunggah`,
+        note: `Hasil desain ${record.originalFilename} diunggah`,
       });
 
       await tx.insert(schema.notifications).values({
         userId: auth.job.requestorId,
         title: 'Hasil Desain Baru',
-        message: `${user.fullName} mengunggah hasil desain v${record.version} untuk "${auth.job.title}"`,
+        message: `${user.fullName} mengunggah hasil desain "${record.originalFilename}" untuk "${auth.job.title}"`,
         type: 'deliverable_uploaded',
         jobId: auth.job.id,
         jobTitle: auth.job.title,
         actorId: user.id,
         actorName: user.fullName,
         actorAvatar: user.avatarUrl,
-        note: `Deliverable v${record.version} siap ditinjau`,
+        note: `Deliverable ${record.originalFilename} siap ditinjau`,
         isRead: false,
       });
       return readyRecord;
@@ -347,6 +330,48 @@ export async function completeDeliverableUploadAction(uploadId: string): Promise
   } catch (error) {
     console.error('Failed to complete deliverable upload:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Gagal menyelesaikan upload' };
+  }
+}
+
+export async function abortDeliverableUploadAction(uploadId: string): Promise<ActionResult> {
+  if (isMockEnabled()) return { success: true };
+
+  const user = await getAuthenticatedUser();
+  if (!user || !db) return { success: false, error: 'Sesi pengguna tidak valid' };
+
+  try {
+    const [record] = await db
+      .select()
+      .from(schema.deliverables)
+      .where(eq(schema.deliverables.id, uploadId));
+    if (!record || record.status === 'ready') return { success: true };
+    if (record.uploadedBy !== user.id) return { success: false, error: 'Upload ini tidak dapat dibatalkan oleh pengguna ini' };
+
+    const auth = await getAuthorizedJob(record.jobId, 'upload');
+    if ('error' in auth) return { success: false, error: auth.error };
+
+    const [deleted] = await db
+      .delete(schema.deliverables)
+      .where(
+        and(
+          eq(schema.deliverables.id, uploadId),
+          eq(schema.deliverables.status, 'pending'),
+          eq(schema.deliverables.uploadedBy, user.id)
+        )
+      )
+      .returning({ storageKey: schema.deliverables.storageKey });
+    if (!deleted) return { success: true };
+
+    try {
+      await deleteDeliverableObject(deleted.storageKey);
+    } catch (cleanupError) {
+      console.error('Failed to delete aborted deliverable objects:', cleanupError);
+    }
+    revalidatePath('/');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to abort deliverable upload:', error);
+    return { success: false, error: 'Gagal membatalkan upload' };
   }
 }
 

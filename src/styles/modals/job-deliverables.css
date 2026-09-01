@@ -63,6 +63,7 @@
 
 .job-deliverables-actions {
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .job-deliverables-file-input {

@@ -5,6 +5,7 @@ import { Download, Loader2, RefreshCw, Trash2, Upload } from 'lucide-react';
 import JSZip from 'jszip';
 import { createClient } from '@/lib/supabase/client';
 import {
+  abortDeliverableUploadAction,
   completeDeliverableUploadAction,
   deleteDeliverableAction,
   getDeliverableDownloadUrlAction,
@@ -17,6 +18,12 @@ import { compressImageToJpeg, formatDateTime } from '@/lib/utils';
 const MAX_DELIVERABLE_SIZE = 15 * 1024 * 1024;
 const DELIVERABLE_CACHE_MAX_AGE_MS = 2 * 60 * 1000;
 type LoadMode = 'initial' | 'silent';
+
+type UploadFileResult = {
+  fileName: string;
+  success: boolean;
+  error?: string;
+};
 
 type CachedDeliverables = {
   cachedAt: number;
@@ -68,8 +75,10 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ completed: 0, total: 0 });
+  const isUploadingRef = useRef(false);
   const [isDownloadingAll, setIsDownloadingAll] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [imageResolutions, setImageResolutions] = useState<Record<string, string>>({});
   const [imageRatios, setImageRatios] = useState<Record<string, number>>({});
   const [loadedPreviewIds, setLoadedPreviewIds] = useState<Record<string, boolean>>({});
@@ -166,20 +175,16 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
     };
   }, [isOpen, job.id, loadDeliverables]);
 
-  const uploadFile = async (file: File) => {
+  const uploadFile = async (file: File): Promise<UploadFileResult> => {
     if (!/\.(jpe?g)$/i.test(file.name) || file.type !== 'image/jpeg') {
-      setError('Pilih file JPG atau JPEG dengan format image/jpeg.');
-      return;
+      return { fileName: file.name, success: false, error: 'Pilih file JPG atau JPEG dengan format image/jpeg.' };
     }
     if (file.size <= 0 || file.size > MAX_DELIVERABLE_SIZE) {
-      setError('Ukuran JPG atau JPEG maksimal 15 MB.');
-      return;
+      return { fileName: file.name, success: false, error: 'Ukuran JPG atau JPEG maksimal 15 MB.' };
     }
 
-    setIsUploading(true);
-    setError(null);
+    let uploadId: string | undefined;
     try {
-      // Keep the original for downloads, but use a small derivative for the gallery preview.
       const previewBlob = await compressImageToJpeg(file);
       const prepared = await initiateDeliverableUploadAction(job.id, {
         filename: file.name,
@@ -187,9 +192,9 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
         sizeBytes: file.size,
       });
       if (!prepared.success || !prepared.data) {
-        setError(prepared.error || 'Gagal menyiapkan upload.');
-        return;
+        return { fileName: file.name, success: false, error: prepared.error || 'Gagal menyiapkan upload.' };
       }
+      uploadId = prepared.data.uploadId;
 
       const [uploadResponse, previewUploadResponse] = await Promise.all([
         fetch(prepared.data.uploadUrl, {
@@ -203,36 +208,62 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
           body: previewBlob,
         }),
       ]);
-      if (!uploadResponse.ok) {
-        throw new Error(`Upload ke penyimpanan gagal (HTTP ${uploadResponse.status}).`);
-      }
-      if (!previewUploadResponse.ok) {
-        throw new Error(`Upload preview ke penyimpanan gagal (HTTP ${previewUploadResponse.status}).`);
-      }
+      if (!uploadResponse.ok) throw new Error(`Upload ke penyimpanan gagal (HTTP ${uploadResponse.status}).`);
+      if (!previewUploadResponse.ok) throw new Error(`Upload preview ke penyimpanan gagal (HTTP ${previewUploadResponse.status}).`);
 
-      const completed = await completeDeliverableUploadAction(prepared.data.uploadId);
-      if (!completed.success) {
-        setError(completed.error || 'Gagal mendaftarkan hasil desain.');
-        return;
-      }
-      await loadDeliverables('silent');
+      const completed = await completeDeliverableUploadAction(uploadId);
+      if (!completed.success) throw new Error(completed.error || 'Gagal mendaftarkan hasil desain.');
+      return { fileName: file.name, success: true };
     } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : 'Gagal mengunggah hasil desain.');
+      if (uploadId) void abortDeliverableUploadAction(uploadId);
+      return {
+        fileName: file.name,
+        success: false,
+        error: uploadError instanceof Error ? uploadError.message : 'Gagal mengunggah hasil desain.',
+      };
+    }
+  };
+
+  const handleUploadFiles = async (files: File[]) => {
+    if (!canUpload || isUploadingRef.current || files.length === 0) return;
+    isUploadingRef.current = true;
+    dragDepthRef.current = 0;
+    setIsDragActive(false);
+    setIsUploading(true);
+    setError(null);
+    setUploadProgress({ completed: 0, total: files.length });
+
+    try {
+      const results = await Promise.all(files.map(async (file) => {
+        const result = await uploadFile(file);
+        setUploadProgress((current) => ({ ...current, completed: current.completed + 1 }));
+        return result;
+      }));
+      const successful = results.filter((result) => result.success).length;
+      const failed = results.length - successful;
+      if (successful > 0) await loadDeliverables('silent');
+      if (failed > 0) {
+        const failures = results.filter((result) => !result.success).map((result) => `${result.fileName}: ${result.error}`).join(' ');
+        setError(`${successful} berhasil diunggah, ${failed} gagal. ${failures}`);
+      }
+    } catch {
+      setError('Gagal memproses batch upload.');
     } finally {
+      isUploadingRef.current = false;
       setIsUploading(false);
     }
   };
 
   const handleUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files || []);
     event.target.value = '';
-    if (file) void uploadFile(file);
+    void handleUploadFiles(files);
   };
 
   const handleDragEnter = (event: React.DragEvent<HTMLElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    if (!canUpload || isUploading || !Array.from(event.dataTransfer.types).includes('Files')) return;
+    if (!canUpload || isUploadingRef.current || !Array.from(event.dataTransfer.types).includes('Files')) return;
     dragDepthRef.current += 1;
     setIsDragActive(true);
   };
@@ -240,7 +271,7 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
   const handleDragOver = (event: React.DragEvent<HTMLElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    if (canUpload && !isUploading && Array.from(event.dataTransfer.types).includes('Files')) {
+    if (canUpload && !isUploadingRef.current && Array.from(event.dataTransfer.types).includes('Files')) {
       event.dataTransfer.dropEffect = 'copy';
     }
   };
@@ -248,7 +279,7 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
   const handleDragLeave = (event: React.DragEvent<HTMLElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    if (!canUpload || isUploading || !Array.from(event.dataTransfer.types).includes('Files')) return;
+    if (!canUpload || isUploadingRef.current || !Array.from(event.dataTransfer.types).includes('Files')) return;
     dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
     if (dragDepthRef.current === 0) setIsDragActive(false);
   };
@@ -258,10 +289,10 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
     event.stopPropagation();
     dragDepthRef.current = 0;
     setIsDragActive(false);
-    if (!canUpload || isUploading) return;
+    if (!canUpload || isUploadingRef.current) return;
 
-    const file = event.dataTransfer.files?.[0];
-    if (file) void uploadFile(file);
+    const files = Array.from(event.dataTransfer.files || []);
+    void handleUploadFiles(files);
   };
 
   const handleDownload = async (deliverable: Deliverable) => {
@@ -315,7 +346,7 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
   const handleDelete = async (deliverable: Deliverable) => {
     if (!window.confirm('Hapus hasil desain ini secara permanen?')) return;
 
-    setDeletingId(deliverable.id);
+    setDeletingIds((current) => new Set(current).add(deliverable.id));
     setError(null);
     try {
       const result = await deleteDeliverableAction(deliverable.id);
@@ -323,11 +354,16 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
         setError(result.error || 'Gagal menghapus hasil desain.');
         return;
       }
-      await loadDeliverables('silent');
+      setDeliverables((current) => current.filter((item) => item.id !== deliverable.id));
+      void loadDeliverables('silent');
     } catch {
       setError('Gagal menghapus hasil desain.');
     } finally {
-      setDeletingId(null);
+      setDeletingIds((current) => {
+        const next = new Set(current);
+        next.delete(deliverable.id);
+        return next;
+      });
     }
   };
 
@@ -366,8 +402,8 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
   });
 
   const renderDeliverable = (deliverable: Deliverable, index: number) => {
-    const uploadDescription = `Hasil desain versi ${deliverable.version}, diunggah ${formatDateTime(deliverable.registeredAt)} oleh ${deliverable.uploaderName || 'editor'}`;
-    const isDeleting = deletingId === deliverable.id;
+    const uploadDescription = `Hasil desain ${deliverable.originalFilename}, diunggah ${formatDateTime(deliverable.registeredAt)} oleh ${deliverable.uploaderName || 'editor'}`;
+    const isDeleting = deletingIds.has(deliverable.id);
     return (
       <article
         className={`job-deliverable-item float-up-entry ${index === 0 ? 'is-latest' : ''} ${isDeleting ? 'is-deleting' : ''}`}
@@ -414,8 +450,8 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
             <div className="job-deliverable-meta"><time dateTime={deliverable.registeredAt}>{formatDateTime(deliverable.registeredAt)}</time><span className="job-deliverable-resolution">{imageResolutions[deliverable.id] || 'Loading resolution...'}</span></div>
           </div>
           {canManageFiles && <div className="job-deliverable-buttons">
-            <button type="button" className="job-deliverable-download-button" onClick={() => void handleDownload(deliverable)} title={`Unduh hasil desain versi ${deliverable.version}`} aria-label={`Unduh hasil desain versi ${deliverable.version}, ${formatFileSize(deliverable.sizeBytes)}`}><Download size={15} /><span>{formatFileSize(deliverable.sizeBytes)}</span></button>
-            {canDelete && <button type="button" className="job-deliverable-icon-button is-danger" onClick={() => void handleDelete(deliverable)} disabled={isDeleting || deletingId !== null} title={`Hapus hasil desain versi ${deliverable.version}`} aria-label={`Hapus hasil desain versi ${deliverable.version}`}>{isDeleting ? <Loader2 size={14} className="spin" /> : <Trash2 size={14} />}</button>}
+            <button type="button" className="job-deliverable-download-button" onClick={() => void handleDownload(deliverable)} title={`Unduh ${deliverable.originalFilename}`} aria-label={`Unduh ${deliverable.originalFilename}, ${formatFileSize(deliverable.sizeBytes)}`}><Download size={15} /><span>{formatFileSize(deliverable.sizeBytes)}</span></button>
+            {canDelete && <button type="button" className="job-deliverable-icon-button is-danger" onClick={() => void handleDelete(deliverable)} disabled={isDeleting} title={`Hapus ${deliverable.originalFilename}`} aria-label={`Hapus ${deliverable.originalFilename}`}>{isDeleting ? <Loader2 size={14} className="spin" /> : <Trash2 size={14} />}</button>}
           </div>}
         </div>
       </article>
@@ -456,6 +492,7 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
                   ref={fileInputRef}
                   className="job-deliverables-file-input"
                   type="file"
+                  multiple
                   accept=".jpg,.jpeg,image/jpeg"
                   onChange={handleUpload}
                   disabled={isUploading}
@@ -465,10 +502,10 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
                   className="job-deliverables-upload-button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading}
-                  title="Upload a JPG or JPEG design"
+                  title="Upload one or more JPG or JPEG designs"
                 >
                   {isUploading ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
-                  <span>{isUploading ? 'Uploading...' : 'Upload'}</span>
+                  <span>{isUploading ? `Uploading ${uploadProgress.completed}/${uploadProgress.total}...` : 'Upload'}</span>
                 </button>
               </>
             )}
@@ -496,8 +533,8 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
         {isDragActive && (
           <div className="job-deliverables-drop-overlay" role="status" aria-live="polite">
             <div className="job-deliverables-drop-message">
-              <strong>Drop file to upload</strong>
-              <span>Release to add this JPG or JPEG</span>
+              <strong>Drop files to upload</strong>
+              <span>Release to add JPG or JPEG designs</span>
             </div>
           </div>
         )}
@@ -510,7 +547,7 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
         ) : deliverables.length === 0 ? (
           <div className="job-deliverables-state">
             <strong>Belum ada hasil desain</strong>
-            <span>{canUpload ? 'Unggah JPG pertama untuk requestor.' : 'Hasil desain akan muncul di sini setelah dikirim.'}</span>
+            <span>{canUpload ? 'Unggah satu atau beberapa JPG untuk requestor.' : 'Hasil desain akan muncul di sini setelah dikirim.'}</span>
           </div>
         ) : (
           <div className={`job-deliverables-gallery ${hasGalleryOverflow ? 'has-bottom-overflow' : ''}`} ref={galleryRef} aria-label="Submitted design previews">

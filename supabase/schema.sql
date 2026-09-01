@@ -112,7 +112,6 @@ CREATE TABLE IF NOT EXISTS public.job_designers (
 CREATE TABLE IF NOT EXISTS public.deliverables (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     job_id UUID REFERENCES public.jobs(id) ON DELETE CASCADE NOT NULL,
-    version INTEGER NOT NULL,
     storage_key TEXT UNIQUE NOT NULL,
     preview_storage_key TEXT,
     original_filename TEXT NOT NULL,
@@ -121,8 +120,7 @@ CREATE TABLE IF NOT EXISTS public.deliverables (
     uploaded_by UUID REFERENCES public.profiles(id) NOT NULL,
     status deliverable_status DEFAULT 'pending'::deliverable_status NOT NULL,
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
-    registered_at TIMESTAMPTZ,
-    CONSTRAINT deliverables_job_version_unique UNIQUE (job_id, version)
+    registered_at TIMESTAMPTZ
 );
 
 ALTER TABLE public.deliverables

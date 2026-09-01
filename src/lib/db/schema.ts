@@ -81,7 +81,6 @@ export const jobs = pgTable('jobs', {
 export const deliverables = pgTable('deliverables', {
   id: uuid('id').primaryKey().defaultRandom(),
   jobId: uuid('job_id').references(() => jobs.id, { onDelete: 'cascade' }).notNull(),
-  version: integer('version').notNull(),
   storageKey: text('storage_key').notNull(),
   previewStorageKey: text('preview_storage_key'),
   originalFilename: text('original_filename').notNull(),
@@ -92,7 +91,6 @@ export const deliverables = pgTable('deliverables', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   registeredAt: timestamp('registered_at', { withTimezone: true }),
 }, (table) => [
-  uniqueIndex('deliverables_job_version_idx').on(table.jobId, table.version),
   uniqueIndex('deliverables_storage_key_idx').on(table.storageKey),
   index('deliverables_job_id_idx').on(table.jobId),
   index('deliverables_uploader_id_idx').on(table.uploadedBy),
