@@ -46,7 +46,9 @@ next-env.d.ts
 /scripts/
 *.csv
 
-# claude code & opencode local state
+# claude code & opencode & aider local state
 .claude/
 .opencode/
+.aider*
+
 /supabase/.temp/

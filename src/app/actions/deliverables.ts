@@ -31,25 +31,56 @@ type ActionResult<T = undefined> = {
   error?: string;
 };
 
+type DeliverableReadTimings = {
+  authenticationMs?: number;
+  authorizationMs?: number;
+  deliverablesQueryMs?: number;
+  previewUrlsMs?: number;
+};
+
+function elapsedMs(startedAt: number) {
+  return Math.round((performance.now() - startedAt) * 100) / 100;
+}
+
+function logDeliverableReadTimings(timings: DeliverableReadTimings, startedAt: number, count?: number) {
+  console.info('[deliverables] read timings', {
+    ...timings,
+    totalMs: elapsedMs(startedAt),
+    ...(count === undefined ? {} : { count }),
+  });
+}
+
 function unavailableInMock<T>(): ActionResult<T> {
   return { success: false, error: 'Upload deliverable tersedia setelah koneksi penyimpanan aktif' };
 }
 
-async function getAuthorizedJob(jobId: string, mode: 'read' | 'upload') {
-  const user = await getAuthenticatedUser();
+async function getAuthorizedJob(jobId: string, mode: 'read' | 'upload', timings?: DeliverableReadTimings) {
+  const authenticationStartedAt = performance.now();
+  const user = await getAuthenticatedUser(false);
+  if (timings) timings.authenticationMs = elapsedMs(authenticationStartedAt);
   if (!user) return { error: 'Sesi pengguna tidak valid' } as const;
   if (!db) return { error: 'Database belum terhubung' } as const;
+  const database = db;
 
-  const [job] = await db.select().from(schema.jobs).where(eq(schema.jobs.id, jobId));
+  const authorizationStartedAt = performance.now();
+  const [jobs, assignments] = await Promise.all([
+    database.select().from(schema.jobs).where(eq(schema.jobs.id, jobId)),
+    user.role === 'designer'
+      ? database
+          .select({ id: schema.jobDesigners.id })
+          .from(schema.jobDesigners)
+          .where(and(eq(schema.jobDesigners.jobId, jobId), eq(schema.jobDesigners.designerId, user.id)))
+          .limit(1)
+      : Promise.resolve([]),
+  ]);
+  if (timings) timings.authorizationMs = elapsedMs(authorizationStartedAt);
+
+  const [job] = jobs;
   if (!job) return { error: 'Job tidak ditemukan' } as const;
 
-  const assignments = await db
-    .select({ designerId: schema.jobDesigners.designerId })
-    .from(schema.jobDesigners)
-    .where(eq(schema.jobDesigners.jobId, jobId));
   const isAssignedDesigner =
     user.role === 'designer' &&
-    (job.designerId === user.id || assignments.some((assignment) => assignment.designerId === user.id));
+    (job.designerId === user.id || assignments.length > 0);
   const canRead = user.role === 'admin' || user.id === job.requestorId || isAssignedDesigner;
   const canUpload =
     (user.role === 'admin' || isAssignedDesigner) &&
@@ -83,26 +114,34 @@ function toDeliverable(record: typeof schema.deliverables.$inferSelect, uploader
 export async function getDeliverablesAction(jobId: string): Promise<ActionResult<Deliverable[]>> {
   if (isMockEnabled()) return { success: true, data: [] };
 
-  const auth = await getAuthorizedJob(jobId, 'read');
+  const startedAt = performance.now();
+  const timings: DeliverableReadTimings = {};
+  const auth = await getAuthorizedJob(jobId, 'read', timings);
   if ('error' in auth) return { success: false, error: auth.error };
   const database = db;
   if (!database) return { success: false, error: 'Database belum terhubung' };
 
   try {
+    const queryStartedAt = performance.now();
     const records = await database
       .select({ deliverable: schema.deliverables, uploaderName: schema.profiles.fullName })
       .from(schema.deliverables)
       .leftJoin(schema.profiles, eq(schema.profiles.id, schema.deliverables.uploadedBy))
       .where(and(eq(schema.deliverables.jobId, jobId), eq(schema.deliverables.status, 'ready')))
       .orderBy(desc(schema.deliverables.version));
+    timings.deliverablesQueryMs = elapsedMs(queryStartedAt);
 
+    const previewStartedAt = performance.now();
     const data = await Promise.all(
       records.map(async ({ deliverable, uploaderName }) =>
         toDeliverable(deliverable, uploaderName, await createDeliverablePreviewUrl(deliverable.storageKey))
       )
     );
+    timings.previewUrlsMs = elapsedMs(previewStartedAt);
+    logDeliverableReadTimings(timings, startedAt, data.length);
     return { success: true, data };
   } catch (error) {
+    logDeliverableReadTimings(timings, startedAt);
     console.error('Failed to get deliverables:', error);
     return { success: false, error: 'Gagal memuat deliverable' };
   }
@@ -286,8 +325,8 @@ export async function deleteDeliverableAction(deliverableId: string): Promise<Ac
   if (isMockEnabled()) return { success: false, error: 'Hapus deliverable belum tersedia dalam mode demo' };
 
   const user = await getAuthenticatedUser();
-  if (!user || user.role !== 'admin') {
-    return { success: false, error: 'Hanya admin yang dapat menghapus deliverable' };
+  if (!user || (user.role !== 'admin' && user.role !== 'designer')) {
+    return { success: false, error: 'Hanya editor atau admin yang dapat menghapus deliverable' };
   }
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
@@ -297,6 +336,10 @@ export async function deleteDeliverableAction(deliverableId: string): Promise<Ac
       .from(schema.deliverables)
       .where(eq(schema.deliverables.id, deliverableId));
     if (!record) return { success: true };
+    const auth = await getAuthorizedJob(record.jobId, 'read');
+    if ('error' in auth || (auth.user.role !== 'admin' && auth.user.role !== 'designer')) {
+      return { success: false, error: 'Anda tidak memiliki akses ke deliverable ini' };
+    }
     if (!isDeliverableKeyForJob(record.storageKey, record.jobId)) {
       return { success: false, error: 'Kunci penyimpanan tidak valid' };
     }

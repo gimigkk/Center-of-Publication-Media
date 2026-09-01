@@ -100,7 +100,15 @@ CREATE TABLE IF NOT EXISTS public.jobs (
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
--- 6. Deliverables Table (private files are stored in Cloudflare R2)
+-- 6. Job Designer Assignments
+CREATE TABLE IF NOT EXISTS public.job_designers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    job_id UUID REFERENCES public.jobs(id) ON DELETE CASCADE NOT NULL,
+    designer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    assigned_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+-- 7. Deliverables Table (private files are stored in Cloudflare R2)
 CREATE TABLE IF NOT EXISTS public.deliverables (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     job_id UUID REFERENCES public.jobs(id) ON DELETE CASCADE NOT NULL,
@@ -119,11 +127,15 @@ CREATE TABLE IF NOT EXISTS public.deliverables (
 CREATE INDEX IF NOT EXISTS deliverables_job_id_idx ON public.deliverables (job_id);
 CREATE INDEX IF NOT EXISTS deliverables_uploader_id_idx ON public.deliverables (uploaded_by);
 
+-- Supports resource-level authorization checks for a specific designer.
+CREATE INDEX IF NOT EXISTS job_designers_job_designer_idx
+    ON public.job_designers (job_id, designer_id);
+
 ALTER TABLE public.deliverables ENABLE ROW LEVEL SECURITY;
 
 -- Browser clients never access deliverables directly. Server actions use Drizzle.
 
--- 7. Job Activity Log Table
+-- 8. Job Activity Log Table
 CREATE TABLE IF NOT EXISTS public.job_activity (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     job_id UUID REFERENCES public.jobs(id) ON DELETE CASCADE NOT NULL,
@@ -134,14 +146,14 @@ CREATE TABLE IF NOT EXISTS public.job_activity (
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
--- 8. Realtime Enablement
+-- 9. Realtime Enablement
 ALTER PUBLICATION supabase_realtime ADD TABLE public.jobs;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.deliverables;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.pages;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
 
--- 8. Storage bucket for required Avatars
-INSERT INTO storage.buckets (id, name, public) 
+-- 10. Storage bucket for required Avatars
+INSERT INTO storage.buckets (id, name, public)
 VALUES ('avatars', 'avatars', true)
 ON CONFLICT (id) DO NOTHING;
 
@@ -155,8 +167,8 @@ FOR INSERT WITH CHECK (bucket_id = 'avatars');
 CREATE POLICY "Avatar Update Own" ON storage.objects
 FOR UPDATE USING (bucket_id = 'avatars');
 
--- 9. Initial Seed Data (Default Divisions)
-INSERT INTO public.divisions (name) VALUES 
+-- 11. Initial Seed Data (Default Divisions)
+INSERT INTO public.divisions (name) VALUES
     ('Marketing & Social Media'),
     ('Brand & Visual Identity'),
     ('Public Relations & Events'),

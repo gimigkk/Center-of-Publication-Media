@@ -8,7 +8,7 @@ import { isMockEnabled, getMockStore } from '@/lib/mock-store';
  * Validates the caller's session from request cookies and returns the active approved Profile.
  * Returns null if unauthenticated or not approved.
  */
-export async function getAuthenticatedUser(): Promise<Profile | null> {
+export async function getAuthenticatedUser(includeDivision = true): Promise<Profile | null> {
   if (isMockEnabled()) {
     return getMockStore().currentUser;
   }
@@ -68,8 +68,14 @@ export async function getAuthenticatedUser(): Promise<Profile | null> {
 
     if (!profile || !profile.isApproved) return null;
 
-    const divs = await db.select().from(schema.divisions);
-    const div = divs.find((d) => d.id === profile.divisionId);
+    let divisionName: string | undefined;
+    if (includeDivision && profile.divisionId) {
+      const [division] = await db
+        .select({ name: schema.divisions.name })
+        .from(schema.divisions)
+        .where(eq(schema.divisions.id, profile.divisionId));
+      divisionName = division?.name;
+    }
 
     return {
       id: profile.id,
@@ -79,7 +85,7 @@ export async function getAuthenticatedUser(): Promise<Profile | null> {
       avatarUrl: profile.avatarUrl,
       role: profile.role,
       divisionId: profile.divisionId,
-      divisionName: div?.name,
+      divisionName,
       isApproved: profile.isApproved,
       createdAt: profile.createdAt.toISOString(),
       updatedAt: profile.updatedAt.toISOString(),

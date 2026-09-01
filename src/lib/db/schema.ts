@@ -100,7 +100,9 @@ export const jobDesigners = pgTable('job_designers', {
   jobId: uuid('job_id').references(() => jobs.id, { onDelete: 'cascade' }).notNull(),
   designerId: uuid('designer_id').references(() => profiles.id, { onDelete: 'cascade' }).notNull(),
   assignedAt: timestamp('assigned_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('job_designers_job_designer_idx').on(table.jobId, table.designerId),
+]);
 
 export const jobActivity = pgTable('job_activity', {
   id: uuid('id').primaryKey().defaultRandom(),
