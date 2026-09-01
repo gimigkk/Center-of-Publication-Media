@@ -1,6 +1,7 @@
 import React from 'react';
 import { Job, JobStatus, Profile } from '@/types';
 import { RotateCcw } from 'lucide-react';
+import { formatDate } from '@/lib/utils';
 
 interface JobDetailFooterActionsProps {
   job: Job;
@@ -44,6 +45,7 @@ export const JobDetailFooterActions = React.memo(function JobDetailFooterActions
           width: '100%',
         }}
       >
+
         {/* Admin quick stage switcher */}
         {hasAdminStageSwitcher && (
           <div style={{ display: 'flex', alignItems: 'center' }}>

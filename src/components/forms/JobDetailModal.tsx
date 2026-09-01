@@ -24,13 +24,6 @@ interface JobDetailModalProps {
   onDropdownChange?: (state: string | null) => void;
 }
 
-const STAGES: { status: JobStatus; label: string }[] = [
-  { status: 'in_queue', label: 'Antrian' },
-  { status: 'wip', label: 'Sedang Dikerjakan' },
-  { status: 'revisions', label: 'Revisi' },
-  { status: 'done', label: 'Selesai' },
-];
-
 export const JobDetailModal = React.memo(function JobDetailModal({
   isOpen,
   onClose,
@@ -109,39 +102,8 @@ export const JobDetailModal = React.memo(function JobDetailModal({
         }}
       >
         <div className="figma-detail-card" onClick={(e) => e.stopPropagation()}>
-          {/* 1. Header: Status Pill + Close */}
+          {/* 1. Header */}
           <div className="simple-modal-header">
-            {activeJob.isArchived ? (
-              <div
-                className="simple-status-badge done"
-                style={{
-                  backgroundColor: 'var(--accent-purple-light)',
-                  color: 'var(--accent-purple-text)',
-                }}
-              >
-                <span
-                  className="status-dot"
-                  style={{ backgroundColor: 'var(--accent-purple-text)' }}
-                />
-                <span>Request Diarsipkan</span>
-              </div>
-            ) : (
-              <div className={`simple-status-badge ${activeJob.status}`}>
-                <span className="status-dot" />
-                <span>
-                  {STAGES.find((s) => s.status === activeJob.status)?.label ||
-                    activeJob.status}
-                </span>
-              </div>
-            )}
-
-            <button className="modal-close-btn" onClick={onClose} title="Tutup">
-              <X size={15} />
-            </button>
-          </div>
-
-          {/* 2. Body */}
-          <div className="simple-modal-body">
             {/* Title Group with Created At timestamp above Title & tight gap with Description */}
             <div className="simple-modal-title-group">
               <span className="simple-modal-created-at">
@@ -152,6 +114,15 @@ export const JobDetailModal = React.memo(function JobDetailModal({
                 <p className="simple-modal-desc">{activeJob.description}</p>
               )}
             </div>
+
+            <button className="modal-close-btn" onClick={onClose} title="Tutup">
+              <X size={15} />
+            </button>
+          </div>
+
+          {/* 2. Body */}
+          <div className="simple-modal-body">
+            
 
             {/* Properties List */}
             <JobDetailProperties

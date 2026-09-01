@@ -56,14 +56,14 @@ export const JobDetailProperties = React.memo(function JobDetailProperties({
       <div className="simple-prop-row">
         <span className="simple-prop-label">Requester</span>
         <div className="simple-prop-value">
-          <Avatar
-            src={job.requestor?.avatarUrl}
-            name={job.requestor?.fullName || 'Requester'}
-            size={18}
-          />
-          <span title={job.requestor?.email}>
-            {job.requestor?.fullName || 'Anonim'}
-          </span>
+          <div className="simple-profile-chip" title={job.requestor?.email}>
+            <Avatar
+              src={job.requestor?.avatarUrl}
+              name={job.requestor?.fullName || 'Requester'}
+              size={18}
+            />
+            <span>{job.requestor?.fullName || 'Anonim'}</span>
+          </div>
         </div>
       </div>
 
@@ -137,10 +137,13 @@ export const JobDetailProperties = React.memo(function JobDetailProperties({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'flex-end',
-                      gap: '6px',
+                      gap: '4px',
                       minHeight: '20px',
                       color: 'inherit',
                       textDecoration: 'none',
+                      background: '#ededed',
+                      borderRadius: '999px',
+                      padding: '2px 8px 2px 2px'
                     }}
                   >
                     {designerContent}
