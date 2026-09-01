@@ -240,24 +240,16 @@
   color: var(--accent-blue-text);
 }
 
-.job-deliverables-list {
-  column-count: 2;
-  column-gap: 8px;
-  gap: 8px;
-  max-height: none;
-  overflow-y: auto;
-  padding-bottom: 4px;
-}
-
-.job-deliverables-wide-list {
+.job-deliverables-masonry {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 8px;
-  margin-bottom: 5px;
 }
 
-.job-deliverables-wide-list .job-deliverable-item {
-  width: 100%;
-  margin-bottom: 0;
+.job-deliverables-list {
+  min-width: 0;
+  padding-bottom: 4px;
 }
 
 .job-deliverable-item {
@@ -589,16 +581,8 @@
   }
 
 
-  .job-deliverables-wide-list {
+  .job-deliverables-masonry {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .job-deliverables-wide-list .job-deliverable-item {
-    grid-column: 1 / -1;
-  }
-
-  .job-deliverables-list {
-    column-count: 2;
   }
 
   .job-deliverables-column {

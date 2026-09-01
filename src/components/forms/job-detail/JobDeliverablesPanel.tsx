@@ -249,6 +249,20 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
     };
   }, [deliverables.length]);
 
+  const galleryColumns: Array<Array<{ deliverable: Deliverable; index: number }>> = [[], []];
+  const galleryHeights = [0, 0];
+  const areAllImageRatiosKnown = deliverables.every((deliverable) => imageRatios[deliverable.id] !== undefined);
+
+  deliverables.forEach((deliverable, index) => {
+    const ratio = imageRatios[deliverable.id] || 1;
+    const estimatedHeight = 1 / Math.max(ratio, 0.1);
+    const columnIndex = areAllImageRatiosKnown
+      ? (galleryHeights[0] <= galleryHeights[1] ? 0 : 1)
+      : index % 2;
+
+    galleryColumns[columnIndex].push({ deliverable, index });
+    galleryHeights[columnIndex] += estimatedHeight;
+  });
 
   const renderDeliverable = (deliverable: Deliverable, index: number) => {
     const uploadDescription = `Hasil desain versi ${deliverable.version}, diunggah ${formatDateTime(deliverable.registeredAt)} oleh ${deliverable.uploaderName || 'editor'}`;
@@ -354,11 +368,16 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
             <span>{canUpload ? 'Unggah JPG pertama untuk requestor.' : 'Hasil desain akan muncul di sini setelah dikirim.'}</span>
           </div>
         ) : (
-           <div className={`job-deliverables-gallery ${hasGalleryOverflow ? 'has-bottom-overflow' : ''}`} ref={galleryRef}>
-             <div className="job-deliverables-wide-list">{deliverables.filter((deliverable) => imageRatios[deliverable.id] > 1.25).map((deliverable, index) => renderDeliverable(deliverable, index))}</div>
-             <div className="job-deliverables-list">{deliverables.filter((deliverable) => (imageRatios[deliverable.id] ?? 1) <= 1.25).map((deliverable, index) => renderDeliverable(deliverable, index))}</div>
-         </div>
-       )}
+          <div className={`job-deliverables-gallery ${hasGalleryOverflow ? 'has-bottom-overflow' : ''}`} ref={galleryRef}>
+            <div className="job-deliverables-masonry">
+              {galleryColumns.map((column, columnIndex) => (
+                <div className="job-deliverables-list" key={columnIndex}>
+                  {column.map(({ deliverable, index }) => renderDeliverable(deliverable, index))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </aside>
       {error && (
         <div className="job-deliverables-error" role="alert" aria-live="polite">
