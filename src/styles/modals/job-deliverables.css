@@ -281,36 +281,7 @@
 
 .job-deliverables-gallery {
   position: relative;
-  min-height: 0;
-  max-height: min(72vh, 680px);
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  touch-action: pan-y;
-  -webkit-overflow-scrolling: touch;
-}
-
-.job-deliverables-gallery:focus-visible {
-  outline: 2px solid var(--accent-blue);
-  outline-offset: 2px;
-}
-
-.job-deliverables-gallery::after {
-  position: sticky;
-  right: 0;
-  bottom: 0;
-  display: block;
-  height: 64px;
-  margin-top: -64px;
-  background: linear-gradient(to bottom, transparent, var(--bg-surface));
-  content: '';
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 220ms ease;
-}
-
-.job-deliverables-gallery.has-bottom-overflow::after {
-  opacity: 1;
+  width: 100%;
 }
 
 .job-deliverables-masonry {
@@ -335,15 +306,14 @@
   gap: 5px;
   min-width: 0;
   padding: 0;
-  border: 1px solid var(--border-light);
+  border: 0;
   border-radius: var(--radius-sm);
-  background: var(--bg-canvas);
-  transition: background-color 100ms ease, border-color 100ms ease;
+  background: transparent;
+  transition: background-color 100ms ease;
 }
 
 .job-deliverable-item:hover {
-  border-color: var(--border-light);
-  background: var(--bg-surface-hover);
+  background: transparent;
 }
 
 .job-deliverable-item.is-latest {
@@ -358,21 +328,24 @@
   min-height: 120px;
   height: auto;
   overflow: hidden;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  border: 0;
   background: var(--bg-canvas);
-  transition: border-color 100ms ease, box-shadow 100ms ease;
+  transition: box-shadow 100ms ease;
 }
 
 .job-deliverable-preview-link.is-loading-preview .job-deliverable-preview {
   visibility: hidden;
 }
 
-.job-deliverable-preview-link:hover,
+.job-deliverable-preview-link:hover {
+  box-shadow: none;
+}
+
 .job-deliverable-preview-link:focus-visible {
-  border-color: var(--accent-blue);
   box-shadow: 0 0 0 2px var(--accent-blue-light);
-  outline: none;
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
 }
 
 .job-deliverable-preview {
@@ -400,8 +373,6 @@
 
   .job-deliverable-preview-link {
     border-radius: var(--radius-sm);
-    outline: none;
-    border-color: var(--border-default);
     -webkit-tap-highlight-color: transparent;
   }
 
