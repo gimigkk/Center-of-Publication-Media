@@ -79,7 +79,7 @@
   min-height: 0;
   max-height: none;
   overflow: visible;
-  gap: 2px;
+  gap: 0px;
 }
 
 .assign-dropdown-popover.position-modal-left .assign-dropdown-item {
@@ -155,7 +155,7 @@
 .assign-dropdown-list {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 0px;
   max-height: none;
   overflow: visible;
 }
@@ -164,7 +164,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 8px;
+  padding: 0px 0px;
   border-radius: var(--radius-sm);
   background-color: var(--bg-surface);
   border: 1px solid transparent;

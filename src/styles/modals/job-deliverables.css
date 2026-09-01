@@ -443,7 +443,8 @@
     pointer-events: none;
   }
 
-  .job-deliverable-overlay .job-deliverable-buttons .job-deliverable-icon-button {
+  .job-deliverable-overlay .job-deliverable-buttons .job-deliverable-icon-button,
+  .job-deliverable-overlay .job-deliverable-download-button {
     pointer-events: auto;
     color: #fff;
   }
@@ -704,7 +705,8 @@
     pointer-events: none;
   }
 
-  .job-deliverable-overlay .job-deliverable-buttons .job-deliverable-icon-button {
+  .job-deliverable-overlay .job-deliverable-buttons .job-deliverable-icon-button,
+  .job-deliverable-overlay .job-deliverable-buttons .job-deliverable-download-button {
     pointer-events: auto;
     color: #fff;
   }
