@@ -10,16 +10,40 @@ A collaborative Kanban-style publication and design request workflow management 
 
 ---
 
+## Core Workflows
+
+### Kanban Pipeline & Drag-and-Drop
+Move cards across workflow columns (*Antrian*, *Sedang Dikerjakan*, *Revisi*, *Selesai*) and drag completed jobs directly down into the Archive Table.
+
+![Kanban Drag and Drop](public/snippet_kanban_drag.gif)
+
+### Multi-Workspace Page Switching
+Switch between organizational divisions and sub-boards (e.g. *Creative n' Marketing 2026*, *Dokumentasi & Publikasi Event*) with independent pipelines.
+
+![Workspace Page Switching](public/snippet_page_switcher.gif)
+
+### Job Request Creation Workflow
+Submit publication and design requests with automatic Google Docs brief link validation, deadline selection, and division targeting.
+
+![Job Request Creation](public/snippet_job_request.gif)
+
+### Deliverables & Design Gallery
+Review, inspect high-resolution submitted artwork, and download completed deliverables directly inside the job detail modal.
+
+![Deliverables Gallery](public/snippet_deliverables_gallery.gif)
+
+---
+
 ## Features
 
-- **Interactive Kanban Pipeline**: Workflow divided into four stages (Antrian, Sedang Dikerjakan, Revisi, Selesai) with drag-and-drop state management.
-- **Multi-Workspace Pages**: Seamless switching between organizational divisions and sub-boards.
-- **Archive Drop Zone**: Drag completed job cards into the archive table for structured long-term tracking and search.
-- **Job Request Workflow**: Standardized form modal with Google Docs brief link auto-detection and metadata assignment.
-- **Deliverables Gallery**: Modal preview for reviewing, inspecting, and downloading submitted design assets.
-- **Collaborator Presence**: Real-time presence indicators and active workspace badges.
-- **Notification System**: In-app notifications for job assignments, revisions, and status updates.
-- **Search and Filtering**: Instant client-side search across requestors, assignees, divisions, and deadlines.
+- **Interactive Kanban Pipeline**: 4 workflow stages with drag-and-drop powered by `@dnd-kit`.
+- **Multi-Workspace Pages**: Seamless workspace switching for independent division boards.
+- **Archive Drop Zone**: Drag completed job cards into the archive table for structured tracking.
+- **Job Request Workflow**: Standardized form modal with Google Docs brief link auto-detection.
+- **Deliverables Gallery**: Modal preview for reviewing and downloading submitted artwork.
+- **Collaborator Presence**: Real-time presence indicators and active collaborator badges.
+- **Notification Center**: In-app notifications for assignments, revisions, and status updates.
+- **Search & Filtering**: Client-side filtering across requestors, assignees, divisions, and deadlines.
 
 ---
 
@@ -70,17 +94,6 @@ A collaborative Kanban-style publication and design request workflow management 
    ```
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser.
-
----
-
-## Screenshots
-
-| Feature | Preview |
-| :--- | :--- |
-| **Kanban Board** | ![Kanban Board](public/preview_kanban_board.jpg) |
-| **Card Drag & Drop** | ![Card Dragging](public/preview_card_drag.jpg) |
-| **Job Request Creation** | ![Job Form](public/preview_job_form.jpg) |
-| **Deliverables Gallery** | ![Design Gallery](public/preview_deliverables_gallery.jpg) |
 
 ---
 
