@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo, memo } from 'react';
-import { Page, Profile, OnlineUser, AppNotification } from '@/types';
+import { Page, Profile, OnlineUser, AppNotification, UserRole } from '@/types';
 import { PageSwitcher } from './PageSwitcher';
 import { NotificationInbox } from './NotificationInbox';
+import { ApprovalDropdown } from './ApprovalDropdown';
 import { Avatar } from '@/components/ui/Avatar';
 import { useSafeZone } from '@/hooks/useSafeZone';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
@@ -17,6 +18,7 @@ interface HeaderProps {
   allUsers?: Profile[];
   onlineUsers: OnlineUser[];
   notifications?: AppNotification[];
+  pendingUsers?: Profile[];
   onMarkAsRead?: (notificationId: string) => void;
   onMarkAllAsRead?: () => void;
   onClearAllNotifications?: () => void;
@@ -25,6 +27,8 @@ interface HeaderProps {
   onOpenCreatePage: () => void;
   onDeletePage?: (pageId: string) => Promise<void>;
   onRenamePage?: (pageId: string, name: string) => Promise<void>;
+  onApproveUser?: (userId: string, role?: UserRole) => Promise<{ success: boolean; error?: string }>;
+  onRejectUser?: (userId: string) => Promise<{ success: boolean; error?: string }>;
   onSignOut?: () => void;
   onOpenEditProfile?: () => void;
   onDropdownChange?: (state: string | null) => void;
@@ -37,6 +41,7 @@ export const Header = memo(function Header({
   allUsers = [],
   onlineUsers = [],
   notifications = [],
+  pendingUsers = [],
   onMarkAsRead,
   onMarkAllAsRead,
   onClearAllNotifications,
@@ -45,6 +50,8 @@ export const Header = memo(function Header({
   onOpenCreatePage,
   onDeletePage,
   onRenamePage,
+  onApproveUser,
+  onRejectUser,
   onSignOut,
   onOpenEditProfile,
   onDropdownChange,
@@ -149,9 +156,19 @@ export const Header = memo(function Header({
         />
       </div>
 
-      {/* 2. Right Cluster: Notifications + Collaborators + User Menu */}
+      {/* 2. Right Cluster: Notifications + Approvals + Collaborators + User Menu */}
       <div className="header-right">
         <div className="figjam-right-widget">
+          {/* Admin User Approval Dropdown */}
+          {currentUser.role === 'admin' && onApproveUser && onRejectUser && (
+            <ApprovalDropdown
+              pendingUsers={pendingUsers}
+              onApprove={onApproveUser}
+              onReject={onRejectUser}
+              onDropdownChange={onDropdownChange}
+            />
+          )}
+
           {/* Notification Inbox */}
           <NotificationInbox
             notifications={notifications}

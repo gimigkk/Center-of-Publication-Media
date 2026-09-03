@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useState, useRef, useEffect, memo } from 'react';
-import { Plus, SlidersHorizontal, FolderTree, UserCheck, Search } from 'lucide-react';
+import { Plus, ListFilter, Shapes, Search, TrendingUp } from 'lucide-react';
 import { Profile, Division } from '@/types';
 import { useSafeZone } from '@/hooks/useSafeZone';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
 
 interface FloatingToolbarProps {
   currentUser: Profile;
-  pendingCount: number;
   divisions: Division[];
   filterDivision: string | null;
   setFilterDivision: (divId: string | null) => void;
@@ -16,13 +15,13 @@ interface FloatingToolbarProps {
   setFilterSearch: (query: string) => void;
   onOpenNewJob: () => void;
   onOpenDivisions: () => void;
-  onOpenApprovals: () => void;
+  isGraphOpen?: boolean;
+  onOpenGraph?: () => void;
   onDropdownChange?: (state: string | null) => void;
 }
 
 export const FloatingToolbar = memo(function FloatingToolbar({
   currentUser,
-  pendingCount,
   divisions,
   filterDivision,
   setFilterDivision,
@@ -30,7 +29,8 @@ export const FloatingToolbar = memo(function FloatingToolbar({
   setFilterSearch,
   onOpenNewJob,
   onOpenDivisions,
-  onOpenApprovals,
+  isGraphOpen = false,
+  onOpenGraph,
   onDropdownChange,
 }: FloatingToolbarProps) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -131,26 +131,30 @@ export const FloatingToolbar = memo(function FloatingToolbar({
             onClick={() => setIsFilterOpen(!isFilterOpen)}
             title="Filter board"
           >
-            <SlidersHorizontal size={13} strokeWidth={2} />
+            <ListFilter size={13} strokeWidth={2.2} />
             <span>Filter</span>
             {hasActiveFilters && <span className="filter-active-dot" />}
           </button>
         </div>
 
-        {/* 3. Admin Tools */}
-        {currentUser.role === 'admin' && (
-          <>
-            <button className="toolbar-btn toolbar-btn-collapse" onClick={onOpenDivisions} title="Kelola Divisi">
-              <FolderTree size={13} strokeWidth={2} />
-              <span className="toolbar-btn-text">Divisi</span>
-            </button>
+        {/* 3. Performance Line Chart Graph Button */}
+        {onOpenGraph && (
+          <button
+            className={`toolbar-btn toolbar-btn-collapse ${isGraphOpen ? 'active-popover' : ''}`}
+            onClick={onOpenGraph}
+            title="Grafik Performa & Penyelesaian Job"
+          >
+            <TrendingUp size={13} strokeWidth={2.2} />
+            <span className="toolbar-btn-text">Grafik</span>
+          </button>
+        )}
 
-            <button className="toolbar-btn toolbar-btn-collapse" onClick={onOpenApprovals} title="Persetujuan Tertunda">
-              <UserCheck size={13} strokeWidth={2} />
-              <span className="toolbar-btn-text">Approval</span>
-              {pendingCount > 0 && <span className="badge-count">{pendingCount}</span>}
-            </button>
-          </>
+        {/* 4. Admin Tools */}
+        {currentUser.role === 'admin' && (
+          <button className="toolbar-btn toolbar-btn-collapse" onClick={onOpenDivisions} title="Kelola Divisi">
+            <Shapes size={13} strokeWidth={2.2} />
+            <span className="toolbar-btn-text">Divisi</span>
+          </button>
         )}
       </div>
     </div>

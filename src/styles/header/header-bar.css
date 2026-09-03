@@ -54,7 +54,7 @@
   align-self: stretch;
   height: auto;
   background-color: rgba(255, 255, 255, 0.12);
-  margin: 0;
+  margin: 0 4px;
 }
 
 .figjam-current-page-name {
@@ -79,6 +79,8 @@
   align-items: center;
   height: 44px;
   position: relative;
+  padding: 0 8px;
+  gap: 0px;
 }
 
 .figma-avatar-cluster {
@@ -116,7 +118,7 @@
 }
 
 .user-profile-menu-wrapper {
-  position: relative;
+  position: static;
   height: 100%;
   display: flex;
   align-items: center;
@@ -458,6 +460,7 @@
     opacity: 0;
     transform: translateY(-4px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -469,6 +472,7 @@
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+
   to {
     opacity: 0;
     transform: translateY(-4px) scale(0.98);
@@ -483,8 +487,13 @@
     right: 10px;
   }
 
+  .figjam-brand-logo-wrap,
+  .figjam-brand-divider {
+    display: none !important;
+  }
+
   .figjam-top-widget {
-    padding: 0 6px 0 10px;
+    padding: 0 6px 0 12px;
     gap: 6px;
     height: 38px;
   }
@@ -499,14 +508,14 @@
 
   .figjam-current-page-name {
     font-size: 12px;
-    max-width: 65px;
+    max-width: 100px;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   @media (max-width: 480px) {
     .figjam-current-page-name {
-      max-width: 48px;
+      max-width: 80px;
     }
   }
 

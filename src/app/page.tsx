@@ -216,6 +216,9 @@ export default function Home() {
         allUsers={allUsers}
         onlineUsers={activeOnlineUsers}
         notifications={notifications}
+        pendingUsers={pendingUsers}
+        onApproveUser={operations.handleApproveUser}
+        onRejectUser={operations.handleRejectUser}
         onMarkAsRead={operations.handleMarkAsRead}
         onMarkAllAsRead={operations.handleMarkAllAsRead}
         onClearAllNotifications={operations.handleClearAllNotifications}
@@ -250,7 +253,6 @@ export default function Home() {
       {/* Floating Bottom Toolbar */}
       <FloatingToolbar
         currentUser={currentUser}
-        pendingCount={pendingUsers.length}
         divisions={divisions}
         filterDivision={filterDivision}
         setFilterDivision={setFilterDivision}
@@ -258,7 +260,8 @@ export default function Home() {
         setFilterSearch={setFilterSearch}
         onOpenNewJob={modals.handleOpenNewJob}
         onOpenDivisions={modals.handleOpenDivisions}
-        onOpenApprovals={modals.handleOpenApprovals}
+        isGraphOpen={modals.isGraphOpen}
+        onOpenGraph={modals.handleOpenGraph}
         onDropdownChange={modals.setActiveDropdownState}
       />
 
@@ -267,8 +270,10 @@ export default function Home() {
         currentUser={currentUser}
         currentPage={currentPage}
         divisions={divisions}
-        pendingUsers={pendingUsers}
         designerSuggestions={designerSuggestions}
+        jobs={jobs}
+        allUsers={allUsers}
+        pages={pages}
         isJobFormOpen={modals.isJobFormOpen}
         onCloseJobForm={() => modals.setIsJobFormOpen(false)}
         isDetailOpen={modals.isDetailOpen}
@@ -278,10 +283,10 @@ export default function Home() {
         onCloseCreatePage={() => modals.setIsCreatePageOpen(false)}
         isDivisionsOpen={modals.isDivisionsOpen}
         onCloseDivisions={() => modals.setIsDivisionsOpen(false)}
-        isApprovalsOpen={modals.isApprovalsOpen}
-        onCloseApprovals={() => modals.setIsApprovalsOpen(false)}
         isEditProfileOpen={modals.isEditProfileOpen}
         onCloseEditProfile={() => modals.setIsEditProfileOpen(false)}
+        isGraphOpen={modals.isGraphOpen}
+        onCloseGraph={modals.handleCloseGraph}
         onDetailDropdownChange={modals.setDetailDropdownState}
         onSubmitJob={operations.handleSubmitJob}
         onAssignDesigner={operations.handleAssignDesigner}
@@ -305,8 +310,6 @@ export default function Home() {
         onCreateDivision={operations.handleCreateDivision}
         onUpdateDivision={operations.handleUpdateDivision}
         onDeleteDivision={operations.handleDeleteDivision}
-        onApproveUser={operations.handleApproveUser}
-        onRejectUser={operations.handleRejectUser}
         onUpdateProfile={operations.handleUpdateProfile}
       />
     </div>

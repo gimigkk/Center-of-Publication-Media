@@ -1,6 +1,5 @@
 'use server';
 
-import { headers } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import { loginSchema } from '@/lib/validations';
 import { getCorrelationId, recordLoginAttempt, type LoginDiagnostic } from '@/lib/login-attempts';

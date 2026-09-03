@@ -3,11 +3,11 @@
    ========================================================================== */
 
 .figjam-inbox-wrapper {
-  position: relative;
+  position: static;
   height: 100%;
   display: flex;
   align-items: center;
-  padding: 0 6px;
+  padding: 0 0px;
 }
 
 .figjam-inbox-btn {
@@ -61,8 +61,15 @@
 }
 
 @keyframes badgePop {
-  0% { transform: scale(0.6); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* Figma Popover Container — Figma Dark Standard */
@@ -71,7 +78,7 @@
   top: calc(100% + 8px);
   right: 0;
   left: auto;
-  width: 340px;
+  width: 300px;
   max-height: 480px;
   background-color: #2c2c2c;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -91,18 +98,18 @@
   pointer-events: none !important;
 }
 
-/* Header & Segmented Tabs */
+/* Header & Segmented Tabs in 1 Row */
 .figma-inbox-header {
-  padding: 10px 12px 8px 12px;
+  padding: 8px 10px 8px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   background-color: #2c2c2c;
 }
 
-.figma-inbox-title-row {
+.figma-inbox-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  gap: 8px;
 }
 
 .figma-inbox-title {
@@ -110,9 +117,10 @@
   font-weight: 700;
   color: #ffffff;
   letter-spacing: -0.15px;
+  white-space: nowrap;
 }
 
-.figma-inbox-actions {
+.figma-inbox-header-right {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -121,13 +129,13 @@
 .figma-inbox-icon-action {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 500;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
   color: rgba(255, 255, 255, 0.65);
   background: transparent;
   border: none;
-  padding: 3px 6px;
+  padding: 0;
   border-radius: var(--radius-xs);
   cursor: pointer;
   transition: all 100ms ease;
@@ -153,13 +161,12 @@
 }
 
 .figma-inbox-tab {
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  padding: 4px 6px;
-  font-size: 11px;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 10.5px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.6);
   border: none;
@@ -168,6 +175,7 @@
   cursor: pointer;
   transition: all 100ms ease;
   user-select: none;
+  white-space: nowrap;
 }
 
 .figma-inbox-tab:hover {
@@ -336,31 +344,14 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 36px 16px;
-  gap: 6px;
+  padding: 24px 16px;
   color: rgba(255, 255, 255, 0.45);
-}
-
-.figma-inbox-empty-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.06);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255, 255, 255, 0.5);
-  margin-bottom: 2px;
-}
-
-.figma-inbox-empty-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.75);
 }
 
 .figma-inbox-empty-sub {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.45);
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.5);
   text-align: center;
+  line-height: 1.45;
+  max-width: 240px;
 }

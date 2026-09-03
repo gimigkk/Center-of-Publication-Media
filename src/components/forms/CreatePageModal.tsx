@@ -7,14 +7,13 @@ import { Page, Profile } from '@/types';
 interface CreatePageModalProps {
   isOpen: boolean;
   onClose: () => void;
-  currentUser: Profile;
+  currentUser?: Profile;
   onCreatePage: (name: string, description?: string) => Promise<{ success: boolean; page?: Page; error?: string }>;
 }
 
 export function CreatePageModal({
   isOpen,
   onClose,
-  currentUser,
   onCreatePage,
 }: CreatePageModalProps) {
   const [name, setName] = useState('');

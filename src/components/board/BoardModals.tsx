@@ -1,18 +1,20 @@
 import React from 'react';
-import { Job, JobStatus, Page, Profile, Division, UserRole } from '@/types';
+import { Job, JobStatus, Page, Profile, Division } from '@/types';
 import { JobFormModal } from '@/components/forms/JobFormModal';
 import { JobDetailModal } from '@/components/forms/JobDetailModal';
 import { CreatePageModal } from '@/components/forms/CreatePageModal';
 import { DivisionManagerModal } from '@/components/admin/DivisionManagerModal';
-import { ApprovalPanelModal } from '@/components/admin/ApprovalPanelModal';
 import { EditProfileModal } from '@/components/forms/EditProfileModal';
+import { JobStatsModal } from '@/components/analytics/JobStatsModal';
 
 interface BoardModalsProps {
   currentUser: Profile;
   currentPage: Page;
   divisions: Division[];
-  pendingUsers: Profile[];
   designerSuggestions: { designer: Profile; activeWipCount: number }[];
+  jobs: Job[];
+  allUsers: Profile[];
+  pages?: Page[];
   // Modal visibility states
   isJobFormOpen: boolean;
   onCloseJobForm: () => void;
@@ -23,10 +25,10 @@ interface BoardModalsProps {
   onCloseCreatePage: () => void;
   isDivisionsOpen: boolean;
   onCloseDivisions: () => void;
-  isApprovalsOpen: boolean;
-  onCloseApprovals: () => void;
   isEditProfileOpen: boolean;
   onCloseEditProfile: () => void;
+  isGraphOpen: boolean;
+  onCloseGraph: () => void;
   onDetailDropdownChange: (state: string | null) => void;
   // Handlers
   onSubmitJob: (formData: {
@@ -48,8 +50,6 @@ interface BoardModalsProps {
   onCreateDivision: (name: string) => Promise<{ success: boolean; division?: Division; error?: string }>;
   onUpdateDivision: (id: string, name: string) => Promise<{ success: boolean; error?: string }>;
   onDeleteDivision: (id: string) => Promise<{ success: boolean; error?: string }>;
-  onApproveUser: (userId: string, role?: UserRole) => Promise<{ success: boolean; error?: string }>;
-  onRejectUser: (userId: string) => Promise<{ success: boolean; error?: string }>;
   onUpdateProfile: (data: {
     fullName: string;
     avatarUrl?: string | null;
@@ -61,8 +61,10 @@ export function BoardModals({
   currentUser,
   currentPage,
   divisions,
-  pendingUsers,
   designerSuggestions,
+  jobs,
+  allUsers,
+  pages,
   isJobFormOpen,
   onCloseJobForm,
   isDetailOpen,
@@ -72,10 +74,10 @@ export function BoardModals({
   onCloseCreatePage,
   isDivisionsOpen,
   onCloseDivisions,
-  isApprovalsOpen,
-  onCloseApprovals,
   isEditProfileOpen,
   onCloseEditProfile,
+  isGraphOpen,
+  onCloseGraph,
   onDetailDropdownChange,
   onSubmitJob,
   onAssignDesigner,
@@ -87,8 +89,6 @@ export function BoardModals({
   onCreateDivision,
   onUpdateDivision,
   onDeleteDivision,
-  onApproveUser,
-  onRejectUser,
   onUpdateProfile,
 }: BoardModalsProps) {
   return (
@@ -132,19 +132,21 @@ export function BoardModals({
         onDeleteDivision={onDeleteDivision}
       />
 
-      <ApprovalPanelModal
-        isOpen={isApprovalsOpen}
-        onClose={onCloseApprovals}
-        pendingUsers={pendingUsers}
-        onApprove={onApproveUser}
-        onReject={onRejectUser}
-      />
-
       <EditProfileModal
         isOpen={isEditProfileOpen}
         onClose={onCloseEditProfile}
         currentUser={currentUser}
         onUpdateProfile={onUpdateProfile}
+      />
+
+      <JobStatsModal
+        isOpen={isGraphOpen}
+        onClose={onCloseGraph}
+        currentPage={currentPage}
+        jobs={jobs}
+        allUsers={allUsers}
+        currentUser={currentUser}
+        pages={pages}
       />
     </>
   );

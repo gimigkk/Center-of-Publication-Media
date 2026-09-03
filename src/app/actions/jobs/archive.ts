@@ -100,7 +100,7 @@ export async function unarchiveJobAction(
 
 export async function archiveAllDoneJobsAction(
   pageId: string,
-  actor: Profile
+  _actor?: Profile
 ): Promise<{ success: boolean; archivedCount?: number; error?: string }> {
   if (isMockEnabled()) {
     const store = getMockStore();

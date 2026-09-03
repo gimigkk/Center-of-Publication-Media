@@ -7,8 +7,8 @@ export function useBoardModals() {
   const [selectedJobForDetail, setSelectedJobForDetail] = useState<Job | null>(null);
   const [isCreatePageOpen, setIsCreatePageOpen] = useState(false);
   const [isDivisionsOpen, setIsDivisionsOpen] = useState(false);
-  const [isApprovalsOpen, setIsApprovalsOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isGraphOpen, setIsGraphOpen] = useState(false);
   const [activeDropdownState, setActiveDropdownState] = useState<string | null>(null);
   const [detailDropdownState, setDetailDropdownState] = useState<string | null>(null);
 
@@ -24,9 +24,10 @@ export function useBoardModals() {
 
   const handleOpenNewJob = useCallback(() => setIsJobFormOpen(true), []);
   const handleOpenDivisions = useCallback(() => setIsDivisionsOpen(true), []);
-  const handleOpenApprovals = useCallback(() => setIsApprovalsOpen(true), []);
   const handleOpenCreatePage = useCallback(() => setIsCreatePageOpen(true), []);
   const handleOpenEditProfile = useCallback(() => setIsEditProfileOpen(true), []);
+  const handleOpenGraph = useCallback(() => setIsGraphOpen(true), []);
+  const handleCloseGraph = useCallback(() => setIsGraphOpen(false), []);
 
   // Derive current user activity state for cursor badge (modals & dropdown panels)
   const currentUserState = useMemo(() => {
@@ -37,7 +38,7 @@ export function useBoardModals() {
     }
     if (isCreatePageOpen) return 'Membuat Halaman Baru';
     if (isDivisionsOpen) return 'Mengelola Divisi';
-    if (isApprovalsOpen) return 'Meninjau Persetujuan Akun';
+    if (isGraphOpen) return 'Melihat Grafik Performa';
     if (activeDropdownState) return activeDropdownState;
     return null;
   }, [
@@ -47,7 +48,7 @@ export function useBoardModals() {
     detailDropdownState,
     isCreatePageOpen,
     isDivisionsOpen,
-    isApprovalsOpen,
+    isGraphOpen,
     activeDropdownState,
   ]);
 
@@ -62,10 +63,12 @@ export function useBoardModals() {
     setIsCreatePageOpen,
     isDivisionsOpen,
     setIsDivisionsOpen,
-    isApprovalsOpen,
-    setIsApprovalsOpen,
     isEditProfileOpen,
     setIsEditProfileOpen,
+    isGraphOpen,
+    setIsGraphOpen,
+    handleOpenGraph,
+    handleCloseGraph,
     activeDropdownState,
     setActiveDropdownState,
     detailDropdownState,
@@ -75,7 +78,6 @@ export function useBoardModals() {
     handleCloseDetail,
     handleOpenNewJob,
     handleOpenDivisions,
-    handleOpenApprovals,
     handleOpenCreatePage,
     handleOpenEditProfile,
   };

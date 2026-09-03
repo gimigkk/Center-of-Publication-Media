@@ -7,7 +7,7 @@ import { Division, Page, Profile } from '@/types';
 import { GOOGLE_DOCS_REGEX } from '@/lib/validations';
 import { GoogleDocsIcon } from '@/components/ui/GoogleDocsIcon';
 import { fetchGoogleDocTitleAction } from '@/app/actions/jobs';
-import { AlertCircle, CheckCircle2, BookOpen, X, MessageCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
 
 interface JobFormModalProps {

@@ -1,7 +1,7 @@
 'use server';
 
 import { db, schema } from '@/lib/db';
-import { eq, inArray, and, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { Profile, Page, Division, Job, AppNotification, NotificationType } from '@/types';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 

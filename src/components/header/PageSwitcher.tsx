@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Plus, MoreHorizontal, ChevronDown } from 'lucide-react';
+import { Plus, MoreHorizontal } from 'lucide-react';
 import { Page, Profile, OnlineUser } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
 import { useSafeZone } from '@/hooks/useSafeZone';
@@ -12,7 +12,7 @@ import { FullLogoIEEE } from '@/components/ui/FullLogoIEEE';
 interface PageSwitcherProps {
   pages: Page[];
   currentPage: Page;
-  currentUser: Profile;
+  currentUser?: Profile;
   onlineUsers?: OnlineUser[];
   onSelectPage: (page: Page) => void;
   onOpenCreatePage: () => void;
@@ -24,7 +24,6 @@ interface PageSwitcherProps {
 export function PageSwitcher({
   pages,
   currentPage,
-  currentUser,
   onlineUsers = [],
   onSelectPage,
   onOpenCreatePage,
@@ -101,12 +100,12 @@ export function PageSwitcher({
   return (
     <div className="figjam-top-widget" ref={widgetRef} onClick={() => setIsPagesOpen(!isPagesOpen)}>
       {/* Full IEEE Brand Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', paddingRight: '2px' }}>
+      <div className="figjam-brand-logo-wrap" style={{ display: 'flex', alignItems: 'center', paddingRight: '2px' }}>
         <FullLogoIEEE height={18} fill="#ffffff" />
       </div>
 
       {/* Full-height top-to-bottom divider line with no padding */}
-      <div className="figjam-widget-divider" />
+      <div className="figjam-widget-divider figjam-brand-divider" />
 
       {/* Current Page Name */}
       <span className="figjam-current-page-name" title={currentPage.name}>

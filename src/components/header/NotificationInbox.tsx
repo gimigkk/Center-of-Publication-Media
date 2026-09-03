@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, memo, useMemo } from 'react';
-import { Bell, CheckCheck, Trash2, Inbox, ArrowRight } from 'lucide-react';
+import { Bell, CheckCheck, Trash2, ArrowRight } from 'lucide-react';
 import { AppNotification, Profile } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
 import { useSafeZone } from '@/hooks/useSafeZone';
@@ -9,7 +9,7 @@ import { useAnimatePresence } from '@/hooks/useAnimatePresence';
 
 interface NotificationInboxProps {
   notifications: AppNotification[];
-  currentUser: Profile;
+  currentUser?: Profile;
   onMarkAsRead: (notificationId: string) => void;
   onMarkAllAsRead: () => void;
   onClearAll?: () => void;
@@ -34,7 +34,6 @@ type TabFilter = 'all' | 'unread';
 
 export const NotificationInbox = memo(function NotificationInbox({
   notifications,
-  currentUser,
   onMarkAsRead,
   onMarkAllAsRead,
   onClearAll,
@@ -165,11 +164,35 @@ export const NotificationInbox = memo(function NotificationInbox({
           className={`figma-inbox-popover ${isClosing ? 'is-closing' : ''}`}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* 1. Header with Title & Quick Actions */}
+          {/* 1. Header with Title & Tabs in 1 Row */}
           <div className="figma-inbox-header">
-            <div className="figma-inbox-title-row">
+            <div className="figma-inbox-header-row">
               <span className="figma-inbox-title">Notifikasi</span>
-              <div className="figma-inbox-actions">
+
+              <div className="figma-inbox-header-right">
+                {/* Segmented Tabs (Semua / Belum Dibaca) */}
+                <div className="figma-inbox-tabs">
+                  <button
+                    type="button"
+                    className={`figma-inbox-tab ${activeTab === 'all' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('all')}
+                  >
+                    Semua
+                    {notifications.length > 0 && (
+                      <span className="figma-tab-count">{notifications.length}</span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={`figma-inbox-tab ${activeTab === 'unread' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('unread')}
+                  >
+                    Belum Dibaca
+                    {unreadCount > 0 && <span className="figma-tab-unread-pill">{unreadCount}</span>}
+                  </button>
+                </div>
+
+                {/* Quick Actions */}
                 {unreadCount > 0 && (
                   <button
                     type="button"
@@ -178,7 +201,6 @@ export const NotificationInbox = memo(function NotificationInbox({
                     title="Tandai semua dibaca"
                   >
                     <CheckCheck size={13} strokeWidth={2} />
-                    <span>Tandai dibaca</span>
                   </button>
                 )}
                 {notifications.length > 0 && onClearAll && (
@@ -193,40 +215,16 @@ export const NotificationInbox = memo(function NotificationInbox({
                 )}
               </div>
             </div>
-
-            {/* 2. Figma Segmented Tabs (Semua / Belum Dibaca) */}
-            <div className="figma-inbox-tabs">
-              <button
-                type="button"
-                className={`figma-inbox-tab ${activeTab === 'all' ? 'active' : ''}`}
-                onClick={() => setActiveTab('all')}
-              >
-                Semua
-                <span className="figma-tab-count">{notifications.length}</span>
-              </button>
-              <button
-                type="button"
-                className={`figma-inbox-tab ${activeTab === 'unread' ? 'active' : ''}`}
-                onClick={() => setActiveTab('unread')}
-              >
-                Belum Dibaca
-                {unreadCount > 0 && <span className="figma-tab-unread-pill">{unreadCount}</span>}
-              </button>
-            </div>
           </div>
 
           {/* 3. Notification Stream List */}
           <div className="figma-inbox-body no-scrollbar">
             {displayedNotifications.length === 0 ? (
               <div className="figma-inbox-empty">
-                <div className="figma-inbox-empty-icon">
-                  <Inbox size={20} strokeWidth={1.8} />
-                </div>
-                <span className="figma-inbox-empty-title">
-                  {activeTab === 'unread' ? 'Semua notifikasi sudah dibaca' : 'Tidak ada notifikasi'}
-                </span>
                 <span className="figma-inbox-empty-sub">
-                  Aktivitas job dan assignment akan muncul secara real-time di sini.
+                  {activeTab === 'unread'
+                    ? 'Semua notifikasi sudah dibaca.'
+                    : 'Aktivitas job dan assignment akan muncul secara real-time di sini.'}
                 </span>
               </div>
             ) : (
