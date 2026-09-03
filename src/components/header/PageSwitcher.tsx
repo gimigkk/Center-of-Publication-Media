@@ -167,6 +167,7 @@ export function PageSwitcher({
                     if (!isRenaming) {
                       onSelectPage(page);
                       setActiveMenuPageId(null);
+                      setIsPagesOpen(false);
                     }
                   }}
                 >

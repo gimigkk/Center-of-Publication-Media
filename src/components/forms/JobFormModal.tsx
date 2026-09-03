@@ -41,7 +41,11 @@ export function JobFormModal({
 
   // Default deadline set to 7 days in the future (H-7 minimum rule).
   // Snapshot once at mount so the value stays stable across re-renders.
-  const [minDeadlineDate] = useState(() => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+  const [minDeadlineDate] = useState(() => {
+    const d = new Date(Date.now() + 8 * 24 * 60 * 60 * 1000);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
   const minDateStr = minDeadlineDate.toISOString().split('T')[0];
 
   const [title, setTitle] = useState('');
@@ -125,8 +129,10 @@ export function JobFormModal({
     }
 
     const selectedDate = new Date(deadline);
-    if (selectedDate < minDeadlineDate) {
-      setError('Deadline paling minimal H-10.');
+    const minAllowed = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    minAllowed.setHours(0, 0, 0, 0);
+    if (selectedDate < minAllowed) {
+      setError('Deadline minimal 7 hari ke depan.');
       return;
     }
 

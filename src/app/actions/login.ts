@@ -31,12 +31,13 @@ function diagnostic(
 }
 
 function withTimeout<T>(promise: Promise<T>): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => {
-      setTimeout(() => reject(new Error('LOGIN_TIMEOUT')), LOGIN_TIMEOUT_MS);
-    }),
-  ]);
+  let timer: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('LOGIN_TIMEOUT')), LOGIN_TIMEOUT_MS);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    clearTimeout(timer);
+  });
 }
 
 export async function loginAction(
@@ -107,9 +108,48 @@ export async function loginAction(
       return { success: false, diagnostic: result };
     }
 
-    const [profile] = await withTimeout(
+    let [profile] = await withTimeout(
       db.select().from(schema.profiles).where(eq(schema.profiles.id, data.user.id))
     );
+
+    if (!profile) {
+      // Auto-heal missing profile row for valid authenticated user
+      const meta = (data.user.user_metadata || {}) as {
+        full_name?: string;
+        name?: string;
+        avatar_url?: string;
+        phone_number?: string;
+      };
+      const fallbackName = meta.full_name || meta.name || data.user.email?.split('@')[0] || 'User';
+      const fallbackAvatar = meta.avatar_url || null;
+      const fallbackPhone = meta.phone_number || data.user.phone || null;
+      const divs = await db.select().from(schema.divisions);
+      const creativeDiv = divs.find((d) => d.name === 'Creative & Marketing');
+      const defaultDiv = creativeDiv?.id || divs[0]?.id || null;
+
+      try {
+        const [healed] = await db
+          .insert(schema.profiles)
+          .values({
+            id: data.user.id,
+            email: cleanEmail,
+            fullName: fallbackName,
+            phoneNumber: fallbackPhone,
+            avatarUrl: fallbackAvatar,
+            role: 'designer',
+            divisionId: defaultDiv,
+            isApproved: true,
+          })
+          .onConflictDoUpdate({
+            target: schema.profiles.id,
+            set: { updatedAt: new Date() },
+          })
+          .returning();
+        profile = healed;
+      } catch (err) {
+        console.error('Failed to auto-heal profile during login:', err);
+      }
+    }
 
     if (!profile) {
       const result = diagnostic(

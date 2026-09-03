@@ -110,14 +110,16 @@ export default function SignupPage() {
         return;
       }
 
-      const supabase = createClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
-      if (signInError) {
-        setSignupError('Akun dibuat, tetapi login otomatis gagal. Silakan login manual.', 'signup_auto_login', 'AUTO_LOGIN_FAILED');
-        return;
+      // Browser client session sync (non-fatal since server action already set SSR session cookies)
+      try {
+        const supabase = createClient();
+        await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+      } catch (syncErr) {
+        console.warn('Browser auth sync warning (non-fatal):', syncErr);
       }
-      router.push('/');
-      router.refresh();
+
+      // Perform full hard navigation to guarantee Next.js middleware receives SSR cookies
+      window.location.replace('/');
     } catch (error: unknown) {
       setSignupError(error instanceof Error ? error.message : 'Terjadi kesalahan saat mendaftar', 'signup_client', 'CLIENT_ERROR');
     } finally {
@@ -243,7 +245,7 @@ export default function SignupPage() {
           </div>
 
           {/* Name & Password row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '10px' }}>
+          <div className="auth-grid-2col">
             <div className="form-group">
               <label className="form-label">
                 Nama Lengkap <span className="required-star">*</span>
@@ -274,7 +276,7 @@ export default function SignupPage() {
           </div>
 
           {/* Email & Phone row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '10px' }}>
+          <div className="auth-grid-2col">
             <div className="form-group">
               <label className="form-label">
                 Alamat Email <span className="required-star">*</span>

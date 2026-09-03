@@ -93,43 +93,30 @@ export const Cursor = memo(function Cursor({
       const dt = Math.min((now - lastTimeRef.current) / 1000, 0.05); // seconds, clamped
       lastTimeRef.current = now;
 
-      // Spring-Damper parameters: critically damped for zero-lag, butter-smooth tracking
-      const stiffness = 300;
-      const damping = 32;
+      // Framerate-independent smooth tracking that never overshoots or oscillates
+      const factor = 1 - Math.exp(-22 * dt);
+      const dx = targetPosRef.current.x - posRef.current.x;
+      const dy = targetPosRef.current.y - posRef.current.y;
 
-      // Position physics along X and Y
-      const fx = -stiffness * (posRef.current.x - targetPosRef.current.x) - damping * velRef.current.x;
-      velRef.current.x += fx * dt;
-      posRef.current.x += velRef.current.x * dt;
+      posRef.current.x += dx * factor;
+      posRef.current.y += dy * factor;
 
-      const fy = -stiffness * (posRef.current.y - targetPosRef.current.y) - damping * velRef.current.y;
-      velRef.current.y += fy * dt;
-      posRef.current.y += velRef.current.y * dt;
-
-      // Smooth card velocity swing / tilt
-      const targetTilt = Math.max(-8.5, Math.min(8.5, velRef.current.x * 0.007));
-      const fTilt = -220 * (tiltRef.current - targetTilt) - 26 * tiltVelRef.current;
-      tiltVelRef.current += fTilt * dt;
-      tiltRef.current += tiltVelRef.current * dt;
+      // Smooth subtle tilt based on horizontal motion
+      const targetTilt = Math.max(-8, Math.min(8, dx * 0.08));
+      tiltRef.current += (targetTilt - tiltRef.current) * factor;
 
       if (cursorRootRef.current) {
         cursorRootRef.current.style.transform = `translate3d(${posRef.current.x}px, ${posRef.current.y}px, 0)`;
         cursorRootRef.current.style.setProperty('--remote-tilt', `${tiltRef.current}deg`);
       }
 
-      const distSq =
-        Math.pow(posRef.current.x - targetPosRef.current.x, 2) +
-        Math.pow(posRef.current.y - targetPosRef.current.y, 2);
-      const velSq = Math.pow(velRef.current.x, 2) + Math.pow(velRef.current.y, 2);
+      const distSq = dx * dx + dy * dy;
 
       // Settle condition
-      if (distSq < 0.04 && velSq < 0.2 && Math.abs(tiltRef.current) < 0.04) {
+      if (distSq < 0.2 && Math.abs(tiltRef.current) < 0.1) {
         posRef.current.x = targetPosRef.current.x;
         posRef.current.y = targetPosRef.current.y;
-        velRef.current.x = 0;
-        velRef.current.y = 0;
         tiltRef.current = 0;
-        tiltVelRef.current = 0;
         if (cursorRootRef.current) {
           cursorRootRef.current.style.transform = `translate3d(${posRef.current.x}px, ${posRef.current.y}px, 0)`;
           cursorRootRef.current.style.setProperty('--remote-tilt', '0deg');

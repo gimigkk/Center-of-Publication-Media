@@ -131,7 +131,37 @@ function toDeliverable(record: typeof schema.deliverables.$inferSelect, uploader
 }
 
 export async function getDeliverablesAction(jobId: string): Promise<ActionResult<Deliverable[]>> {
-  if (isMockEnabled()) return { success: true, data: [] };
+  if (isMockEnabled()) {
+    return {
+      success: true,
+      data: [
+        {
+          id: 'mock-deliv-1',
+          jobId,
+          originalFilename: 'desain-kucing-gemoy-final.jpg',
+          mimeType: 'image/jpeg',
+          sizeBytes: 2450000,
+          uploadedBy: 'mock-user-admin-1',
+          uploaderName: 'Gimigkk',
+          createdAt: '2026-08-29T11:00:00.000Z',
+          registeredAt: '2026-08-29T11:00:00.000Z',
+          previewUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=900&auto=format&fit=crop&q=80',
+        },
+        {
+          id: 'mock-deliv-2',
+          jobId,
+          originalFilename: 'cat-creative-artwork-v2.jpg',
+          mimeType: 'image/jpeg',
+          sizeBytes: 4120000,
+          uploadedBy: 'mock-user-des-1',
+          uploaderName: 'Sarah Amanda',
+          createdAt: '2026-08-29T12:30:00.000Z',
+          registeredAt: '2026-08-29T12:30:00.000Z',
+          previewUrl: 'https://images.unsplash.com/photo-1573865526739-10659fec78a5?w=900&auto=format&fit=crop&q=80',
+        },
+      ],
+    };
+  }
 
   const startedAt = performance.now();
   const timings: DeliverableReadTimings = {};
