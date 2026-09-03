@@ -134,10 +134,10 @@ export async function getJobCompletionStatsAction(
       .orderBy(desc(schema.jobActivity.createdAt));
 
     // Map latest activity timestamp per job
-    const latestDoneActivityMap = new Map<string, { createdAt: Date; actorId: string }>();
+    const latestDoneActivityMap = new Map<string, { createdAt: Date; actorId: string; note?: string | null }>();
     activityRows.forEach((act) => {
       if (!latestDoneActivityMap.has(act.jobId)) {
-        latestDoneActivityMap.set(act.jobId, { createdAt: act.createdAt, actorId: act.actorId });
+        latestDoneActivityMap.set(act.jobId, { createdAt: act.createdAt, actorId: act.actorId, note: act.note });
       }
     });
 
