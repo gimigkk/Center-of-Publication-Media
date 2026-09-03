@@ -10,27 +10,14 @@ A collaborative Kanban-style publication and design request workflow management 
 
 ---
 
-## Core Workflows
+## Screenshots & Workflow Demos
 
-### Kanban Pipeline & Drag-and-Drop
-Move cards across workflow columns (*Antrian*, *Sedang Dikerjakan*, *Revisi*, *Selesai*) and drag completed jobs directly down into the Archive Table.
-
-![Kanban Drag and Drop](public/snippet_kanban_drag.gif)
-
-### Multi-Workspace Page Switching
-Switch between organizational divisions and sub-boards (e.g. *Creative n' Marketing 2026*, *Dokumentasi & Publikasi Event*) with independent pipelines.
-
-![Workspace Page Switching](public/snippet_page_switcher.gif)
-
-### Job Request Creation Workflow
-Submit publication and design requests with automatic Google Docs brief link validation, deadline selection, and division targeting.
-
-![Job Request Creation](public/snippet_job_request.gif)
-
-### Deliverables & Design Gallery
-Review, inspect high-resolution submitted artwork, and download completed deliverables directly inside the job detail modal.
-
-![Deliverables Gallery](public/snippet_deliverables_gallery.gif)
+| Feature | Preview |
+| :--- | :--- |
+| **Kanban Pipeline & Drag-and-Drop**<br>Move cards across stages and into Archive Table | ![Kanban Drag and Drop](public/snippet_kanban_drag.gif) |
+| **Multi-Workspace Page Switching**<br>Switch between independent division pipelines | ![Workspace Page Switching](public/snippet_page_switcher.gif) |
+| **Job Request Creation**<br>Structured request submission with brief link detection | ![Job Request Creation](public/snippet_job_request.gif) |
+| **Deliverables Gallery**<br>Inspect submitted designs and download artwork | ![Deliverables Gallery](public/snippet_deliverables_gallery.gif) |
 
 ---
 
