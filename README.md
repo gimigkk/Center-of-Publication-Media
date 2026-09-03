@@ -6,14 +6,7 @@ A collaborative Kanban-style publication and design request workflow management 
 
 ## Showcase
 
-<div align="center">
-  <a href="showcase.webm">
-    <img src="public/preview_kanban_board.jpg" width="100%" alt="COPM Showcase Video (Click to Open Video)"/>
-  </a>
-  <p>
-    <strong><a href="showcase.webm">▶ Play showcase.webm</a></strong> &bull; <em>Full 1080p walkthrough of the publication pipeline</em>
-  </p>
-</div>
+![COPM Showcase](public/showcase.gif)
 
 ---
 
