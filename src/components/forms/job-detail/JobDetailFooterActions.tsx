@@ -1,6 +1,7 @@
 import React from 'react';
 import { Job, JobStatus, Profile } from '@/types';
 import { RotateCcw } from 'lucide-react';
+import { SimpleSelect } from '@/components/ui/Select';
 
 interface JobDetailFooterActionsProps {
   job: Job;
@@ -38,23 +39,25 @@ export const JobDetailFooterActions = React.memo(function JobDetailFooterActions
         {/* Admin quick stage switcher */}
         {hasAdminStageSwitcher && (
           <div className="simple-modal-action-item">
-            <select
+            <SimpleSelect
+              size="sm"
               className="modal-stage-select"
               value={job.status}
               disabled={isSubmitting}
-              onChange={(e) =>
+              onChange={(val) =>
                 onAction(
-                  e.target.value as JobStatus,
-                  `Dipindahkan manual ke status ${e.target.value}`
+                  val as JobStatus,
+                  `Dipindahkan manual ke status ${val}`
                 )
               }
               title="Pindahkan status kartu ini"
-            >
-              <option value="in_queue">Status: Antrian</option>
-              <option value="wip">Status: Sedang Dikerjakan</option>
-              <option value="revisions">Status: Revisi</option>
-              <option value="done">Status: Selesai</option>
-            </select>
+              options={[
+                { value: 'in_queue', label: 'Antrian' },
+                { value: 'wip', label: 'Sedang Dikerjakan' },
+                { value: 'revisions', label: 'Revisi' },
+                { value: 'done', label: 'Selesai' },
+              ]}
+            />
           </div>
         )}
 
@@ -63,11 +66,11 @@ export const JobDetailFooterActions = React.memo(function JobDetailFooterActions
           <div className="simple-modal-action-item">
             <button
               className="btn-secondary"
-            disabled={isSubmitting}
-            onClick={async () => {
-              await onUnarchive(job.id);
-              onClose();
-            }}
+              disabled={isSubmitting}
+              onClick={async () => {
+                await onUnarchive(job.id);
+                onClose();
+              }}
               title="Pulihkan kartu job ini kembali ke papan Kanban aktif"
             >
               <RotateCcw size={13} />

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Modal } from '@/components/ui/Modal';
+import { SimpleSelect } from '@/components/ui/Select';
 import { Job, Page, Profile } from '@/types';
 import { getJobCompletionStatsAction, JobCompletionStatItem } from '@/app/actions/stats';
 import { JobLineChart, ChartPerson, ChartDataPoint } from './JobLineChart';
@@ -381,22 +382,21 @@ export const JobStatsModal = React.memo(function JobStatsModal({
             onClick={() => setShowTotalLine((prev) => !prev)}
             title="Tampilkan / sembunyikan garis total tim"
           >
-            Total Tim
+            <span className="figma-total-dot" />
+            <span>Total Tim</span>
           </button>
 
-          <select
+          <SimpleSelect
+            size="sm"
             className="figma-board-select"
             value={selectedPageId}
-            onChange={(e) => setSelectedPageId(e.target.value)}
+            onChange={setSelectedPageId}
             title="Pilih papan atau tampilkan semua papan"
-          >
-            {availablePages.map((page) => (
-              <option key={page.id} value={page.id}>
-                {page.name}
-              </option>
-            ))}
-            <option value="all">Semua Papan</option>
-          </select>
+            options={[
+              ...availablePages.map((page) => ({ value: page.id, label: page.name })),
+              { value: 'all', label: 'Semua Papan' },
+            ]}
+          />
         </div>
       </div>
 
@@ -448,11 +448,11 @@ export const JobStatsModal = React.memo(function JobStatsModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
+      title="Grafik Penyelesaian Job"
+      subtitle="Tren penyelesaian pekerjaan dan kontribusi masing-masing anggota tim per bulan"
       footer={modalFooter}
       maxWidth={880}
       className="job-stats-modal"
-      showHeader={false}
-      showCloseButton={false}
     >
       <JobLineChart
         data={chartData}
@@ -461,7 +461,6 @@ export const JobStatsModal = React.memo(function JobStatsModal({
         showTotalLine={showTotalLine}
         hoveredPersonId={hoveredPersonId}
         onHoverPerson={setHoveredPersonId}
-        onClose={onClose}
         unitLabel="job"
       />
     </Modal>

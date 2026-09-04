@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { TrendingUp, Plus, Minus, RotateCcw, X } from 'lucide-react';
+import { TrendingUp, Plus, Minus, RotateCcw } from 'lucide-react';
 
 export interface ChartPerson {
   id: string;
@@ -26,7 +26,6 @@ interface JobLineChartProps {
   showTotalLine?: boolean;
   hoveredPersonId?: string | null;
   onHoverPerson?: (id: string | null) => void;
-  onClose?: () => void;
 }
 
 interface Point {
@@ -94,7 +93,6 @@ export const JobLineChart = React.memo(function JobLineChart({
   showTotalLine = false,
   hoveredPersonId: externalHoveredPersonId,
   onHoverPerson,
-  onClose,
 }: JobLineChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [internalHoveredPersonId, setInternalHoveredPersonId] = useState<string | null>(null);
@@ -416,7 +414,7 @@ export const JobLineChart = React.memo(function JobLineChart({
         cursor: zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
       }}
     >
-      {/* Floating Figma Zoom Controls & Aligned Close Button */}
+      {/* Floating Figma Zoom Controls */}
       <div className="figma-chart-top-actions">
         <div className="figma-chart-zoom-controls">
           <button
@@ -450,17 +448,6 @@ export const JobLineChart = React.memo(function JobLineChart({
             </button>
           )}
         </div>
-
-        {onClose && (
-          <button
-            type="button"
-            className="figma-chart-close-btn"
-            onClick={onClose}
-            title="Tutup dialog"
-          >
-            <X size={14} strokeWidth={2.2} />
-          </button>
-        )}
       </div>
 
       <svg

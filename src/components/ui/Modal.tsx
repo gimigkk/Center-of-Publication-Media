@@ -8,6 +8,8 @@ interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: React.ReactNode;
+  subtitle?: React.ReactNode;
+  eyebrow?: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
   large?: boolean;
@@ -21,6 +23,8 @@ export function Modal({
   isOpen,
   onClose,
   title,
+  subtitle,
+  eyebrow,
   children,
   footer,
   large = false,
@@ -29,7 +33,7 @@ export function Modal({
   showHeader = true,
   showCloseButton = true,
 }: ModalProps) {
-  const { shouldRender, isClosing } = useAnimatePresence(isOpen, 110);
+  const { shouldRender, isClosing } = useAnimatePresence(isOpen, 140);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -57,17 +61,21 @@ export function Modal({
       >
         {showHeader && (
           <div className="modal-header">
-            <h3 className="modal-title">{title}</h3>
+            <div className="modal-title-group">
+              {eyebrow && <span className="modal-eyebrow">{eyebrow}</span>}
+              <h3 className="modal-title">{title}</h3>
+              {subtitle && <p className="modal-subtitle">{subtitle}</p>}
+            </div>
             {showCloseButton && (
               <button className="modal-close-btn" onClick={onClose} title="Tutup">
-                <X size={16} />
+                <X size={15} />
               </button>
             )}
           </div>
         )}
         {!showHeader && showCloseButton && (
           <button className="modal-close-btn modal-floating-close-btn" onClick={onClose} title="Tutup">
-            <X size={16} />
+            <X size={15} />
           </button>
         )}
         <div className="modal-body">{children}</div>

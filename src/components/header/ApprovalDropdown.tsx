@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, memo } from 'react';
 import { UserCheck, Check, X } from 'lucide-react';
 import { Profile, UserRole } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
+import { SimpleSelect } from '@/components/ui/Select';
 import { useSafeZone } from '@/hooks/useSafeZone';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
 import { getRelativeTime } from '@/lib/utils';
@@ -145,16 +146,17 @@ export const ApprovalDropdown = memo(function ApprovalDropdown({
                     <div className="approval-popover-item-bottom">
                       <div className="approval-popover-role-select-wrap">
                         <span className="approval-popover-role-label">Peran:</span>
-                        <select
-                          className="approval-popover-role-select"
+                        <SimpleSelect
+                          size="sm"
                           value={currentRole}
-                          onChange={(e) => handleRoleChange(user.id, e.target.value as UserRole)}
+                          onChange={(val) => handleRoleChange(user.id, val as UserRole)}
                           disabled={isProcessing}
-                        >
-                          <option value="requestor">Requester</option>
-                          <option value="designer">Desainer</option>
-                          <option value="admin">Admin</option>
-                        </select>
+                          options={[
+                            { value: 'requestor', label: 'Requester' },
+                            { value: 'designer', label: 'Desainer' },
+                            { value: 'admin', label: 'Admin' },
+                          ]}
+                        />
                       </div>
 
                       <div className="approval-popover-actions">

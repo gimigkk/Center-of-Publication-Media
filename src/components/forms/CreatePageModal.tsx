@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Page, Profile } from '@/types';
+import { AlertCircle } from 'lucide-react';
 
 interface CreatePageModalProps {
   isOpen: boolean;
@@ -48,6 +49,7 @@ export function CreatePageModal({
       isOpen={isOpen}
       onClose={onClose}
       title="Buat Halaman Ruang Kerja Baru"
+      subtitle="Buat ruang kerja atau papan baru untuk mengorganisir job desain tim"
       footer={
         <>
           <button type="button" className="btn-secondary" onClick={onClose} disabled={isSubmitting}>
@@ -66,8 +68,9 @@ export function CreatePageModal({
     >
       <form id="create-page-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {error && (
-          <div style={{ padding: '8px 12px', background: 'var(--accent-red-light)', color: 'var(--accent-red)', borderRadius: 'var(--radius-sm)', fontSize: '12px' }}>
-            {error}
+          <div className="modal-alert-error">
+            <AlertCircle size={14} style={{ flexShrink: 0 }} />
+            <span>{error}</span>
           </div>
         )}
 

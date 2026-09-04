@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { Profile } from '@/types';
 import { Modal } from '@/components/ui/Modal';
 import { Avatar } from '@/components/ui/Avatar';
-import { Camera, Check, Loader2 } from 'lucide-react';
+import { Camera, Check, Loader2, AlertCircle } from 'lucide-react';
 import { compressImageToAvatarDataUrl } from '@/lib/utils';
 import { uploadAvatarDataUrlToStorage } from '@/lib/storage';
 
@@ -104,8 +104,9 @@ export function EditProfileModal({
       isOpen={isOpen}
       onClose={onClose}
       title="Edit Profil Akun"
+      subtitle="Perbarui foto profil, nama lengkap, dan nomor kontak Anda"
       footer={
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', width: '100%' }}>
+        <>
           <button type="button" className="btn-secondary" onClick={onClose} disabled={isSubmitting}>
             Batal
           </button>
@@ -114,50 +115,33 @@ export function EditProfileModal({
             onClick={handleSubmit}
             className="btn-primary"
             disabled={isSubmitting}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
             {isSubmitting ? (
               <>
                 <Loader2 size={14} className="spin" />
-                Menyimpan...
+                <span>Menyimpan...</span>
               </>
             ) : (
               <>
                 <Check size={14} />
-                Simpan Perubahan
+                <span>Simpan Perubahan</span>
               </>
             )}
           </button>
-        </div>
+        </>
       }
     >
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {error && (
-          <div
-            style={{
-              padding: '8px 12px',
-              backgroundColor: '#fef2f2',
-              border: '1px solid #fecaca',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: '12px',
-              color: '#dc2626',
-            }}
-          >
-            {error}
+          <div className="modal-alert-error">
+            <AlertCircle size={14} style={{ flexShrink: 0 }} />
+            <span>{error}</span>
           </div>
         )}
 
         {/* Avatar Photo Editor */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '8px 0',
-          }}
-        >
-          <div style={{ position: 'relative' }}>
+        <div className="profile-avatar-section">
+          <div className="profile-avatar-wrap">
             <Avatar
               src={avatarPreview}
               name={fullName || currentUser.fullName}
@@ -171,22 +155,7 @@ export function EditProfileModal({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                right: 0,
-                width: '26px',
-                height: '26px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--accent-blue)',
-                color: '#fff',
-                border: '2px solid #fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                boxShadow: 'var(--shadow-xs)',
-              }}
+              className="profile-avatar-camera-btn"
               title="Ganti Foto"
             >
               <Camera size={13} />
@@ -234,7 +203,6 @@ export function EditProfileModal({
             className="form-input"
             value={currentUser.email}
             disabled
-            style={{ opacity: 0.7, backgroundColor: '#f8fafc', cursor: 'not-allowed' }}
           />
         </div>
 

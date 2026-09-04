@@ -156,7 +156,6 @@ textarea {
   color: inherit;
 }
 
-
 button {
   cursor: pointer;
   border: none;
@@ -168,12 +167,25 @@ button {
   transition: background-color 100ms ease, color 100ms ease, opacity 100ms ease;
 }
 
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid var(--border-focus);
-  outline-offset: 1px;
+/* Eliminate blue focus rings and outlines on mouse click across the entire app */
+*:focus {
+  outline: none;
+}
+
+*:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+button:focus:not(:focus-visible),
+[role="button"]:focus:not(:focus-visible),
+[tabindex]:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .user-avatar-img,

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Job, Profile } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
-import { Check, X, Loader2 } from 'lucide-react';
+import { Check, X, Loader2, AlertCircle } from 'lucide-react';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
 
 export interface AssignDesignerDropdownProps {
@@ -139,15 +139,9 @@ export function AssignDesignerDropdown({
 
       {/* Error Banner */}
       {error && (
-        <div style={{
-          padding: '6px 8px',
-          background: 'var(--accent-red-light)',
-          color: 'var(--accent-red-text)',
-          borderRadius: 'var(--radius-xs)',
-          fontSize: '11px',
-          fontWeight: 500,
-        }}>
-          {error}
+        <div className="modal-alert-error" style={{ padding: '6px 8px', fontSize: '11px' }}>
+          <AlertCircle size={13} style={{ flexShrink: 0 }} />
+          <span>{error}</span>
         </div>
       )}
 

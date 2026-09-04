@@ -44,6 +44,13 @@ export function useSafeZone({
     if (panel) rects.push(panel.getBoundingClientRect());
     if (secondaryPanel) rects.push(secondaryPanel.getBoundingClientRect());
 
+    const activePortals = document.querySelectorAll(
+      '.figma-select-content[data-state="open"], [data-radix-popper-content-wrapper]'
+    );
+    activePortals.forEach((p) => {
+      rects.push(p.getBoundingClientRect());
+    });
+
     if (rects.length === 0) return;
 
     boundsRef.current = {
@@ -74,6 +81,24 @@ export function useSafeZone({
     };
 
     const handlePointerMove = (e: PointerEvent) => {
+      // If a select dropdown or popper is currently open or hovered, do not auto-close
+      const isOverPortalled = Boolean(
+        (e.target as Element)?.closest?.(
+          '.figma-select-content, [data-radix-popper-content-wrapper], [data-radix-select-viewport]'
+        )
+      );
+      const isSelectOpen = Boolean(
+        document.querySelector('.figma-select-content[data-state="open"]')
+      );
+
+      if (isOverPortalled || isSelectOpen) {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+        return;
+      }
+
       if (!boundsRef.current) {
         updateBounds();
       }
@@ -111,7 +136,19 @@ export function useSafeZone({
       const panel = panelRef.current;
       const secondaryPanel = secondaryPanelRef?.current;
 
-      if (trigger?.contains(target) || panel?.contains(target) || secondaryPanel?.contains(target)) {
+      // Do not close if clicking inside an active portalled select dropdown
+      const isInsidePortalled = Boolean(
+        (target as Element)?.closest?.(
+          '.figma-select-content, [data-radix-popper-content-wrapper], [data-radix-select-viewport]'
+        )
+      );
+
+      if (
+        trigger?.contains(target) ||
+        panel?.contains(target) ||
+        secondaryPanel?.contains(target) ||
+        isInsidePortalled
+      ) {
         return;
       }
       onClose();

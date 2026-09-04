@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Division, Page, Profile } from '@/types';
 import { GOOGLE_DOCS_REGEX } from '@/lib/validations';
 import { GoogleDocsIcon } from '@/components/ui/GoogleDocsIcon';
+import { SimpleSelect } from '@/components/ui/Select';
 import { fetchGoogleDocTitleAction } from '@/app/actions/jobs';
 import { AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
@@ -37,7 +38,7 @@ export function JobFormModal({
   currentUser,
   onSubmitJob,
 }: JobFormModalProps) {
-  const { shouldRender, isClosing } = useAnimatePresence(isOpen, 110);
+  const { shouldRender, isClosing } = useAnimatePresence(isOpen, 140);
 
   // Default deadline set to 7 days in the future (H-7 minimum rule).
   // Snapshot once at mount so the value stays stable across re-renders.
@@ -237,7 +238,12 @@ export function JobFormModal({
         {/* Main Request Form Panel Card */}
         <div className="figma-detail-card modal-dual-form-card" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
-            <h3 className="modal-title">Ajukan Request Kreatif Baru</h3>
+            <div className="modal-title-group">
+              <h3 className="modal-title">Ajukan Request Kreatif Baru</h3>
+              <p className="modal-subtitle">
+                Isi detail kebutuhan desain untuk diproses ke dalam antrian board COPM
+              </p>
+            </div>
             <button className="modal-close-btn" onClick={onClose} title="Tutup">
               <X size={15} />
             </button>
@@ -246,7 +252,7 @@ export function JobFormModal({
           <div className="modal-body modal-form-body">
             <form id="job-submission-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '13px' }}>
               {error && (
-                <div style={{ padding: '8px 12px', background: 'var(--accent-red-light)', border: '1px solid #fca5a5', borderRadius: 'var(--radius-sm)', color: 'var(--accent-red)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div className="modal-alert-error">
                   <AlertCircle size={14} style={{ flexShrink: 0 }} />
                   <span>{error}</span>
                 </div>
@@ -319,18 +325,15 @@ export function JobFormModal({
                   <label className="form-label">
                     Divisi Requester <span className="required-star">*</span>
                   </label>
-                  <select
-                    className="form-select"
+                  <SimpleSelect
                     value={divisionId}
-                    onChange={(e) => setDivisionId(e.target.value)}
-                    required
-                  >
-                    {sortedDivisions.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setDivisionId}
+                    placeholder="Pilih divisi..."
+                    options={sortedDivisions.map((d) => ({
+                      value: d.id,
+                      label: d.name,
+                    }))}
+                  />
 
                 </div>
 

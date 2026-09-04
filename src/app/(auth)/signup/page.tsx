@@ -11,6 +11,7 @@ import { getDivisionsAction } from '@/app/actions/divisions';
 import { Division } from '@/types';
 import { Camera, AlertCircle, Clock, Check } from 'lucide-react';
 import { FullLogoIEEE } from '@/components/ui/FullLogoIEEE';
+import { SimpleSelect } from '@/components/ui/Select';
 import { compressImageToAvatarDataUrl } from '@/lib/utils';
 import '@/styles/auth.css';
 
@@ -338,18 +339,15 @@ export default function SignupPage() {
               <label className="form-label">
                 Divisi Requester <span className="required-star">*</span>
               </label>
-              <select
-                className="form-select"
+              <SimpleSelect
                 value={divisionId}
-                onChange={(e) => setDivisionId(e.target.value)}
-                required
-              >
-                {divisions.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setDivisionId}
+                placeholder="Pilih divisi..."
+                options={divisions.map((d) => ({
+                  value: d.id,
+                  label: d.name,
+                }))}
+              />
             </div>
           )}
 

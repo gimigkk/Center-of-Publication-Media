@@ -64,7 +64,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .archive-search-box {
@@ -77,12 +77,12 @@
   padding: 0 8px;
   height: 30px;
   width: 210px;
-  transition: border-color 100ms ease, box-shadow 100ms ease;
+  transition: border-color 100ms ease;
 }
 
 .archive-search-box:focus-within {
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 1px var(--border-focus);
+  border-color: rgba(0, 0, 0, 0.25);
+  box-shadow: none;
 }
 
 .archive-search-input {
@@ -99,24 +99,36 @@
 }
 
 /* Division select dropdown */
+.archive-select.figma-select-trigger,
 .archive-select {
   height: 30px;
-  background-color: var(--bg-surface);
+  width: 150px;
+  min-width: 130px;
+  flex-shrink: 0;
+  background-color: #ffffff;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   padding: 0 8px;
   font-size: 11.5px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   outline: none;
   cursor: pointer;
-  transition: border-color 100ms ease;
+  box-sizing: border-box;
+  transition: border-color 100ms ease, background-color 100ms ease;
 }
 
+.archive-select.figma-select-trigger:hover,
 .archive-select:hover {
-  border-color: rgba(0, 0, 0, 0.16);
+  border-color: rgba(0, 0, 0, 0.22);
   color: var(--text-primary);
+  background-color: #f8fafc;
 }
 
+.archive-select.figma-select-trigger:focus,
+.archive-select.figma-select-trigger[data-state="open"],
 .archive-select:focus-visible {
-  border-color: var(--border-focus);
+  background-color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.25);
+  box-shadow: none;
+  outline: none;
 }

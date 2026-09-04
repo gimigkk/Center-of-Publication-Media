@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { Job, Profile, Division } from '@/types';
 import { Search, Layers } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
+import { SimpleSelect } from '@/components/ui/Select';
 import {
   ArchiveTableHeader,
   SortField,
@@ -134,18 +135,16 @@ export const ArchiveTable = React.memo(function ArchiveTable({
             />
           </div>
 
-          <select
-            value={selectedDivision}
-            onChange={(e) => setSelectedDivision(e.target.value)}
+          <SimpleSelect
+            size="sm"
             className="archive-select"
-          >
-            <option value="all">Semua Divisi</option>
-            {sortedDivisions.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
+            value={selectedDivision}
+            onChange={setSelectedDivision}
+            options={[
+              { value: 'all', label: 'Semua Divisi' },
+              ...sortedDivisions.map((d) => ({ value: d.id, label: d.name })),
+            ]}
+          />
         </div>
       </div>
 

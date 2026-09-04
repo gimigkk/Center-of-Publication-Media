@@ -502,6 +502,7 @@ a.simple-profile-chip {
 
 .modal-stage-select {
   height: 28px;
+  min-width: 148px;
   padding: 0 8px;
   font-size: 11.5px;
   font-weight: 500;
@@ -514,12 +515,11 @@ a.simple-profile-chip {
   transition: all 120ms ease;
 }
 
-.modal-stage-select:hover {
-  border-color: rgba(0, 0, 0, 0.25);
+.modal-stage-select:hover,
+.modal-stage-select:focus,
+.modal-stage-select[data-state="open"] {
+  border-color: rgba(0, 0, 0, 0.28);
   color: var(--text-primary);
-}
-
-.modal-stage-select:focus {
-  border-color: var(--accent-purple);
-  box-shadow: 0 0 0 2px rgba(123, 44, 191, 0.12);
+  box-shadow: none;
+  outline: none;
 }

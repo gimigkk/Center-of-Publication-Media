@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, memo } from 'react';
 import { Plus, ListFilter, Shapes, Search, TrendingUp } from 'lucide-react';
 import { Profile, Division } from '@/types';
+import { SimpleSelect } from '@/components/ui/Select';
 import { useSafeZone } from '@/hooks/useSafeZone';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
 
@@ -110,18 +111,17 @@ export const FloatingToolbar = memo(function FloatingToolbar({
               {/* Division Select */}
               <div className="toolbar-filter-group">
                 <label className="toolbar-filter-label">Divisi</label>
-                <select
+                <SimpleSelect
+                  variant="dark"
+                  size="sm"
                   className="toolbar-select"
-                  value={filterDivision || ''}
-                  onChange={(e) => setFilterDivision(e.target.value || null)}
-                >
-                  <option value="">Semua Divisi</option>
-                  {divisions.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
+                  value={filterDivision || 'all'}
+                  onChange={(val) => setFilterDivision(val === 'all' ? null : val)}
+                  options={[
+                    { value: 'all', label: 'Semua Divisi' },
+                    ...divisions.map((d) => ({ value: d.id, label: d.name })),
+                  ]}
+                />
               </div>
             </div>
           )}

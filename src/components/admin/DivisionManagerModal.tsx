@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Division } from '@/types';
-import { Plus, Trash2, Edit2, Check, X, FolderTree } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, FolderTree, AlertCircle } from 'lucide-react';
 
 interface DivisionManagerModalProps {
   isOpen: boolean;
@@ -84,6 +84,7 @@ export function DivisionManagerModal({
       isOpen={isOpen}
       onClose={onClose}
       title="Kelola Divisi Requester"
+      subtitle="Konfigurasi daftar divisi Requester yang tersedia untuk formulir request COPM"
       large
       footer={
         <button className="btn-secondary" onClick={onClose}>
@@ -91,14 +92,11 @@ export function DivisionManagerModal({
         </button>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-          Divisi mengonfigurasi daftar tim Requester yang tersedia saat pengisian form request COPM.
-        </p>
-
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {error && (
-          <div style={{ padding: '8px 12px', background: 'var(--accent-red-light)', color: 'var(--accent-red)', borderRadius: 'var(--radius-sm)', fontSize: '12px' }}>
-            {error}
+          <div className="modal-alert-error">
+            <AlertCircle size={14} style={{ flexShrink: 0 }} />
+            <span>{error}</span>
           </div>
         )}
 
@@ -116,30 +114,18 @@ export function DivisionManagerModal({
             type="submit"
             className="btn-primary"
             disabled={!newDivName.trim() || isSubmitting}
-            style={{ whiteSpace: 'nowrap' }}
           >
-            <Plus size={14} style={{ marginRight: '4px' }} />
+            <Plus size={14} />
             <span>Tambah Divisi</span>
           </button>
         </form>
 
         {/* List of existing divisions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {divisions.map((div) => {
             const isEditing = editingId === div.id;
             return (
-              <div
-                key={div.id}
-                style={{
-                  padding: '10px 14px',
-                  border: '1px solid var(--border-default)',
-                  borderRadius: 'var(--radius-sm)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  background: 'var(--bg-surface)',
-                }}
-              >
+              <div key={div.id} className="modal-row-item">
                 {isEditing ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
                     <input
@@ -150,40 +136,43 @@ export function DivisionManagerModal({
                       autoFocus
                     />
                     <button
-                      className="btn-primary"
-                      style={{ padding: '6px 10px' }}
+                      type="button"
+                      className="modal-row-action-btn success"
                       onClick={() => handleSaveEdit(div.id)}
+                      title="Simpan"
                     >
-                      <Check size={14} />
+                      <Check size={13} />
                     </button>
                     <button
-                      className="btn-secondary"
-                      style={{ padding: '6px 10px' }}
+                      type="button"
+                      className="modal-row-action-btn"
                       onClick={() => setEditingId(null)}
+                      title="Batal"
                     >
-                      <X size={14} />
+                      <X size={13} />
                     </button>
                   </div>
                 ) : (
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <FolderTree size={15} color="var(--text-secondary)" />
-                      <span style={{ fontSize: '13px', fontWeight: 600 }}>{div.name}</span>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{div.name}</span>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <button
-                        className="modal-close-btn"
+                        type="button"
+                        className="modal-row-action-btn"
                         onClick={() => handleStartEdit(div)}
                         title="Ubah nama"
                       >
                         <Edit2 size={13} />
                       </button>
                       <button
-                        className="modal-close-btn"
+                        type="button"
+                        className="modal-row-action-btn danger"
                         onClick={() => handleDelete(div.id)}
                         title="Hapus"
-                        style={{ color: 'var(--accent-red)' }}
                       >
                         <Trash2 size={13} />
                       </button>
