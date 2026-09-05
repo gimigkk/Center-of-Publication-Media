@@ -107,6 +107,18 @@
   border-color: rgba(0, 0, 0, 0.14);
 }
 
+.division-manager-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 560px) {
+  .division-manager-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .modal-row-action-btn {
   display: inline-flex;
   align-items: center;

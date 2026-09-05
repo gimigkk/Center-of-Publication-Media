@@ -18,6 +18,7 @@ import {
   deletePageAction,
 } from '@/app/actions/pages';
 import {
+  getDivisionsAction,
   createDivisionAction,
   updateDivisionAction,
   deleteDivisionAction,
@@ -79,16 +80,20 @@ export function useBoardOperations({
   const router = useRouter();
   const activePageId = currentPage?.id || 'default-page';
 
-  // Load jobs when switching page
+  // Load jobs and divisions when switching page
   const handleSelectPage = useCallback(async (page: Page) => {
     setCurrentPage(page);
     try {
-      const pageJobs = await getJobsAction(page.id);
+      const [pageJobs, pageDivisions] = await Promise.all([
+        getJobsAction(page.id),
+        getDivisionsAction(page.id),
+      ]);
       setInitialJobs(pageJobs);
+      setDivisions(pageDivisions);
     } catch (e) {
       console.error('Failed to switch page:', e);
     }
-  }, [setCurrentPage, setInitialJobs]);
+  }, [setCurrentPage, setInitialJobs, setDivisions]);
 
   // Move Job Action Handler
   const handleMoveJob = useCallback(
@@ -280,17 +285,21 @@ export function useBoardOperations({
 
   // Page Handlers
   const handleCreatePage = useCallback(
-    async (name: string, description?: string) => {
-      const res = await createPageAction(name, description, currentUser?.id);
+    async (name: string, description?: string, divisionTemplate: 'event' | 'kabinet' | 'none' = 'event') => {
+      const res = await createPageAction(name, description, currentUser?.id, divisionTemplate);
       if (res.success && res.page) {
         setPages((prev) => [...prev, res.page!]);
         setCurrentPage(res.page!);
-        const pageJobs = await getJobsAction(res.page!.id);
+        const [pageJobs, pageDivisions] = await Promise.all([
+          getJobsAction(res.page!.id),
+          getDivisionsAction(res.page!.id),
+        ]);
         setInitialJobs(pageJobs);
+        setDivisions(pageDivisions);
       }
       return res;
     },
-    [currentUser?.id, setPages, setCurrentPage, setInitialJobs]
+    [currentUser?.id, setPages, setCurrentPage, setInitialJobs, setDivisions]
   );
 
   const handleRenamePage = useCallback(
@@ -327,13 +336,14 @@ export function useBoardOperations({
   // Division Handlers
   const handleCreateDivision = useCallback(
     async (name: string) => {
-      const res = await createDivisionAction(name);
+      if (!currentPage?.id) return { success: false, error: 'Halaman aktif tidak ditemukan' };
+      const res = await createDivisionAction(currentPage.id, name);
       if (res.success && res.division) {
         setDivisions((prev) => [...prev, res.division!]);
       }
       return res;
     },
-    [setDivisions]
+    [currentPage, setDivisions]
   );
 
   const handleUpdateDivision = useCallback(

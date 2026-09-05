@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
-import { Division } from '@/types';
-import { Plus, Trash2, Edit2, Check, X, FolderTree, AlertCircle } from 'lucide-react';
+import { Division, Page } from '@/types';
+import { Plus, Trash2, Edit2, Check, X, AlertCircle } from 'lucide-react';
 
 interface DivisionManagerModalProps {
   isOpen: boolean;
   onClose: () => void;
+  currentPage: Page;
   divisions: Division[];
   onCreateDivision: (name: string) => Promise<{ success: boolean; error?: string }>;
   onUpdateDivision: (id: string, name: string) => Promise<{ success: boolean; error?: string }>;
@@ -17,6 +18,7 @@ interface DivisionManagerModalProps {
 export function DivisionManagerModal({
   isOpen,
   onClose,
+  currentPage,
   divisions,
   onCreateDivision,
   onUpdateDivision,
@@ -83,9 +85,9 @@ export function DivisionManagerModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Kelola Divisi Requester"
-      subtitle="Konfigurasi daftar divisi Requester yang tersedia untuk formulir request COPM"
-      large
+      title="Kelola Divisi"
+      subtitle={`Konfigurasi daftar divisi Requester untuk ${currentPage.name}`}
+      maxWidth={640}
       footer={
         <button className="btn-secondary" onClick={onClose}>
           Tutup
@@ -105,7 +107,7 @@ export function DivisionManagerModal({
           <input
             type="text"
             className="form-input"
-            placeholder="Nama divisi baru (cth. Talent & Culture, Growth Marketing)..."
+            placeholder="Nama divisi baru (cth. Acara, Humas, Konsumsi)..."
             value={newDivName}
             onChange={(e) => setNewDivName(e.target.value)}
             required
@@ -120,68 +122,86 @@ export function DivisionManagerModal({
           </button>
         </form>
 
-        {/* List of existing divisions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {divisions.map((div) => {
-            const isEditing = editingId === div.id;
-            return (
-              <div key={div.id} className="modal-row-item">
-                {isEditing ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={editingName}
-                      onChange={(e) => setEditingName(e.target.value)}
-                      autoFocus
-                    />
-                    <button
-                      type="button"
-                      className="modal-row-action-btn success"
-                      onClick={() => handleSaveEdit(div.id)}
-                      title="Simpan"
-                    >
-                      <Check size={13} />
-                    </button>
-                    <button
-                      type="button"
-                      className="modal-row-action-btn"
-                      onClick={() => setEditingId(null)}
-                      title="Batal"
-                    >
-                      <X size={13} />
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <FolderTree size={15} color="var(--text-secondary)" />
-                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>{div.name}</span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        {/* List of existing divisions - 2 columns */}
+        <div className="division-manager-grid">
+          {divisions.length === 0 ? (
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '24px 16px', color: 'var(--text-secondary, #64748b)', fontSize: '13px' }}>
+              Belum ada divisi yang ditambahkan di halaman ini.
+            </div>
+          ) : (
+            divisions.map((div) => {
+              const isEditing = editingId === div.id;
+              return (
+                <div key={div.id} className="modal-row-item">
+                  {isEditing ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        style={{ height: '28px', padding: '4px 8px', fontSize: '12px' }}
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        className="modal-row-action-btn success"
+                        onClick={() => handleSaveEdit(div.id)}
+                        title="Simpan"
+                      >
+                        <Check size={13} />
+                      </button>
                       <button
                         type="button"
                         className="modal-row-action-btn"
-                        onClick={() => handleStartEdit(div)}
-                        title="Ubah nama"
+                        onClick={() => setEditingId(null)}
+                        title="Batal"
                       >
-                        <Edit2 size={13} />
-                      </button>
-                      <button
-                        type="button"
-                        className="modal-row-action-btn danger"
-                        onClick={() => handleDelete(div.id)}
-                        title="Hapus"
-                      >
-                        <Trash2 size={13} />
+                        <X size={13} />
                       </button>
                     </div>
-                  </>
-                )}
-              </div>
-            );
-          })}
+                  ) : (
+                    <>
+                      <span
+                        style={{
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          color: '#0f172a',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          minWidth: 0,
+                          flex: 1,
+                        }}
+                        title={div.name}
+                      >
+                        {div.name}
+                      </span>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                        <button
+                          type="button"
+                          className="modal-row-action-btn"
+                          onClick={() => handleStartEdit(div)}
+                          title="Ubah nama"
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          className="modal-row-action-btn danger"
+                          onClick={() => handleDelete(div.id)}
+                          title="Hapus"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </Modal>

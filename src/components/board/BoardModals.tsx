@@ -126,6 +126,7 @@ export function BoardModals({
       <DivisionManagerModal
         isOpen={isDivisionsOpen}
         onClose={onCloseDivisions}
+        currentPage={currentPage}
         divisions={divisions}
         onCreateDivision={onCreateDivision}
         onUpdateDivision={onUpdateDivision}

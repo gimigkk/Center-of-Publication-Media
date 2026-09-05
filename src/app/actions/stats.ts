@@ -90,7 +90,11 @@ export async function getJobCompletionStatsAction(
   if (!db) return [];
 
   try {
-    const [users, divisions] = await Promise.all([getAllUsersAction(), getDivisionsAction()]);
+    const targetPageId = pageId && pageId !== 'all' ? pageId : undefined;
+    const [users, divisions] = await Promise.all([
+      getAllUsersAction(),
+      getDivisionsAction(targetPageId),
+    ]);
     const userMap = new Map(users.map((u) => [u.id, u]));
     const divMap = new Map(divisions.map((d) => [d.id, d.name]));
 

@@ -74,7 +74,7 @@ export async function createJobAction(formData: {
   }
 
   const users = await getAllUsersAction();
-  const divisions = await getDivisionsAction();
+  const divisions = await getDivisionsAction(pageId);
   const userMap = new Map(users.map((u) => [u.id, u]));
   const divMap = new Map(divisions.map((d) => [d.id, d.name]));
 

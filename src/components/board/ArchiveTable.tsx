@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Job, Profile, Division } from '@/types';
 import { Search, Layers } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
@@ -47,6 +47,13 @@ export const ArchiveTable = React.memo(function ArchiveTable({
       a.name.localeCompare(b.name, 'id', { sensitivity: 'base' })
     );
   }, [divisions]);
+
+  // Auto-reset division filter if not present in current page divisions
+  useEffect(() => {
+    if (selectedDivision !== 'all' && !divisions.some((d) => d.id === selectedDivision)) {
+      setSelectedDivision('all');
+    }
+  }, [divisions, selectedDivision]);
 
   // Filter archived jobs
   const filteredJobs = useMemo(() => {
@@ -169,9 +176,6 @@ export const ArchiveTable = React.memo(function ArchiveTable({
                 <tr>
                   <td colSpan={7}>
                     <div className="archive-empty-state">
-                      <div className="archive-empty-icon">
-                        <Layers size={18} />
-                      </div>
                       <span className="archive-empty-text">Tidak ada request yang diarsipkan</span>
                       <span className="archive-empty-subtext">
                         {searchQuery || selectedDivision !== 'all'
@@ -194,9 +198,6 @@ export const ArchiveTable = React.memo(function ArchiveTable({
 
           {sortedJobs.length === 0 && (
             <div className="archive-empty-state">
-              <div className="archive-empty-icon">
-                <Layers size={18} />
-              </div>
               <span className="archive-empty-text">Tidak ada request yang diarsipkan</span>
               <span className="archive-empty-subtext">
                 {searchQuery || selectedDivision !== 'all'

@@ -95,7 +95,7 @@ export function useRealtimeWorkspaceSync({
   // Sync divisions
   const syncDivisions = useCallback(async () => {
     try {
-      const divs = await getDivisionsAction();
+      const divs = await getDivisionsAction(activePageIdRef.current);
       setDivisions(divs);
     } catch (err) {
       console.error('Failed to sync divisions:', err);

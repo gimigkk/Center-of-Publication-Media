@@ -24,6 +24,7 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
     const store = getMockStore();
     const currentPage = store.pages[0] || null;
     const initialJobs = currentPage ? store.jobs.filter((j) => j.pageId === currentPage.id) : store.jobs;
+    const initialDivisions = currentPage ? store.divisions.filter((d) => d.pageId === currentPage.id) : store.divisions;
     const pendingUsers = store.users.filter((u) => !u.isApproved);
     const designers = store.users.filter((u) => u.isApproved && (u.role === 'designer' || u.role === 'admin'));
     const designerSuggestions = designers
@@ -43,7 +44,7 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
       allUsers: store.users,
       pages: store.pages,
       currentPage,
-      divisions: store.divisions,
+      divisions: initialDivisions,
       initialJobs,
       pendingUsers,
       designerSuggestions,
@@ -160,16 +161,18 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
       updatedAt: r.updatedAt.toISOString(),
     }));
 
+    const currentPage = pages[0] || null;
+
     const divisions: Division[] = divisionsRecords
+      .filter((d) => (currentPage ? d.pageId === currentPage.id : true))
       .map((d) => ({
         id: d.id,
+        pageId: d.pageId,
         name: d.name,
         createdAt: d.createdAt.toISOString(),
         updatedAt: d.updatedAt.toISOString(),
       }))
       .sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
-
-    const currentPage = pages[0] || null;
 
     const [pageJobsRecords, workloadRows, allJobDesignersRecords] = await Promise.all([
       currentPage

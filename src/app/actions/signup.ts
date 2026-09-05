@@ -210,14 +210,7 @@ export async function createSignupAction(input: SignupInput): Promise<SignupResu
       .from(schema.profiles)
       .where(eq(schema.profiles.id, authUser.id));
 
-    let divisionId = input.divisionId?.trim() || existing?.divisionId || null;
-    if (!divisionId) {
-      const [creative] = await db
-        .select()
-        .from(schema.divisions)
-        .where(eq(schema.divisions.name, 'Creative & Marketing'));
-      divisionId = creative?.id || null;
-    }
+    const divisionId = input.divisionId?.trim() || existing?.divisionId || null;
 
     const values = {
       email: existing?.email || email,

@@ -45,6 +45,13 @@ export const FloatingToolbar = memo(function FloatingToolbar({
 
   const hasActiveFilters = Boolean(filterDivision || filterSearch.trim());
 
+  // Auto-reset filter if selected division is not in current page
+  useEffect(() => {
+    if (filterDivision && !divisions.some((d) => d.id === filterDivision)) {
+      setFilterDivision(null);
+    }
+  }, [divisions, filterDivision, setFilterDivision]);
+
   // Safe-zone cursor tracking: auto-dismiss if cursor leaves safe corridor/envelope
   useSafeZone({
     isOpen: isFilterOpen,

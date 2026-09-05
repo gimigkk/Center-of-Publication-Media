@@ -53,14 +53,18 @@ export function JobFormModal({
   const [description, setDescription] = useState('');
   const [briefLink, setBriefLink] = useState('');
   const [briefTitle, setBriefTitle] = useState<string | null>(null);
-  const [divisionId, setDivisionId] = useState(
-    currentUser.divisionId || (divisions[0]?.id ?? '')
-  );
+  const [selectedDivisionId, setSelectedDivisionId] = useState('');
+
   const [publicationMedia, setPublicationMedia] = useState('');
   const [deadline, setDeadline] = useState(minDateStr);
   const sortedDivisions = useMemo(() => {
     return [...divisions].sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
   }, [divisions]);
+
+  // Derive active division ID without calling setState in an effect
+  const activeDivisionId = sortedDivisions.some((d) => d.id === selectedDivisionId)
+    ? selectedDivisionId
+    : (sortedDivisions[0]?.id ?? '');
 
   const [hasAgreedToRules, setHasAgreedToRules] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,7 +123,7 @@ export function JobFormModal({
       return;
     }
 
-    if (!divisionId) {
+    if (!activeDivisionId) {
       setError('Silakan pilih divisi Requester Anda');
       return;
     }
@@ -145,7 +149,7 @@ export function JobFormModal({
         description: description.trim() || undefined,
         briefLink: briefLink.trim(),
         briefTitle: effectiveBriefTitle || undefined,
-        divisionId,
+        divisionId: activeDivisionId,
         publicationMedia: publicationMedia.trim(),
         deadline: new Date(deadline).toISOString(),
         requestorId: currentUser.id,
@@ -342,8 +346,8 @@ export function JobFormModal({
                     Divisi Requester <span className="required-star">*</span>
                   </label>
                   <SimpleSelect
-                    value={divisionId}
-                    onChange={setDivisionId}
+                    value={activeDivisionId}
+                    onChange={setSelectedDivisionId}
                     placeholder="Pilih divisi..."
                     options={sortedDivisions.map((d) => ({
                       value: d.id,

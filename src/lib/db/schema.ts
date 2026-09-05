@@ -1,16 +1,9 @@
-import { pgTable, text, timestamp, boolean, integer, uuid, pgEnum, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, integer, uuid, pgEnum, index, uniqueIndex, type AnyPgColumn } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 export const userRoleEnum = pgEnum('user_role', ['requestor', 'designer', 'admin']);
 export const jobStatusEnum = pgEnum('job_status', ['in_queue', 'wip', 'revisions', 'done']);
 export const deliverableStatusEnum = pgEnum('deliverable_status', ['pending', 'ready']);
-
-export const divisions = pgTable('divisions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  name: text('name').notNull().unique(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
 
 export const profiles = pgTable('profiles', {
   id: uuid('id').primaryKey(), // mirrors auth.users.id
@@ -19,7 +12,7 @@ export const profiles = pgTable('profiles', {
   phoneNumber: text('phone_number'),
   avatarUrl: text('avatar_url'),
   role: userRoleEnum('role').default('requestor').notNull(),
-  divisionId: uuid('division_id').references(() => divisions.id, { onDelete: 'set null' }),
+  divisionId: uuid('division_id').references((): AnyPgColumn => divisions.id, { onDelete: 'set null' }),
   isApproved: boolean('is_approved').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -46,7 +39,6 @@ export const loginAttempts = pgTable(
   ]
 );
 
-
 export const pages = pgTable('pages', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
@@ -55,6 +47,23 @@ export const pages = pgTable('pages', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const divisions = pgTable(
+  'divisions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    pageId: uuid('page_id')
+      .references(() => pages.id, { onDelete: 'cascade' })
+      .notNull(),
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('divisions_page_name_idx').on(table.pageId, table.name),
+    index('divisions_page_id_idx').on(table.pageId),
+  ]
+);
 
 export const jobs = pgTable('jobs', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -117,7 +126,11 @@ export const jobActivity = pgTable('job_activity', {
   index('job_activity_job_created_at_idx').on(table.jobId, table.createdAt),
 ]);
 
-export const divisionsRelations = relations(divisions, ({ many }) => ({
+export const divisionsRelations = relations(divisions, ({ one, many }) => ({
+  page: one(pages, {
+    fields: [divisions.pageId],
+    references: [pages.id],
+  }),
   profiles: many(profiles),
   jobs: many(jobs),
 }));
@@ -151,6 +164,7 @@ export const pagesRelations = relations(pages, ({ one, many }) => ({
     fields: [pages.createdBy],
     references: [profiles.id],
   }),
+  divisions: many(divisions),
   jobs: many(jobs),
 }));
 

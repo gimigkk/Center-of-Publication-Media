@@ -1,29 +1,24 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { signUpUserAction } from '@/app/actions/auth';
 import { createSignupAction } from '@/app/actions/signup';
 import type { LoginDiagnostic } from '@/lib/login-attempts';
-import { getDivisionsAction } from '@/app/actions/divisions';
-import { Division } from '@/types';
 import { Camera, AlertCircle, Clock, Check } from 'lucide-react';
 import { FullLogoIEEE } from '@/components/ui/FullLogoIEEE';
-import { SimpleSelect } from '@/components/ui/Select';
 import { compressImageToAvatarDataUrl } from '@/lib/utils';
 import '@/styles/auth.css';
 
 export default function SignupPage() {
   const router = useRouter();
-  const [divisions, setDivisions] = useState<Division[]>([]);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'requestor' | 'designer'>('designer');
-  const [divisionId, setDivisionId] = useState('');
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [error, setError] = useState<LoginDiagnostic | null>(null);
   const [isSubmittedPending, setIsSubmittedPending] = useState(false);
@@ -36,15 +31,6 @@ export default function SignupPage() {
   const handleExistingAccount = () => {
     window.location.href = `/login?email=${encodeURIComponent(email.trim().toLowerCase())}`;
   };
-
-  useEffect(() => {
-    getDivisionsAction().then((divs) => {
-      const sorted = [...divs].sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
-      setDivisions(sorted);
-      if (sorted.length > 0) setDivisionId(sorted[0].id);
-    });
-  }, []);
-
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -90,10 +76,6 @@ export default function SignupPage() {
       setSignupError('Foto profil wajib diunggah untuk avatar kartu & kursor kolaborator.', 'signup_avatar_upload', 'AVATAR_REQUIRED');
       return;
     }
-    if (role === 'requestor' && divisions.length > 0 && (!divisionId || divisionId.trim() === '')) {
-      setSignupError('Harap pilih divisi Requester Anda', 'signup_validation', 'DIVISION_REQUIRED');
-      return;
-    }
 
     setIsSubmitting(true);
     try {
@@ -103,7 +85,6 @@ export default function SignupPage() {
         password,
         phoneNumber: cleanPhoneNumber,
         role,
-        divisionId: role === 'requestor' ? (divisionId || divisions[0]?.id) : undefined,
         avatarDataUrl: avatarPreview,
       });
       if (!result.success) {
@@ -332,24 +313,6 @@ export default function SignupPage() {
               </button>
             </div>
           </div>
-
-          {/* Division (if Requestor) */}
-          {role === 'requestor' && divisions.length > 0 && (
-            <div className="form-group">
-              <label className="form-label">
-                Divisi Requester <span className="required-star">*</span>
-              </label>
-              <SimpleSelect
-                value={divisionId}
-                onChange={setDivisionId}
-                placeholder="Pilih divisi..."
-                options={divisions.map((d) => ({
-                  value: d.id,
-                  label: d.name,
-                }))}
-              />
-            </div>
-          )}
 
           <button
             type="submit"

@@ -19,7 +19,7 @@ export async function getJobsAction(pageId: string): Promise<Job[]> {
 
   if (!db) return [];
 
-  const [users, divisions] = await Promise.all([getAllUsersAction(), getDivisionsAction()]);
+  const [users, divisions] = await Promise.all([getAllUsersAction(), getDivisionsAction(pageId)]);
 
   const userMap = new Map(users.map((u) => [u.id, u]));
   const divMap = new Map(divisions.map((d) => [d.id, d.name]));

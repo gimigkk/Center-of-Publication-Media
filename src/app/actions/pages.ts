@@ -6,6 +6,8 @@ import { revalidatePath } from 'next/cache';
 import { Page } from '@/types';
 import { requireAdmin } from '@/lib/auth-guard';
 import { isMockEnabled, getMockStore } from '@/lib/mock-store';
+import { createDefaultDivisionsAction } from './divisions';
+import { EVENT_DIVISION_TEMPLATES, KABINET_DIVISION_TEMPLATES } from '@/lib/division-templates';
 
 export async function getPagesAction(): Promise<Page[]> {
   if (isMockEnabled()) {
@@ -37,7 +39,8 @@ export async function getPageAction(pageId: string): Promise<Page | null> {
 export async function createPageAction(
   name: string,
   description?: string,
-  userId?: string
+  userId?: string,
+  divisionTemplate: 'event' | 'kabinet' | 'none' = 'event'
 ): Promise<{ success: boolean; page?: Page; error?: string }> {
   try {
     const admin = await requireAdmin();
@@ -53,8 +56,9 @@ export async function createPageAction(
 
   if (isMockEnabled()) {
     const store = getMockStore();
+    const newPageId = `page-${Date.now()}`;
     const newPage: Page = {
-      id: `page-${Date.now()}`,
+      id: newPageId,
       name: trimmed,
       description: description?.trim() || null,
       createdBy: userId || 'mock-user-admin-1',
@@ -62,6 +66,20 @@ export async function createPageAction(
       updatedAt: new Date().toISOString(),
     };
     store.pages.push(newPage);
+
+    if (divisionTemplate !== 'none') {
+      const templateNames = divisionTemplate === 'kabinet' ? KABINET_DIVISION_TEMPLATES : EVENT_DIVISION_TEMPLATES;
+      templateNames.forEach((divName, idx) => {
+        store.divisions.push({
+          id: `div-${Date.now()}-${idx}`,
+          pageId: newPageId,
+          name: divName,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      });
+    }
+
     return { success: true, page: newPage };
   }
 
@@ -78,6 +96,14 @@ export async function createPageAction(
         createdBy: userId,
       })
       .returning();
+
+    if (divisionTemplate !== 'none') {
+      try {
+        await createDefaultDivisionsAction(inserted.id, divisionTemplate);
+      } catch (err) {
+        console.warn('Could not auto-seed divisions for new page:', err);
+      }
+    }
 
     revalidatePath('/');
     return {

@@ -4,6 +4,7 @@ export type JobStatus = 'in_queue' | 'wip' | 'revisions' | 'done';
 
 export interface Division {
   id: string;
+  pageId: string;
   name: string;
   createdAt: string;
   updatedAt: string;
