@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import '@/styles/globals.css';
 import '@/styles/header.css';
 import '@/styles/board.css';
@@ -7,6 +7,12 @@ import '@/styles/toolbar.css';
 import '@/styles/modal.css';
 import '@/styles/cursors.css';
 import '@/styles/archive.css';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
 
 export const metadata: Metadata = {
   title: 'COPM - Platform Manajemen Operasional Kreatif',
