@@ -196,3 +196,74 @@
   color: #18181b;
   line-height: 1.4;
 }
+
+/* Rules Sidebar Footer & Brief Template Card */
+.copm-rules-sidebar-footer {
+  padding: 10px 12px;
+  background-color: #f8fafc;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  margin-top: auto;
+}
+
+.copm-rules-template-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: inherit;
+  transition: all 120ms ease;
+  cursor: pointer;
+}
+
+.copm-rules-template-card:hover {
+  border-color: #bae6fd;
+  background-color: #f8fafc;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.copm-rules-template-card:hover .copm-rules-template-icon {
+  color: #0284c7;
+}
+
+.copm-rules-template-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.copm-rules-template-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.copm-rules-template-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.copm-rules-template-desc {
+  font-size: 10px;
+  color: #64748b;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.copm-rules-template-icon {
+  color: #94a3b8;
+  flex-shrink: 0;
+  transition: color 120ms ease;
+}

@@ -3,6 +3,10 @@ import { z } from 'zod';
 // Google Docs only URL regex
 export const GOOGLE_DOCS_REGEX = /^https:\/\/docs\.google\.com\/document\/(d\/[a-zA-Z0-9-_]+|u\/\d+\/d\/[a-zA-Z0-9-_]+)/;
 
+// Standard brief template URL for requesters to copy & fill
+export const BRIEF_TEMPLATE_URL =
+  'https://docs.google.com/document/d/1ixdNU2R3edRer37ElOobDLvvKpiw3BmeqXKwUElp6Fg/edit?usp=sharing';
+
 export const jobFormSchema = z.object({
   title: z.string().min(3, 'Judul job minimal harus 3 karakter').max(120, 'Judul job terlalu panjang'),
   description: z.string().optional(),

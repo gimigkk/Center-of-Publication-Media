@@ -4,11 +4,11 @@ import { useState, useEffect, useMemo } from 'react';
 
 
 import { Division, Page, Profile } from '@/types';
-import { GOOGLE_DOCS_REGEX } from '@/lib/validations';
+import { GOOGLE_DOCS_REGEX, BRIEF_TEMPLATE_URL } from '@/lib/validations';
 import { GoogleDocsIcon } from '@/components/ui/GoogleDocsIcon';
 import { SimpleSelect } from '@/components/ui/Select';
 import { fetchGoogleDocTitleAction } from '@/app/actions/jobs';
-import { AlertCircle, CheckCircle2, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ExternalLink, X } from 'lucide-react';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
 
 interface JobFormModalProps {
@@ -233,6 +233,25 @@ export function JobFormModal({
               </div>
             </div>
           </div>
+
+          <div className="copm-rules-sidebar-footer">
+            <a
+              href={BRIEF_TEMPLATE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="copm-rules-template-card"
+              title="Buka Template Brief Google Docs"
+            >
+              <div className="copm-rules-template-info">
+                <GoogleDocsIcon size={24} />
+                <div className="copm-rules-template-text">
+                  <span className="copm-rules-template-title">Template Brief</span>
+                  <span className="copm-rules-template-desc">Salin format resmi untuk request</span>
+                </div>
+              </div>
+              <ExternalLink size={14} className="copm-rules-template-icon" />
+            </a>
+          </div>
         </div>
 
         {/* Main Request Form Panel Card */}
@@ -315,9 +334,6 @@ export function JobFormModal({
                     <span>Judul Dokumen: <strong>{effectiveBriefTitle}</strong></span>
                   </div>
                 )}
-                {/* <span className="form-help">
-                  Hanya URL Google Docs yang diterima sesuai standar organisasi.
-                </span> */}
               </div>
 
               <div className="form-row-dual">
