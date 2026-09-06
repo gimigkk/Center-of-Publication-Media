@@ -150,7 +150,7 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
       }
     }
 
-    if (!currentUser) return null;
+    if (!currentUser || !currentUser.isApproved) return null;
 
     const pages: Page[] = pagesRecords.map((r) => ({
       id: r.id,

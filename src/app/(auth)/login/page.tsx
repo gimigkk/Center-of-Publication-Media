@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, Suspense } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { loginAction } from '@/app/actions/login';
 import { useSearchParams } from 'next/navigation';
 import type { LoginDiagnostic } from '@/lib/login-attempts';

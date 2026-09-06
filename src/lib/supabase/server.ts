@@ -1,4 +1,4 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export async function createServerSupabaseClient() {
@@ -15,37 +15,28 @@ export async function createServerSupabaseClient() {
 
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
-      get(name: string) {
+      getAll() {
         if (cookieStore) {
-          try {
-            return cookieStore.get(name)?.value;
-          } catch {
-            return memoryCookies.get(name);
-          }
+          return cookieStore.getAll();
         }
-        return memoryCookies.get(name);
+        return Array.from(memoryCookies.entries()).map(([name, value]) => ({ name, value }));
       },
-      set(name: string, value: string, options: CookieOptions) {
+      setAll(cookiesToSet) {
         if (cookieStore) {
           try {
-            cookieStore.set({ name, value, ...options });
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore!.set(name, value, options);
+            });
           } catch {
-            // Handled if called from a Server Component or outside request
+            // Handled if called from a Server Component (where cookies are read-only)
+            cookiesToSet.forEach(({ name, value }) => {
+              memoryCookies.set(name, value);
+            });
+          }
+        } else {
+          cookiesToSet.forEach(({ name, value }) => {
             memoryCookies.set(name, value);
-          }
-        } else {
-          memoryCookies.set(name, value);
-        }
-      },
-      remove(name: string, options: CookieOptions) {
-        if (cookieStore) {
-          try {
-            cookieStore.set({ name, value: '', ...options });
-          } catch {
-            memoryCookies.delete(name);
-          }
-        } else {
-          memoryCookies.delete(name);
+          });
         }
       },
     },

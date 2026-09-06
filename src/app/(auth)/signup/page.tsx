@@ -2,9 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { signUpUserAction } from '@/app/actions/auth';
 import { createSignupAction } from '@/app/actions/signup';
 import type { LoginDiagnostic } from '@/lib/login-attempts';
 import { Camera, AlertCircle, Clock, Check } from 'lucide-react';
@@ -13,7 +11,6 @@ import { compressImageToAvatarDataUrl } from '@/lib/utils';
 import '@/styles/auth.css';
 
 export default function SignupPage() {
-  const router = useRouter();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -89,6 +86,11 @@ export default function SignupPage() {
       });
       if (!result.success) {
         setError(result.diagnostic);
+        return;
+      }
+
+      if (result.profile && !result.profile.isApproved) {
+        setIsSubmittedPending(true);
         return;
       }
 

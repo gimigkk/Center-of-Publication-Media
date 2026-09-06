@@ -298,7 +298,28 @@ export function useCursors(
     window.addEventListener('blur', broadcastCursorLeave);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
+    // 4. Heartbeat pruning: automatically clean up zombie cursors and remote drag locks inactive for > 8s
+    const staleInterval = setInterval(() => {
+      const now = Date.now();
+      setCursors((prev) => {
+        let changed = false;
+        const next = new Map(prev);
+        for (const [id, cursor] of next.entries()) {
+          if (now - cursor.lastUpdated > 8000) {
+            next.delete(id);
+            changed = true;
+          }
+        }
+        if (changed) {
+          updateDraggedJobIds(next);
+          return next;
+        }
+        return prev;
+      });
+    }, 4000);
+
     return () => {
+      clearInterval(staleInterval);
       broadcastCursorLeave();
       window.removeEventListener('pointermove', handlePointerMove);
       document.documentElement.removeEventListener('mouseleave', handleMouseLeave);
