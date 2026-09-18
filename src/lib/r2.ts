@@ -67,8 +67,12 @@ function getClient(endpoint: string, accessKeyId: string, secretAccessKey: strin
   return client;
 }
 
-export function createDeliverableKey(jobId: string, uploadId: string): string {
-  return `jobs/${jobId}/deliverables/${uploadId}.jpg`;
+export function createDeliverableKey(jobId: string, uploadId: string, extension = 'jpg'): string {
+  const cleanExt = extension.toLowerCase().replace(/^\./, '');
+  let ext = 'jpg';
+  if (cleanExt === 'png') ext = 'png';
+  else if (cleanExt === 'pdf') ext = 'pdf';
+  return `jobs/${jobId}/deliverables/${uploadId}.${ext}`;
 }
 
 export function createDeliverablePreviewKey(storageKey: string): string {
@@ -76,19 +80,19 @@ export function createDeliverablePreviewKey(storageKey: string): string {
 }
 
 export function isDeliverableKeyForJob(key: string, jobId: string): boolean {
-  return new RegExp(`^jobs/${escapeRegExp(jobId)}/deliverables/[0-9a-f-]{36}\\.jpe?g$`, 'i').test(key);
+  return new RegExp(`^jobs/${escapeRegExp(jobId)}/deliverables/[0-9a-f-]{36}\\.(jpe?g|png|pdf)$`, 'i').test(key);
 }
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-async function createImageUploadUrl(key: string): Promise<string> {
+async function createUploadUrl(key: string, contentType = 'image/jpeg'): Promise<string> {
   const config = getR2Config();
   const command = new PutObjectCommand({
     Bucket: config.bucket,
     Key: key,
-    ContentType: 'image/jpeg',
+    ContentType: contentType,
   });
 
   return getSignedUrl(getClient(config.endpoint, config.accessKeyId, config.secretAccessKey), command, {
@@ -96,12 +100,12 @@ async function createImageUploadUrl(key: string): Promise<string> {
   });
 }
 
-export async function createDeliverableUploadUrl(key: string): Promise<string> {
-  return createImageUploadUrl(key);
+export async function createDeliverableUploadUrl(key: string, contentType = 'image/jpeg'): Promise<string> {
+  return createUploadUrl(key, contentType);
 }
 
 export async function createDeliverablePreviewUploadUrl(key: string): Promise<string> {
-  return createImageUploadUrl(createDeliverablePreviewKey(key));
+  return createUploadUrl(createDeliverablePreviewKey(key), 'image/jpeg');
 }
 
 export async function hasDeliverableObject(key: string): Promise<boolean> {
@@ -124,25 +128,49 @@ export async function inspectDeliverable(key: string) {
     new GetObjectCommand({
       Bucket: config.bucket,
       Key: key,
-      Range: 'bytes=0-2',
+      Range: 'bytes=0-7',
     })
   );
   const bytes = firstBytes.Body ? await firstBytes.Body.transformToByteArray() : new Uint8Array();
 
+  const isJpeg = bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  const isPng =
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a;
+  const isPdf =
+    bytes.length >= 5 &&
+    bytes[0] === 0x25 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x44 &&
+    bytes[3] === 0x46 &&
+    bytes[4] === 0x2d;
+
   return {
     sizeBytes: head.ContentLength || 0,
     contentType: head.ContentType || '',
-    isJpeg: bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff,
+    isJpeg,
+    isPng,
+    isPdf,
   };
 }
 
 export async function createDeliverableDownloadUrl(key: string, filename: string): Promise<string> {
   const config = getR2Config();
-  const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_') || 'deliverable.jpg';
+  const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_') || 'deliverable';
+  const isPng = /\.png$/i.test(safeFilename) || /\.png$/i.test(key);
+  const isPdf = /\.pdf$/i.test(safeFilename) || /\.pdf$/i.test(key);
+  const responseContentType = isPdf ? 'application/pdf' : isPng ? 'image/png' : 'image/jpeg';
   const command = new GetObjectCommand({
     Bucket: config.bucket,
     Key: key,
-    ResponseContentType: 'image/jpeg',
+    ResponseContentType: responseContentType,
     ResponseContentDisposition: `attachment; filename="${safeFilename}"`,
     ResponseCacheControl: 'public, max-age=31536000, immutable',
   });
@@ -152,12 +180,15 @@ export async function createDeliverableDownloadUrl(key: string, filename: string
   });
 }
 
-async function createImagePreviewUrl(key: string): Promise<string> {
+async function createPreviewUrl(key: string): Promise<string> {
   const config = getR2Config();
+  const isPng = /\.png$/i.test(key);
+  const isPdf = /\.pdf$/i.test(key);
+  const responseContentType = isPdf ? 'application/pdf' : isPng ? 'image/png' : 'image/jpeg';
   const command = new GetObjectCommand({
     Bucket: config.bucket,
     Key: key,
-    ResponseContentType: 'image/jpeg',
+    ResponseContentType: responseContentType,
     ResponseContentDisposition: 'inline',
     ResponseCacheControl: 'public, max-age=31536000, immutable',
   });
@@ -168,11 +199,11 @@ async function createImagePreviewUrl(key: string): Promise<string> {
 }
 
 export async function createDeliverablePreviewUrl(key: string): Promise<string> {
-  return createImagePreviewUrl(key);
+  return createPreviewUrl(key);
 }
 
 export async function createDeliverableThumbnailUrl(key: string): Promise<string> {
-  return createImagePreviewUrl(key);
+  return createPreviewUrl(key);
 }
 
 export async function deleteDeliverableObject(key: string): Promise<void> {

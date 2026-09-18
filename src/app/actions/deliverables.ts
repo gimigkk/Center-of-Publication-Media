@@ -23,8 +23,8 @@ import { isMockEnabled } from '@/lib/mock-store';
 
 const MAX_DELIVERABLE_SIZE = 15 * 1024 * 1024;
 const uploadInputSchema = z.object({
-  filename: z.string().trim().min(1).max(255).regex(/\.(jpe?g)$/i, 'File harus berformat JPG atau JPEG'),
-  mimeType: z.literal('image/jpeg'),
+  filename: z.string().trim().min(1).max(255).regex(/\.(jpe?g|png|pdf)$/i, 'File harus berformat JPG, PNG, atau PDF'),
+  mimeType: z.enum(['image/jpeg', 'image/png', 'application/pdf']),
   sizeBytes: z.number().int().positive().max(MAX_DELIVERABLE_SIZE),
 });
 
@@ -109,7 +109,7 @@ async function getAuthorizedJob(jobId: string, mode: 'read' | 'upload', timings?
 
   if (mode === 'read' && !canRead) return { error: 'Anda tidak memiliki akses ke deliverable ini' } as const;
   if (mode === 'upload' && !canUpload) {
-    return { error: 'Hanya editor yang ditugaskan atau admin yang dapat mengunggah JPG saat job aktif' } as const;
+    return { error: 'Hanya editor yang ditugaskan atau admin yang dapat mengunggah hasil desain saat job aktif' } as const;
   }
 
   return { user, job } as const;
@@ -207,7 +207,7 @@ export async function initiateDeliverableUploadAction(
   if (isMockEnabled()) return unavailableInMock();
 
   const parsed = uploadInputSchema.safeParse(input);
-  if (!parsed.success) return { success: false, error: 'Pilih file JPG maksimal 15 MB' };
+  if (!parsed.success) return { success: false, error: 'Pilih file JPG, PNG, atau PDF maksimal 15 MB' };
 
   const auth = await getAuthorizedJob(jobId, 'upload');
   if ('error' in auth) return { success: false, error: auth.error };
@@ -215,13 +215,15 @@ export async function initiateDeliverableUploadAction(
   if (!database) return { success: false, error: 'Database belum terhubung' };
 
   const uploadId = randomUUID();
-  const storageKey = createDeliverableKey(jobId, uploadId);
+  const fileExt = parsed.data.filename.split('.').pop() || '';
+  const storageKey = createDeliverableKey(jobId, uploadId, fileExt);
+  const isPdf = parsed.data.mimeType === 'application/pdf';
   try {
     await database.insert(schema.deliverables).values({
       id: uploadId,
       jobId,
       storageKey,
-      previewStorageKey: createDeliverablePreviewKey(storageKey),
+      previewStorageKey: isPdf ? null : createDeliverablePreviewKey(storageKey),
       originalFilename: parsed.data.filename,
       mimeType: parsed.data.mimeType,
       sizeBytes: parsed.data.sizeBytes,
@@ -229,8 +231,8 @@ export async function initiateDeliverableUploadAction(
       status: 'pending',
     });
     const [uploadUrl, previewUploadUrl] = await Promise.all([
-      createDeliverableUploadUrl(storageKey),
-      createDeliverablePreviewUploadUrl(storageKey),
+      createDeliverableUploadUrl(storageKey, parsed.data.mimeType),
+      isPdf ? Promise.resolve('') : createDeliverablePreviewUploadUrl(storageKey),
     ]);
     return {
       success: true,
@@ -285,9 +287,20 @@ export async function completeDeliverableUploadAction(uploadId: string): Promise
     }
 
     const inspected = await inspectDeliverable(record.storageKey);
-    if (inspected.sizeBytes <= 0 || inspected.sizeBytes > MAX_DELIVERABLE_SIZE || inspected.contentType !== 'image/jpeg' || !inspected.isJpeg) {
-      return { success: false, error: 'Objek R2 bukan JPG valid atau melebihi batas 15 MB' };
+    const isValidType =
+      ((inspected.contentType.startsWith('image/jpeg') || inspected.contentType === 'image/jpg') && inspected.isJpeg) ||
+      (inspected.contentType.startsWith('image/png') && inspected.isPng) ||
+      (inspected.contentType.startsWith('application/pdf') && inspected.isPdf);
+
+    if (inspected.sizeBytes <= 0 || inspected.sizeBytes > MAX_DELIVERABLE_SIZE || !isValidType) {
+      return { success: false, error: 'Objek R2 bukan file JPG, PNG, atau PDF valid atau melebihi batas 15 MB' };
     }
+
+    const resolvedMimeType = inspected.isPdf
+      ? 'application/pdf'
+      : inspected.isPng
+        ? 'image/png'
+        : 'image/jpeg';
 
     const registeredAt = new Date();
     const updated = await db.transaction(async (tx) => {
@@ -296,8 +309,8 @@ export async function completeDeliverableUploadAction(uploadId: string): Promise
         .set({
           status: 'ready',
           sizeBytes: inspected.sizeBytes,
-          mimeType: 'image/jpeg',
-          previewStorageKey: createDeliverablePreviewKey(record.storageKey),
+          mimeType: resolvedMimeType,
+          previewStorageKey: inspected.isPdf ? null : createDeliverablePreviewKey(record.storageKey),
           registeredAt,
         })
         .where(and(eq(schema.deliverables.id, uploadId), eq(schema.deliverables.status, 'pending')))

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Download, Loader2, RefreshCw, Trash2, Upload } from 'lucide-react';
+import { Download, FileText, Loader2, RefreshCw, Trash2, Upload } from 'lucide-react';
 import JSZip from 'jszip';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -175,20 +175,32 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
     };
   }, [isOpen, job.id, loadDeliverables]);
 
+  const isImageFile = (file: File) => /\.(jpe?g|png)$/i.test(file.name) || file.type === 'image/jpeg' || file.type === 'image/png';
+  const isPdfFile = (file: File) => /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
+
   const uploadFile = async (file: File): Promise<UploadFileResult> => {
-    if (!/\.(jpe?g)$/i.test(file.name) || file.type !== 'image/jpeg') {
-      return { fileName: file.name, success: false, error: 'Pilih file JPG atau JPEG dengan format image/jpeg.' };
+    const isImage = isImageFile(file);
+    const isPdf = isPdfFile(file);
+
+    if (!isImage && !isPdf) {
+      return { fileName: file.name, success: false, error: 'Pilih file JPG, PNG, atau PDF yang valid.' };
     }
     if (file.size <= 0 || file.size > MAX_DELIVERABLE_SIZE) {
-      return { fileName: file.name, success: false, error: 'Ukuran JPG atau JPEG maksimal 15 MB.' };
+      return { fileName: file.name, success: false, error: 'Ukuran file maksimal 15 MB.' };
     }
 
     let uploadId: string | undefined;
     try {
-      const previewBlob = await compressImageToJpeg(file);
+      const previewBlob = isPdf ? null : await compressImageToJpeg(file);
+      const effectiveMimeType = isPdf
+        ? 'application/pdf'
+        : (/\.png$/i.test(file.name) || file.type === 'image/png')
+          ? 'image/png'
+          : 'image/jpeg';
+
       const prepared = await initiateDeliverableUploadAction(job.id, {
         filename: file.name,
-        mimeType: file.type,
+        mimeType: effectiveMimeType,
         sizeBytes: file.size,
       });
       if (!prepared.success || !prepared.data) {
@@ -196,20 +208,29 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
       }
       uploadId = prepared.data.uploadId;
 
-      const [uploadResponse, previewUploadResponse] = await Promise.all([
+      const uploadPromises: Promise<Response>[] = [
         fetch(prepared.data.uploadUrl, {
           method: 'PUT',
-          headers: { 'Content-Type': 'image/jpeg' },
+          headers: { 'Content-Type': effectiveMimeType },
           body: file,
         }),
-        fetch(prepared.data.previewUploadUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'image/jpeg' },
-          body: previewBlob,
-        }),
-      ]);
-      if (!uploadResponse.ok) throw new Error(`Upload ke penyimpanan gagal (HTTP ${uploadResponse.status}).`);
-      if (!previewUploadResponse.ok) throw new Error(`Upload preview ke penyimpanan gagal (HTTP ${previewUploadResponse.status}).`);
+      ];
+
+      if (previewBlob && prepared.data.previewUploadUrl) {
+        uploadPromises.push(
+          fetch(prepared.data.previewUploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'image/jpeg' },
+            body: previewBlob,
+          })
+        );
+      }
+
+      const responses = await Promise.all(uploadPromises);
+      const failedResponse = responses.find((res) => !res.ok);
+      if (failedResponse) {
+        throw new Error(`Upload ke penyimpanan gagal (HTTP ${failedResponse.status}).`);
+      }
 
       const completed = await completeDeliverableUploadAction(uploadId);
       if (!completed.success) throw new Error(completed.error || 'Gagal mendaftarkan hasil desain.');
@@ -388,10 +409,16 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
 
   const galleryColumns: Array<Array<{ deliverable: Deliverable; index: number }>> = [[], []];
   const galleryHeights = [0, 0];
-  const areAllImageRatiosKnown = deliverables.every((deliverable) => imageRatios[deliverable.id] !== undefined);
+  const areAllImageRatiosKnown = deliverables.every(
+    (deliverable) =>
+      deliverable.mimeType === 'application/pdf' ||
+      /\.pdf$/i.test(deliverable.originalFilename) ||
+      imageRatios[deliverable.id] !== undefined
+  );
 
   deliverables.forEach((deliverable, index) => {
-    const ratio = imageRatios[deliverable.id] || 1;
+    const isPdf = deliverable.mimeType === 'application/pdf' || /\.pdf$/i.test(deliverable.originalFilename);
+    const ratio = isPdf ? 0.75 : (imageRatios[deliverable.id] || 1);
     const estimatedHeight = 1 / Math.max(ratio, 0.1);
     const columnIndex = areAllImageRatiosKnown
       ? (galleryHeights[0] <= galleryHeights[1] ? 0 : 1)
@@ -402,11 +429,12 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
   });
 
   const renderDeliverable = (deliverable: Deliverable, index: number) => {
+    const isPdf = deliverable.mimeType === 'application/pdf' || /\.pdf$/i.test(deliverable.originalFilename);
     const uploadDescription = `Hasil desain ${deliverable.originalFilename}, diunggah ${formatDateTime(deliverable.registeredAt)} oleh ${deliverable.uploaderName || 'editor'}`;
     const isDeleting = deletingIds.has(deliverable.id);
     return (
       <article
-        className={`job-deliverable-item float-up-entry ${index === 0 ? 'is-latest' : ''} ${isDeleting ? 'is-deleting' : ''}`}
+        className={`job-deliverable-item float-up-entry ${index === 0 ? 'is-latest' : ''} ${isDeleting ? 'is-deleting' : ''} ${isPdf ? 'is-pdf' : ''}`}
         style={{
           '--float-up-duration': '900ms',
           '--float-up-delay': `${Math.min(index, 7) * 140}ms`,
@@ -415,39 +443,57 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
         title={uploadDescription}
       >
         <a
-          className={`job-deliverable-preview-link ${loadedPreviewIds[deliverable.id] ? 'is-image-loaded' : 'is-loading-preview'}`}
+          className={`job-deliverable-preview-link ${isPdf || loadedPreviewIds[deliverable.id] ? 'is-image-loaded' : 'is-loading-preview'} ${isPdf ? 'is-pdf-link' : ''}`}
           href={deliverable.previewUrl}
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`Buka preview ${uploadDescription}`}
         >
-          {!loadedPreviewIds[deliverable.id] && (
+          {!isPdf && !loadedPreviewIds[deliverable.id] && (
             <span className="deliverables-loading-dots preview-loading-dots" aria-label="Loading preview">
               <i /><i /><i />
             </span>
           )}
-          <img
-            className="job-deliverable-preview"
-            src={deliverable.previewUrl}
-            alt={`Preview ${uploadDescription}`}
-            loading={index === 0 ? 'eager' : 'lazy'}
-            decoding="async"
-            fetchPriority={index === 0 ? 'high' : 'auto'}
-            onLoad={(event) => {
-              const image = event.currentTarget;
-              const markLoaded = () => {
-                setLoadedPreviewIds((current) => ({ ...current, [deliverable.id]: true }));
-                setImageResolutions((current) => ({ ...current, [deliverable.id]: `${image.naturalWidth} × ${image.naturalHeight}px` }));
-                setImageRatios((current) => ({ ...current, [deliverable.id]: image.naturalWidth / image.naturalHeight }));
-              };
-              void image.decode().then(markLoaded, markLoaded);
-            }}
-          />
+          {isPdf ? (
+            <div className="job-deliverable-pdf-card">
+              <div className="job-deliverable-pdf-icon-badge">
+                <FileText size={38} className="job-deliverable-pdf-icon" />
+                <span className="job-deliverable-pdf-tag">PDF</span>
+              </div>
+              <span className="job-deliverable-pdf-title" title={deliverable.originalFilename}>
+                {deliverable.originalFilename}
+              </span>
+              <span className="job-deliverable-pdf-action-hint">Klik untuk buka dokumen</span>
+            </div>
+          ) : (
+            <img
+              className="job-deliverable-preview"
+              src={deliverable.previewUrl}
+              alt={`Preview ${uploadDescription}`}
+              loading={index === 0 ? 'eager' : 'lazy'}
+              decoding="async"
+              fetchPriority={index === 0 ? 'high' : 'auto'}
+              onLoad={(event) => {
+                const image = event.currentTarget;
+                const markLoaded = () => {
+                  setLoadedPreviewIds((current) => ({ ...current, [deliverable.id]: true }));
+                  setImageResolutions((current) => ({ ...current, [deliverable.id]: `${image.naturalWidth} × ${image.naturalHeight}px` }));
+                  setImageRatios((current) => ({ ...current, [deliverable.id]: image.naturalWidth / image.naturalHeight }));
+                };
+                void image.decode().then(markLoaded, markLoaded);
+              }}
+            />
+          )}
         </a>
         <div className="job-deliverable-details job-deliverable-overlay">
           <div className="job-deliverable-info">
             <strong className="job-deliverable-filename" title={deliverable.originalFilename}>{deliverable.originalFilename}</strong>
-            <div className="job-deliverable-meta"><time dateTime={deliverable.registeredAt}>{formatDateTime(deliverable.registeredAt)}</time><span className="job-deliverable-resolution">{imageResolutions[deliverable.id] || 'Loading resolution...'}</span></div>
+            <div className="job-deliverable-meta">
+              <time dateTime={deliverable.registeredAt}>{formatDateTime(deliverable.registeredAt)}</time>
+              <span className="job-deliverable-resolution">
+                {isPdf ? 'PDF Document' : (imageResolutions[deliverable.id] || 'Loading resolution...')}
+              </span>
+            </div>
           </div>
           {canManageFiles && <div className="job-deliverable-buttons">
             <button type="button" className="job-deliverable-download-button" onClick={() => void handleDownload(deliverable)} title={`Unduh ${deliverable.originalFilename}`} aria-label={`Unduh ${deliverable.originalFilename}, ${formatFileSize(deliverable.sizeBytes)}`}><Download size={15} /><span>{formatFileSize(deliverable.sizeBytes)}</span></button>
@@ -493,7 +539,7 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
                   className="job-deliverables-file-input"
                   type="file"
                   multiple
-                  accept=".jpg,.jpeg,image/jpeg"
+                  accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
                   onChange={handleUpload}
                   disabled={isUploading}
                 />
@@ -502,7 +548,7 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
                   className="job-deliverables-upload-button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading}
-                  title="Upload one or more JPG or JPEG designs"
+                  title="Upload one or more JPG, PNG, or PDF designs"
                 >
                   {isUploading ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
                   <span>{isUploading ? `Uploading ${uploadProgress.completed}/${uploadProgress.total}...` : 'Upload'}</span>
@@ -534,7 +580,7 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
           <div className="job-deliverables-drop-overlay" role="status" aria-live="polite">
             <div className="job-deliverables-drop-message">
               <strong>Drop files to upload</strong>
-              <span>Release to add JPG or JPEG designs</span>
+              <span>Release to add JPG, PNG, or PDF designs</span>
             </div>
           </div>
         )}
@@ -547,7 +593,7 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
         ) : deliverables.length === 0 ? (
           <div className="job-deliverables-state">
             <strong>Belum ada hasil desain</strong>
-            <span>{canUpload ? 'Unggah satu atau beberapa JPG untuk requestor.' : 'Hasil desain akan muncul di sini setelah dikirim.'}</span>
+            <span>{canUpload ? 'Unggah satu atau beberapa file JPG, PNG, atau PDF untuk requestor.' : 'Hasil desain akan muncul di sini setelah dikirim.'}</span>
           </div>
         ) : (
           <div className={`job-deliverables-gallery ${hasGalleryOverflow ? 'has-bottom-overflow' : ''}`} ref={galleryRef} aria-label="Submitted design previews">

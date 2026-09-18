@@ -190,6 +190,8 @@ export function compressImageToJpeg(file: File, maxDim = 1200, quality = 0.78): 
           return;
         }
 
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, width, height);
         context.drawImage(img, 0, 0, width, height);
         canvas.toBlob(
           (blob) => (blob ? resolve(blob) : reject(new Error('Failed to compress image'))),
