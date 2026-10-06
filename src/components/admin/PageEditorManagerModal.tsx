@@ -27,11 +27,13 @@ interface PageEditorManagerModalProps {
   pages: Page[];
   allUsers: Profile[];
   pendingUsers?: Profile[];
+  initialPageEditors?: Record<string, string[]>;
   onApproveUser?: (userId: string, role?: UserRole) => Promise<{ success: boolean; error?: string }>;
   onRejectUser?: (userId: string) => Promise<{ success: boolean; error?: string }>;
   onAssignmentsUpdated?: (
     pageId: string,
-    suggestions: { designer: Profile; activeWipCount: number }[]
+    suggestions: { designer: Profile; activeWipCount: number }[],
+    editorIds: string[]
   ) => void;
 }
 
@@ -42,12 +44,15 @@ export function PageEditorManagerModal({
   pages,
   allUsers,
   pendingUsers = [],
+  initialPageEditors = {},
   onApproveUser,
   onRejectUser,
   onAssignmentsUpdated,
 }: PageEditorManagerModalProps) {
   const [selectedPageId, setSelectedPageId] = useState<string>(currentPage.id);
-  const [assignedEditorIds, setAssignedEditorIds] = useState<string[]>([]);
+  const [assignedEditorIds, setAssignedEditorIds] = useState<string[]>(() => {
+    return initialPageEditors[currentPage.id] || [];
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,14 +74,24 @@ export function PageEditorManagerModal({
   useEffect(() => {
     if (isOpen) {
       setSelectedPageId(currentPage.id);
+      if (initialPageEditors[currentPage.id]) {
+        setAssignedEditorIds(initialPageEditors[currentPage.id]);
+      }
       setError(null);
       setSuccessMsg(null);
     }
-  }, [isOpen, currentPage.id]);
+  }, [isOpen, currentPage.id, initialPageEditors]);
 
   // Load assignments whenever selectedPageId changes
   useEffect(() => {
     if (!isOpen || !selectedPageId) return;
+
+    // Fast-path: use cached assignments instantly if available
+    if (initialPageEditors[selectedPageId]) {
+      setAssignedEditorIds(initialPageEditors[selectedPageId]);
+      setIsLoading(false);
+      return;
+    }
 
     let isCancelled = false;
     setIsLoading(true);
@@ -103,7 +118,7 @@ export function PageEditorManagerModal({
     return () => {
       isCancelled = true;
     };
-  }, [isOpen, selectedPageId]);
+  }, [isOpen, selectedPageId, initialPageEditors]);
 
   const filteredEditors = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
@@ -145,7 +160,7 @@ export function PageEditorManagerModal({
 
       const freshSuggestions = await getPageDesignerSuggestionsAction(selectedPageId);
       if (onAssignmentsUpdated) {
-        onAssignmentsUpdated(selectedPageId, freshSuggestions);
+        onAssignmentsUpdated(selectedPageId, freshSuggestions, assignedEditorIds);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan jaringan');

@@ -31,7 +31,8 @@ interface BoardModalsProps {
   onCloseDivisions: () => void;
   isPageEditorsOpen?: boolean;
   onClosePageEditors?: () => void;
-  onPageEditorsUpdated?: (pageId: string, suggestions: { designer: Profile; activeWipCount: number }[]) => void;
+  initialPageEditors?: Record<string, string[]>;
+  onPageEditorsUpdated?: (pageId: string, suggestions: { designer: Profile; activeWipCount: number }[], editorIds: string[]) => void;
   isEditProfileOpen: boolean;
   onCloseEditProfile: () => void;
   isGraphOpen: boolean;
@@ -86,6 +87,7 @@ export function BoardModals({
   onCloseDivisions,
   isPageEditorsOpen = false,
   onClosePageEditors,
+  initialPageEditors,
   onPageEditorsUpdated,
   isEditProfileOpen,
   onCloseEditProfile,
@@ -154,6 +156,7 @@ export function BoardModals({
           pages={pages || [currentPage]}
           allUsers={allUsers}
           pendingUsers={pendingUsers}
+          initialPageEditors={initialPageEditors}
           onApproveUser={onApproveUser}
           onRejectUser={onRejectUser}
           onAssignmentsUpdated={onPageEditorsUpdated}

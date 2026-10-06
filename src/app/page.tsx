@@ -31,6 +31,7 @@ export default function Home() {
     { designer: Profile; activeWipCount: number }[]
   >([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [pageEditorsMap, setPageEditorsMap] = useState<Record<string, string[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeDraggedJob, setActiveDraggedJob] = useState<Job | null>(null);
@@ -145,6 +146,9 @@ export default function Home() {
       setPendingUsers(data.pendingUsers || []);
       setDesignerSuggestions(data.designerSuggestions || []);
       setNotifications(data.notifications || []);
+      if (data.initialPageEditors) {
+        setPageEditorsMap(data.initialPageEditors);
+      }
     } catch (error) {
       console.error('Failed to load board data:', error);
       setLoadError(error instanceof Error ? error.message : 'Terjadi kesalahan saat memuat papan kerja.');
@@ -289,7 +293,9 @@ export default function Home() {
         onCloseDivisions={() => modals.setIsDivisionsOpen(false)}
         isPageEditorsOpen={modals.isPageEditorsOpen}
         onClosePageEditors={() => modals.setIsPageEditorsOpen(false)}
-        onPageEditorsUpdated={(pageId, suggestions) => {
+        initialPageEditors={pageEditorsMap}
+        onPageEditorsUpdated={(pageId, suggestions, editorIds) => {
+          setPageEditorsMap((prev) => ({ ...prev, [pageId]: editorIds }));
           if (pageId === currentPage.id) {
             setDesignerSuggestions(suggestions);
           }
