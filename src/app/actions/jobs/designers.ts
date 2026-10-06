@@ -84,32 +84,34 @@ export async function setJobDesignersAction(
     : (currentJob.status === 'in_queue' ? 'wip' : currentJob.status);
 
   try {
-    await db
-      .update(schema.jobs)
-      .set({
-        designerId: primaryDesignerId,
-        status: newStatus,
-        updatedAt: new Date(),
-      })
-      .where(eq(schema.jobs.id, jobId));
+    await db.transaction(async (tx) => {
+      await tx
+        .update(schema.jobs)
+        .set({
+          designerId: primaryDesignerId,
+          status: newStatus,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.jobs.id, jobId));
 
-    await db.delete(schema.jobDesigners).where(eq(schema.jobDesigners.jobId, jobId));
-    if (designerIds.length > 0) {
-      await db.insert(schema.jobDesigners).values(
-        designerIds.map((dId) => ({
-          jobId,
-          designerId: dId,
-        }))
-      );
-    }
+      await tx.delete(schema.jobDesigners).where(eq(schema.jobDesigners.jobId, jobId));
+      if (designerIds.length > 0) {
+        await tx.insert(schema.jobDesigners).values(
+          designerIds.map((dId) => ({
+            jobId,
+            designerId: dId,
+          }))
+        );
+      }
 
-    const designerNames = designersList.map((d) => d.fullName).join(', ');
-    await db.insert(schema.jobActivity).values({
-      jobId,
-      actorId: actor.id,
-      fromStatus: currentJob.status,
-      toStatus: newStatus,
-      note: designersList.length > 0 ? `Ditugaskan kepada: ${designerNames}` : 'Menghapus semua editor yang ditugaskan',
+      const designerNames = designersList.map((d) => d.fullName).join(', ');
+      await tx.insert(schema.jobActivity).values({
+        jobId,
+        actorId: actor.id,
+        fromStatus: currentJob.status,
+        toStatus: newStatus,
+        note: designersList.length > 0 ? `Ditugaskan kepada: ${designerNames}` : 'Menghapus semua editor yang ditugaskan',
+      });
     });
   } catch (e: unknown) {
     return { success: false, error: e instanceof Error ? e.message : 'Kesalahan saat menugaskan editor' };

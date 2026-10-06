@@ -48,6 +48,8 @@ interface UseBoardOperationsParams {
   setInitialJobs: (jobs: Job[]) => void;
   jobs: Job[];
   setJobs: React.Dispatch<React.SetStateAction<Job[]>>;
+  setOptimisticJobStatus?: (jobId: string, toStatus: JobStatus) => void;
+  confirmJobStatusMutation?: (jobId: string) => void;
   broadcastBoardChange: (dropEvent?: CardDropEvent) => void;
   setDivisions: React.Dispatch<React.SetStateAction<Division[]>>;
   setAllUsers: React.Dispatch<React.SetStateAction<Profile[]>>;
@@ -69,6 +71,8 @@ export function useBoardOperations({
   setInitialJobs,
   jobs,
   setJobs,
+  setOptimisticJobStatus,
+  confirmJobStatusMutation,
   broadcastBoardChange,
   setDivisions,
   setAllUsers,
@@ -107,13 +111,18 @@ export function useBoardOperations({
     ) => {
       if (!currentUser) return;
 
-      // Optimistic UI update
-      setJobs((prev) =>
-        prev.map((j) => (j.id === jobId ? { ...j, status: toStatus } : j))
-      );
+      // Optimistic UI update with temporary stale-read shield
+      if (setOptimisticJobStatus) {
+        setOptimisticJobStatus(jobId, toStatus);
+      } else {
+        setJobs((prev) =>
+          prev.map((j) => (j.id === jobId ? { ...j, status: toStatus } : j))
+        );
+      }
 
       const res = await moveJobAction(jobId, toStatus, currentUser);
       if (res.success) {
+        confirmJobStatusMutation?.(jobId);
         broadcastBoardChange({
           jobId,
           toStatus,
@@ -121,13 +130,14 @@ export function useBoardOperations({
           releaseWorldY: releasePos?.worldY,
         });
       } else {
+        confirmJobStatusMutation?.(jobId);
         // Revert if error
         const fresh = await getJobsAction(activePageId);
         setJobs(fresh);
         alert(res.error || 'Gagal memindahkan kartu job');
       }
     },
-    [currentUser, activePageId, broadcastBoardChange, setJobs]
+    [currentUser, activePageId, broadcastBoardChange, setJobs, setOptimisticJobStatus, confirmJobStatusMutation]
   );
 
   // Submit Job Handler

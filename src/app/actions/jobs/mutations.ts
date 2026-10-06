@@ -1,7 +1,7 @@
 'use server';
 
 import { db, schema } from '@/lib/db';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { Job, JobStatus, Profile } from '@/types';
 import { jobFormSchema } from '@/lib/validations';
@@ -231,17 +231,30 @@ export async function moveJobAction(
   }
 
   try {
-    await db
-      .update(schema.jobs)
-      .set({ status: toStatus, updatedAt: new Date() })
-      .where(eq(schema.jobs.id, jobId));
+    await db.transaction(async (tx) => {
+      // Optimistic concurrency check: ensure status has not changed concurrently
+      const [updated] = await tx
+        .update(schema.jobs)
+        .set({ status: toStatus, updatedAt: new Date() })
+        .where(
+          and(
+            eq(schema.jobs.id, jobId),
+            eq(schema.jobs.status, fromStatus)
+          )
+        )
+        .returning({ id: schema.jobs.id });
 
-    await db.insert(schema.jobActivity).values({
-      jobId,
-      actorId: actor.id,
-      fromStatus,
-      toStatus,
-      note: note || null,
+      if (!updated) {
+        throw new Error('Status job telah diperbarui oleh pengguna lain. Harap segarkan.');
+      }
+
+      await tx.insert(schema.jobActivity).values({
+        jobId,
+        actorId: actor.id,
+        fromStatus,
+        toStatus,
+        note: note || null,
+      });
     });
   } catch (e: unknown) {
     return { success: false, error: e instanceof Error ? e.message : 'Gagal memperbarui status job' };

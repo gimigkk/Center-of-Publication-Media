@@ -45,7 +45,15 @@ export default function Home() {
   const activePageId = currentPage?.id || 'default-page';
 
   // Realtime hooks
-  const { jobs, setJobs, broadcastBoardChange, requestBoardRefresh, lastDropEvent } = useRealtimeBoard(activePageId, initialJobs);
+  const {
+    jobs,
+    setJobs,
+    setOptimisticJobStatus,
+    confirmJobStatusMutation,
+    broadcastBoardChange,
+    requestBoardRefresh,
+    lastDropEvent,
+  } = useRealtimeBoard(activePageId, initialJobs);
   const { cursors, remotelyDraggedJobIds } = useCursors(currentPage, currentUser, activeDraggedJob, modals.currentUserState);
   const { onlineUsers } = usePresence(currentPage, currentUser);
 
@@ -97,6 +105,8 @@ export default function Home() {
     setInitialJobs,
     jobs,
     setJobs,
+    setOptimisticJobStatus,
+    confirmJobStatusMutation,
     broadcastBoardChange,
     setDivisions,
     setAllUsers,

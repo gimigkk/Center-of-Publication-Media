@@ -28,21 +28,23 @@ export async function archiveJobAction(
     const [currentJob] = await db.select().from(schema.jobs).where(eq(schema.jobs.id, jobId));
     if (!currentJob) return { success: false, error: 'Job tidak ditemukan' };
 
-    await db
-      .update(schema.jobs)
-      .set({
-        isArchived: true,
-        archivedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(schema.jobs.id, jobId));
+    await db.transaction(async (tx) => {
+      await tx
+        .update(schema.jobs)
+        .set({
+          isArchived: true,
+          archivedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.jobs.id, jobId));
 
-    await db.insert(schema.jobActivity).values({
-      jobId,
-      actorId: actor.id,
-      fromStatus: currentJob.status,
-      toStatus: currentJob.status,
-      note: 'Diarsipkan ke tabel arsip platform',
+      await tx.insert(schema.jobActivity).values({
+        jobId,
+        actorId: actor.id,
+        fromStatus: currentJob.status,
+        toStatus: currentJob.status,
+        note: 'Diarsipkan ke tabel arsip platform',
+      });
     });
 
     revalidatePath('/');
@@ -74,21 +76,23 @@ export async function unarchiveJobAction(
     const [currentJob] = await db.select().from(schema.jobs).where(eq(schema.jobs.id, jobId));
     if (!currentJob) return { success: false, error: 'Job tidak ditemukan' };
 
-    await db
-      .update(schema.jobs)
-      .set({
-        isArchived: false,
-        archivedAt: null,
-        updatedAt: new Date(),
-      })
-      .where(eq(schema.jobs.id, jobId));
+    await db.transaction(async (tx) => {
+      await tx
+        .update(schema.jobs)
+        .set({
+          isArchived: false,
+          archivedAt: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.jobs.id, jobId));
 
-    await db.insert(schema.jobActivity).values({
-      jobId,
-      actorId: actor.id,
-      fromStatus: currentJob.status,
-      toStatus: currentJob.status,
-      note: 'Dipulihkan dari arsip kembali ke papan Kanban aktif',
+      await tx.insert(schema.jobActivity).values({
+        jobId,
+        actorId: actor.id,
+        fromStatus: currentJob.status,
+        toStatus: currentJob.status,
+        note: 'Dipulihkan dari arsip kembali ke papan Kanban aktif',
+      });
     });
 
     revalidatePath('/');

@@ -88,22 +88,35 @@ export async function createPageAction(
   }
 
   try {
-    const [inserted] = await db
-      .insert(schema.pages)
-      .values({
-        name: trimmed,
-        description: description?.trim() || null,
-        createdBy: userId,
-      })
-      .returning();
+    const inserted = await db.transaction(async (tx) => {
+      const [pageRow] = await tx
+        .insert(schema.pages)
+        .values({
+          name: trimmed,
+          description: description?.trim() || null,
+          createdBy: userId,
+        })
+        .returning();
 
-    if (divisionTemplate !== 'none') {
-      try {
-        await createDefaultDivisionsAction(inserted.id, divisionTemplate);
-      } catch (err) {
-        console.warn('Could not auto-seed divisions for new page:', err);
+      // Seed default divisions atomically within transaction
+      if (divisionTemplate !== 'none') {
+        const templateNames = divisionTemplate === 'kabinet' ? KABINET_DIVISION_TEMPLATES : EVENT_DIVISION_TEMPLATES;
+        await tx.insert(schema.divisions).values(
+          templateNames.map((divName) => ({
+            pageId: pageRow.id,
+            name: divName,
+          }))
+        );
       }
-    }
+
+      // Add creator automatically to page_editors
+      await tx.insert(schema.pageEditors).values({
+        pageId: pageRow.id,
+        editorId: userId,
+      });
+
+      return pageRow;
+    });
 
     revalidatePath('/');
     return {

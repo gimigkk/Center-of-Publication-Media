@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Job, Page } from '@/types';
+import { Job, JobStatus, Page } from '@/types';
 
 export interface CardDropEvent {
   jobId: string;
@@ -17,6 +17,7 @@ export type BoardRefreshReason = 'broadcast' | 'realtime' | 'mutation' | 'error'
 export function useRealtimeBoard(pageId: string, initialJobs: Job[]) {
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [lastDropEvent, setLastDropEvent] = useState<CardDropEvent | null>(null);
+  const pendingLocalMutationsRef = useRef<Map<string, { toStatus: JobStatus; expiresAt: number }>>(new Map());
   const bcRef = useRef<BroadcastChannel | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const refreshInFlightRef = useRef(false);
@@ -29,6 +30,20 @@ export function useRealtimeBoard(pageId: string, initialJobs: Job[]) {
     setPrevInitialJobs(initialJobs);
     setJobs(initialJobs);
   }
+
+  const setOptimisticJobStatus = useCallback((jobId: string, toStatus: JobStatus) => {
+    pendingLocalMutationsRef.current.set(jobId, {
+      toStatus,
+      expiresAt: Date.now() + 3500, // Shield for 3.5s against stale background reads
+    });
+    setJobs((prev) =>
+      prev.map((j) => (j.id === jobId ? { ...j, status: toStatus } : j))
+    );
+  }, []);
+
+  const confirmJobStatusMutation = useCallback((jobId: string) => {
+    pendingLocalMutationsRef.current.delete(jobId);
+  }, []);
 
   const runRefreshRef = useRef<() => Promise<void>>(async () => undefined);
   const runRefresh = useCallback(async () => {
@@ -43,7 +58,23 @@ export function useRealtimeBoard(pageId: string, initialJobs: Job[]) {
     try {
       const { getJobsAction } = await import('@/app/actions/jobs');
       const updatedJobs = await getJobsAction(pageId);
-      if (generation === refreshGenerationRef.current) setJobs(updatedJobs);
+      if (generation === refreshGenerationRef.current) {
+        // Merge with pending optimistic local mutations to eliminate jump back and forth
+        const now = Date.now();
+        const pending = pendingLocalMutationsRef.current;
+        const mergedJobs = updatedJobs.map((j) => {
+          const entry = pending.get(j.id);
+          if (entry) {
+            if (now < entry.expiresAt) {
+              return { ...j, status: entry.toStatus };
+            } else {
+              pending.delete(j.id);
+            }
+          }
+          return j;
+        });
+        setJobs(mergedJobs);
+      }
     } catch (e) {
       console.error('Failed to sync board updates:', e);
     } finally {
@@ -143,6 +174,8 @@ export function useRealtimeBoard(pageId: string, initialJobs: Job[]) {
   return {
     jobs,
     setJobs,
+    setOptimisticJobStatus,
+    confirmJobStatusMutation,
     broadcastBoardChange,
     requestBoardRefresh,
     lastDropEvent,
