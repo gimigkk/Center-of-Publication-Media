@@ -85,6 +85,7 @@ export const jobs = pgTable('jobs', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   index('jobs_page_status_order_idx').on(table.pageId, table.isArchived, table.status, table.kanbanOrder),
+  index('jobs_status_archived_idx').on(table.status, table.isArchived),
 ]);
 
 export const deliverables = pgTable('deliverables', {
@@ -112,6 +113,7 @@ export const jobDesigners = pgTable('job_designers', {
   assignedAt: timestamp('assigned_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   index('job_designers_job_designer_idx').on(table.jobId, table.designerId),
+  index('job_designers_designer_idx').on(table.designerId),
 ]);
 
 export const pageEditors = pgTable(
