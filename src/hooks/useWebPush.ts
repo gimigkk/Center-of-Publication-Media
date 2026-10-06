@@ -30,19 +30,40 @@ export function useWebPush(userId?: string) {
       const currentPerm = Notification.permission;
       setPermission(currentPerm);
 
-      navigator.serviceWorker.register('/sw.js').then((registration) => {
-        registration.pushManager.getSubscription().then((sub) => {
-          if (sub && currentPerm === 'granted') {
-            setIsSubscribed(true);
-          } else {
-            setIsSubscribed(false);
+      if (currentPerm === 'granted') {
+        setIsSubscribed(true);
+      }
+
+      navigator.serviceWorker.register('/sw.js').then(async (registration) => {
+        try {
+          let sub = await registration.pushManager.getSubscription();
+          if (!sub && currentPerm === 'granted') {
+            sub = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+            });
           }
-        });
+
+          if (sub && userId) {
+            const rawKey = sub.getKey('p256dh');
+            const rawAuth = sub.getKey('auth');
+            if (rawKey && rawAuth) {
+              const p256dh = btoa(String.fromCharCode(...new Uint8Array(rawKey)));
+              const auth = btoa(String.fromCharCode(...new Uint8Array(rawAuth)));
+              savePushSubscriptionAction({
+                endpoint: sub.endpoint,
+                keys: { p256dh, auth },
+              }).catch(() => undefined);
+            }
+          }
+        } catch (e) {
+          console.warn('Background subscription check failed:', e);
+        }
       }).catch((err) => {
         console.warn('SW registration failed:', err);
       });
     }
-  }, []);
+  }, [userId]);
 
   const subscribe = useCallback(async () => {
     if (!isSupported || !userId) return false;
