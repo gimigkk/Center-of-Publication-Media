@@ -8,7 +8,7 @@ import { GOOGLE_DOCS_REGEX, BRIEF_TEMPLATE_URL } from '@/lib/validations';
 import { GoogleDocsIcon } from '@/components/ui/GoogleDocsIcon';
 import { SimpleSelect } from '@/components/ui/Select';
 import { fetchGoogleDocTitleAction } from '@/app/actions/jobs';
-import { AlertCircle, CheckCircle2, ExternalLink, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, CornerDownRight, ExternalLink, X } from 'lucide-react';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
 
 interface JobFormModalProps {
@@ -333,9 +333,11 @@ export function JobFormModal({
                   )}
                 </div>
                 {effectiveBriefTitle && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: '#0284c7', marginTop: '3px' }}>
-                    <GoogleDocsIcon size={14} />
-                    <span>Judul Dokumen: <strong>{effectiveBriefTitle}</strong></span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#64748b', marginTop: '4px', paddingLeft: '4px' }}>
+                    <CornerDownRight size={12} style={{ flexShrink: 0, opacity: 0.7 }} />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={effectiveBriefTitle}>
+                      {effectiveBriefTitle}
+                    </span>
                   </div>
                 )}
               </div>
