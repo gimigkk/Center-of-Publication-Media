@@ -118,6 +118,7 @@ export default function Home() {
     setSelectedJobForDetail: modals.setSelectedJobForDetail,
     setIsDetailOpen: modals.setIsDetailOpen,
     setIsPageLoading,
+    allUsers,
   });
 
   // Load initial dataset in 1 single fast roundtrip with safety timeout

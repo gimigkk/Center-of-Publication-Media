@@ -62,6 +62,7 @@ interface UseBoardOperationsParams {
   setSelectedJobForDetail: (job: Job | null) => void;
   setIsDetailOpen: (open: boolean) => void;
   setIsPageLoading?: (loading: boolean) => void;
+  allUsers: Profile[];
 }
 
 export function useBoardOperations({
@@ -84,6 +85,7 @@ export function useBoardOperations({
   setSelectedJobForDetail,
   setIsDetailOpen,
   setIsPageLoading,
+  allUsers,
 }: UseBoardOperationsParams) {
   const router = useRouter();
   const activePageId = currentPage?.id || 'default-page';
@@ -94,7 +96,7 @@ export function useBoardOperations({
     setIsPageLoading?.(true);
 
     try {
-      const bundle = await getPageBundleAction(page.id);
+      const bundle = await getPageBundleAction(page.id, allUsers);
       // Update data bundle first, then switch active page to avoid empty flash
       setInitialJobs(bundle.jobs);
       setDivisions(bundle.divisions);
@@ -105,7 +107,7 @@ export function useBoardOperations({
     } finally {
       setIsPageLoading?.(false);
     }
-  }, [activePageId, setCurrentPage, setInitialJobs, setDivisions, setDesignerSuggestions, setIsPageLoading]);
+  }, [activePageId, allUsers, setCurrentPage, setInitialJobs, setDivisions, setDesignerSuggestions, setIsPageLoading]);
 
   // Move Job Action Handler
   const handleMoveJob = useCallback(

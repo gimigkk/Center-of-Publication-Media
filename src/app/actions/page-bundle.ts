@@ -14,7 +14,10 @@ export interface PageBoardBundle {
   designerSuggestions: { designer: Profile; activeWipCount: number }[];
 }
 
-export async function getPageBundleAction(pageId: string): Promise<PageBoardBundle> {
+export async function getPageBundleAction(
+  pageId: string,
+  cachedUsers?: Profile[]
+): Promise<PageBoardBundle> {
   if (isMockEnabled()) {
     const [jobs, divisions, designerSuggestions] = await Promise.all([
       getJobsAction(pageId),
@@ -29,28 +32,32 @@ export async function getPageBundleAction(pageId: string): Promise<PageBoardBund
   }
 
   try {
-    // Run ALL page queries in a single consolidated parallel database trip
+    const shouldFetchUsers = !cachedUsers || cachedUsers.length === 0;
+
+    // Run parallel DB queries, skipping profiles scan if client provided existing allUsers
     const [
-      allUsersRecords,
+      fetchedUsersRecords,
       divisionsRecords,
       jobRecords,
       editorRows,
       workloadRows,
     ] = await Promise.all([
-      db
-        .select({
-          id: schema.profiles.id,
-          email: schema.profiles.email,
-          fullName: schema.profiles.fullName,
-          phoneNumber: schema.profiles.phoneNumber,
-          avatarUrl: schema.profiles.avatarUrl,
-          role: schema.profiles.role,
-          divisionId: schema.profiles.divisionId,
-          isApproved: schema.profiles.isApproved,
-          createdAt: schema.profiles.createdAt,
-          updatedAt: schema.profiles.updatedAt,
-        })
-        .from(schema.profiles),
+      shouldFetchUsers
+        ? db
+            .select({
+              id: schema.profiles.id,
+              email: schema.profiles.email,
+              fullName: schema.profiles.fullName,
+              phoneNumber: schema.profiles.phoneNumber,
+              avatarUrl: schema.profiles.avatarUrl,
+              role: schema.profiles.role,
+              divisionId: schema.profiles.divisionId,
+              isApproved: schema.profiles.isApproved,
+              createdAt: schema.profiles.createdAt,
+              updatedAt: schema.profiles.updatedAt,
+            })
+            .from(schema.profiles)
+        : Promise.resolve(null),
 
       db
         .select()
@@ -85,20 +92,24 @@ export async function getPageBundleAction(pageId: string): Promise<PageBoardBund
 
     // 1. Process Users Map
     const userMap = new Map<string, Profile>();
-    allUsersRecords.forEach((r) => {
-      userMap.set(r.id, {
-        id: r.id,
-        email: r.email,
-        fullName: r.fullName,
-        phoneNumber: r.phoneNumber || undefined,
-        avatarUrl: r.avatarUrl || undefined,
-        role: r.role as Profile['role'],
-        divisionId: r.divisionId ?? null,
-        isApproved: r.isApproved ?? true,
-        createdAt: r.createdAt.toISOString(),
-        updatedAt: r.updatedAt.toISOString(),
+    if (cachedUsers && cachedUsers.length > 0) {
+      cachedUsers.forEach((u) => userMap.set(u.id, u));
+    } else if (fetchedUsersRecords) {
+      fetchedUsersRecords.forEach((r) => {
+        userMap.set(r.id, {
+          id: r.id,
+          email: r.email,
+          fullName: r.fullName,
+          phoneNumber: r.phoneNumber || undefined,
+          avatarUrl: r.avatarUrl || undefined,
+          role: r.role as Profile['role'],
+          divisionId: r.divisionId ?? null,
+          isApproved: r.isApproved ?? true,
+          createdAt: r.createdAt.toISOString(),
+          updatedAt: r.updatedAt.toISOString(),
+        });
       });
-    });
+    }
 
     // 2. Process Divisions
     const divisions: Division[] = divisionsRecords.map((r) => ({
