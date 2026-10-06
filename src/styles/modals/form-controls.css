@@ -130,8 +130,6 @@
 /* 3D Tactile Card for Editor Selection */
 .editor-3d-card-wrapper {
   position: relative;
-  background-color: rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.14);
   border-radius: var(--radius-sm);
   cursor: pointer;
   user-select: none;
@@ -145,57 +143,48 @@
   gap: 8px;
   padding: 5px 8px;
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(0, 0, 0, 0.16);
+  background-color: #ffffff;
   min-width: 0;
-  margin: -1px;
   transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1),
-              background-color 150ms ease,
-              border-color 150ms ease,
               box-shadow 180ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              border-color 150ms ease,
               opacity 150ms ease;
 }
 
-/* Inactive state: pushed down, low opacity */
-.editor-3d-card-wrapper.inactive {
-  border-color: rgba(0, 0, 0, 0.1);
-  background-color: rgba(0, 0, 0, 0.03);
-}
-
+/* Inactive state: flat with border, low opacity */
 .editor-3d-card-wrapper.inactive .editor-3d-card-surface {
-  background-color: #ffffff;
-  border-color: rgba(0, 0, 0, 0.14);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
   transform: translateY(0px);
   opacity: 0.45;
 }
 
 .editor-3d-card-wrapper.inactive:hover .editor-3d-card-surface {
+  border-color: rgba(0, 0, 0, 0.14);
   transform: translateY(-1px);
-  border-color: rgba(0, 0, 0, 0.18);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
   opacity: 0.75;
 }
 
-/* Active state: elevated up (3D pop), clean white */
-.editor-3d-card-wrapper.active {
-  border-color: rgba(0, 0, 0, 0.18);
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
+/* Active state: elevated with tactile 3D extrusion under the bottom edge */
 .editor-3d-card-wrapper.active .editor-3d-card-surface {
-  background-color: #ffffff;
-  border-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.12);
   transform: translateY(-3px);
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12),
+              0 4px 8px rgba(0, 0, 0, 0.04);
   opacity: 1;
 }
 
 .editor-3d-card-wrapper.active:hover .editor-3d-card-surface {
+  border-color: rgba(0, 0, 0, 0.15);
   transform: translateY(-3.5px);
-  border-color: rgba(0, 0, 0, 0.24);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 3.5px 0 rgba(0, 0, 0, 0.15),
+              0 6px 12px rgba(0, 0, 0, 0.06);
 }
 
 .editor-3d-card-wrapper:active .editor-3d-card-surface {
   transform: translateY(0px) !important;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06) !important;
   transition-duration: 50ms;
 }
 
