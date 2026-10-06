@@ -373,7 +373,7 @@ export function PageEditorManagerModal({
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                gap: '8px',
+                gap: '6px',
               }}
             >
               {filteredEditors.map((editor) => {
