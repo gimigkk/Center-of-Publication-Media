@@ -77,8 +77,9 @@
 .assign-dropdown-popover.position-modal-left .assign-dropdown-list {
   flex: 1;
   min-height: 0;
-  max-height: none;
-  overflow: visible;
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
   gap: 0px;
 }
 
@@ -156,8 +157,9 @@
   display: flex;
   flex-direction: column;
   gap: 0px;
-  max-height: none;
-  overflow: visible;
+  max-height: 380px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .assign-dropdown-item {
