@@ -266,3 +266,21 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
+export const pushSubscriptions = pgTable('push_subscriptions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => profiles.id, { onDelete: 'cascade' }).notNull(),
+  endpoint: text('endpoint').notNull().unique(),
+  p256dh: text('p256dh').notNull(),
+  auth: text('auth').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('push_subscriptions_user_id_idx').on(table.userId),
+]);
+
+export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
+  user: one(profiles, {
+    fields: [pushSubscriptions.userId],
+    references: [profiles.id],
+  }),
+}));
+

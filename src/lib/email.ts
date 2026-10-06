@@ -77,6 +77,23 @@ export async function sendJobStatusEmail({
   const fromLabel = fromStatus ? STATUS_LABELS[fromStatus] : 'Pengajuan';
   const toLabel = STATUS_LABELS[toStatus];
 
+  const textContent = [
+    `COPM — Notifikasi Operasional Kreatif`,
+    `Pembaruan Kartu Job: ${jobTitle}`,
+    ``,
+    `${actorName} memindahkan status job ini dari "${fromLabel}" ke "${toLabel}".`,
+    note ? `Catatan: ${note}` : '',
+    ``,
+    `Tautan Brief: ${briefLink}`,
+    deadline ? `Deadline: ${deadline}` : '',
+    ``,
+    `Buka di board COPM: ${appUrl}`,
+    ``,
+    `Notifikasi otomatis dikirim oleh Papan Operasional Kreatif COPM.`,
+  ]
+    .filter(Boolean)
+    .join('\n');
+
   const htmlContent = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #fdfdfd; border: 1px solid #e0e0e0; border-radius: 8px;">
       <div style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 12px;">
@@ -115,12 +132,23 @@ export async function sendJobStatusEmail({
   `;
 
   try {
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || 'COPM <notifications@example.com>',
-      to: filteredRecipients.join(', '),
-      subject: `[COPM] ${jobTitle} → ${toLabel}`,
-      html: htmlContent,
-    });
+    const fromAddress = process.env.SMTP_FROM || 'COPM <notifications@example.com>';
+    // Send individually to each recipient to avoid spam triggers from multiple 'to' addresses
+    await Promise.all(
+      filteredRecipients.map((recipient) =>
+        transporter.sendMail({
+          from: fromAddress,
+          to: recipient,
+          replyTo: actorEmail,
+          subject: `[COPM] ${jobTitle} → ${toLabel}`,
+          text: textContent,
+          html: htmlContent,
+          headers: {
+            'X-Entity-Ref-ID': `copm-job-${Date.now()}`,
+          },
+        })
+      )
+    );
     return { success: true };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to send email';
@@ -152,6 +180,18 @@ export async function sendUserSignupEmail({
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const textContent = [
+    `COPM — Pendaftaran Anggota Baru`,
+    `Pendaftaran Memerlukan Persetujuan Admin`,
+    ``,
+    `Pengguna baru telah mendaftar di COPM:`,
+    `- Nama: ${newUserFullName}`,
+    `- Email: ${newUserEmail}`,
+    `- Peran: ${newUserRole}`,
+    ``,
+    `Buka panel persetujuan: ${appUrl}`,
+  ].join('\n');
+
   const htmlContent = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #fdfdfd; border: 1px solid #e0e0e0; border-radius: 8px;">
       <div style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 12px;">
@@ -176,12 +216,22 @@ export async function sendUserSignupEmail({
   `;
 
   try {
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || 'COPM <notifications@example.com>',
-      to: adminEmails.join(', '),
-      subject: `[COPM] Pendaftaran User Baru: ${newUserFullName} (${newUserRole})`,
-      html: htmlContent,
-    });
+    const fromAddress = process.env.SMTP_FROM || 'COPM <notifications@example.com>';
+    await Promise.all(
+      adminEmails.map((adminEmail) =>
+        transporter.sendMail({
+          from: fromAddress,
+          to: adminEmail,
+          replyTo: newUserEmail,
+          subject: `[COPM] Pendaftaran User Baru: ${newUserFullName} (${newUserRole})`,
+          text: textContent,
+          html: htmlContent,
+          headers: {
+            'X-Entity-Ref-ID': `copm-signup-${Date.now()}`,
+          },
+        })
+      )
+    );
     return { success: true };
   } catch (error: unknown) {
     return { success: false, error: error instanceof Error ? error.message : 'Gagal mengirim email' };
@@ -200,6 +250,16 @@ export async function sendPasswordResetEmail({
     console.log(`[COPM SMTP Mock] Reset password link for ${userEmail}: ${resetLink}`);
     return { success: true };
   }
+
+  const textContent = [
+    `COPM — Reset Kata Sandi`,
+    `Permintaan Atur Ulang Kata Sandi Akun`,
+    ``,
+    `Kami menerima permintaan untuk mengatur ulang kata sandi akun COPM Anda.`,
+    `Tautan reset: ${resetLink}`,
+    ``,
+    `Jika Anda tidak meminta pengaturan ulang kata sandi, abaikan email ini. Tautan ini bersifat rahasia dan akan kedaluwarsa demi keamanan.`,
+  ].join('\n');
 
   const htmlContent = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #fdfdfd; border: 1px solid #e0e0e0; border-radius: 8px;">
@@ -231,7 +291,11 @@ export async function sendPasswordResetEmail({
       from: process.env.SMTP_FROM || 'COPM <notifications@example.com>',
       to: userEmail,
       subject: '[COPM] Permintaan Reset Kata Sandi Akun',
+      text: textContent,
       html: htmlContent,
+      headers: {
+        'X-Entity-Ref-ID': `copm-reset-${Date.now()}`,
+      },
     });
     return { success: true };
   } catch (error: unknown) {
@@ -290,12 +354,26 @@ export async function sendUserApprovalEmail({
     </div>
   `;
 
+  const textContent = [
+    `COPM — Status Verifikasi Akun`,
+    ``,
+    `Halo ${userFullName},`,
+    ``,
+    isApproved
+      ? `Akun Anda telah disetujui sebagai ${role}. Anda sekarang dapat masuk ke board COPM: ${appUrl}/login`
+      : `Mohon maaf, permohonan pendaftaran akun Anda untuk platform COPM belum dapat disetujui saat ini.`,
+  ].join('\n');
+
   try {
     await transporter.sendMail({
       from: process.env.SMTP_FROM || 'COPM <notifications@example.com>',
       to: userEmail,
       subject: `[COPM] ${isApproved ? 'Akun Anda Telah Disetujui' : 'Status Pendaftaran Akun'}`,
+      text: textContent,
       html: htmlContent,
+      headers: {
+        'X-Entity-Ref-ID': `copm-approval-${Date.now()}`,
+      },
     });
     return { success: true };
   } catch (error: unknown) {

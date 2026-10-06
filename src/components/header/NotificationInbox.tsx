@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useRef, useEffect, memo, useMemo } from 'react';
-import { Bell, CheckCheck, Trash2, ArrowRight } from 'lucide-react';
+import { Bell, CheckCheck, Trash2, ArrowRight, Laptop } from 'lucide-react';
 import { AppNotification, Profile } from '@/types';
 import { Avatar } from '@/components/ui/Avatar';
 import { useSafeZone } from '@/hooks/useSafeZone';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
+import { useWebPush } from '@/hooks/useWebPush';
 
 interface NotificationInboxProps {
   notifications: AppNotification[];
@@ -34,6 +35,7 @@ type TabFilter = 'all' | 'unread';
 
 export const NotificationInbox = memo(function NotificationInbox({
   notifications,
+  currentUser,
   onMarkAsRead,
   onMarkAllAsRead,
   onClearAll,
@@ -44,6 +46,7 @@ export const NotificationInbox = memo(function NotificationInbox({
   const [activeTab, setActiveTab] = useState<TabFilter>('all');
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const { isSupported, permission, isSubscribed, loading: isSubscribing, subscribe } = useWebPush(currentUser?.id);
 
   const { shouldRender, isClosing } = useAnimatePresence(isOpen, 110);
 
@@ -170,6 +173,26 @@ export const NotificationInbox = memo(function NotificationInbox({
               <span className="figma-inbox-title">Notifikasi</span>
 
               <div className="figma-inbox-header-right">
+                {/* Push Notification Opt-in Prompt Button */}
+                {isSupported && !isSubscribed && permission !== 'denied' && (
+                  <button
+                    type="button"
+                    className="figma-inbox-tab"
+                    onClick={subscribe}
+                    disabled={isSubscribing}
+                    title="Aktifkan notifikasi desktop OS"
+                    style={{
+                      background: 'rgba(13, 153, 255, 0.12)',
+                      color: 'var(--accent-blue-text)',
+                      fontWeight: 600,
+                      gap: '4px',
+                    }}
+                  >
+                    <Laptop size={11} />
+                    <span>{isSubscribing ? 'Mengaktifkan...' : 'Izinkan Push'}</span>
+                  </button>
+                )}
+
                 {/* Segmented Tabs (Semua / Belum Dibaca) */}
                 <div className="figma-inbox-tabs">
                   <button

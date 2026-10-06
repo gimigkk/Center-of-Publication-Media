@@ -5,6 +5,7 @@ import { eq, desc } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { AppNotification, NotificationType } from '@/types';
 import { isMockEnabled, getMockStore } from '@/lib/mock-store';
+import { sendWebPushNotificationToUser } from '@/lib/web-push';
 
 export async function getNotificationsAction(userId?: string): Promise<AppNotification[]> {
   if (isMockEnabled()) {
@@ -129,6 +130,14 @@ export async function createNotificationAction({
       isRead: inserted.isRead,
       createdAt: inserted.createdAt.toISOString(),
     };
+
+    // Trigger instant Web Push notification directly to the user's OS / browser
+    sendWebPushNotificationToUser({
+      userId,
+      title,
+      message,
+      jobId: jobId || undefined,
+    }).catch((err) => console.error('Failed to trigger web push notification:', err));
 
     revalidatePath('/');
     return { success: true, notification: notif };
