@@ -18,6 +18,7 @@ import { FloatingToolbar } from '@/components/toolbar/FloatingToolbar';
 import { CursorOverlay } from '@/components/cursors/CursorOverlay';
 import { BoardModals } from '@/components/board/BoardModals';
 import { TopLoader } from '@/components/ui/TopLoader';
+import { SmoothScroll } from '@/components/ui/SmoothScroll';
 
 export default function Home() {
   // Primary Workspace state
@@ -347,6 +348,8 @@ export default function Home() {
         onDeleteDivision={operations.handleDeleteDivision}
         onUpdateProfile={operations.handleUpdateProfile}
       />
+
+      <SmoothScroll />
     </div>
   );
 }

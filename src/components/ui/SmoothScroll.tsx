@@ -6,18 +6,20 @@ import Lenis from 'lenis';
 export function SmoothScroll() {
   useEffect(() => {
     const boardContainer = document.querySelector('.board-container') as HTMLElement | null;
+    const boardContent = document.querySelector('.board-canvas-flow') as HTMLElement | null;
 
-    if (!boardContainer) return;
+    if (!boardContainer || !boardContent) return;
 
     const lenis = new Lenis({
       wrapper: boardContainer,
-      content: boardContainer.firstElementChild as HTMLElement || boardContainer,
-      duration: 1.1,
+      content: boardContent,
+      duration: 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       smoothWheel: true,
-      wheelMultiplier: 1,
+      wheelMultiplier: 1.2,
       touchMultiplier: 1.5,
+      autoRaf: false,
     });
 
     let animationFrameId: number;
