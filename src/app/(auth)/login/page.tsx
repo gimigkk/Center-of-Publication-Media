@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import type { LoginDiagnostic } from '@/lib/login-attempts';
 import Link from 'next/link';
 import { requestPasswordReset } from '@/app/actions/password-reset';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { FullLogoIEEE } from '@/components/ui/FullLogoIEEE';
 import '@/styles/auth.css';
 
@@ -17,17 +17,23 @@ function LoginForm() {
   const [diagnostic, setDiagnostic] = useState<LoginDiagnostic | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const [resetStatus, setResetStatus] = useState<{ success: boolean; message: string } | null>(null);
 
   const handlePasswordReset = async () => {
     if (!email.trim()) {
-      setResetMessage('Masukkan alamat email terlebih dahulu.');
+      setResetStatus({
+        success: false,
+        message: 'Ketik alamat email Anda di kolom atas terlebih dahulu.',
+      });
       return;
     }
     setIsResetting(true);
-    setResetMessage(null);
+    setResetStatus(null);
     const result = await requestPasswordReset(email);
-    setResetMessage(result.diagnostic.message);
+    setResetStatus({
+      success: result.success,
+      message: result.diagnostic.message,
+    });
     setIsResetting(false);
   };
 
@@ -91,10 +97,19 @@ function LoginForm() {
           </button>
         </form>
 
-        <button type="button" className="auth-link auth-reset-link" onClick={handlePasswordReset} disabled={isResetting}>
-          {isResetting ? 'Mengirim tautan...' : 'Lupa kata sandi?'}
-        </button>
-        {resetMessage && <span className="auth-reset-message" role="status">{resetMessage}</span>}
+        <div style={{ textAlign: 'center', marginTop: '10px' }}>
+          <button type="button" className="auth-link auth-reset-link" onClick={handlePasswordReset} disabled={isResetting}>
+            {isResetting ? 'Mengirim tautan...' : 'Lupa kata sandi?'}
+          </button>
+        </div>
+        {resetStatus && (
+          <div className={`auth-error-panel ${resetStatus.success ? 'auth-success-panel' : ''}`} role="alert" style={{ marginTop: '10px' }}>
+            {resetStatus.success ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />}
+            <div className="auth-error-content">
+              <strong>{resetStatus.message}</strong>
+            </div>
+          </div>
+        )}
 
         <div className="auth-footer-links">
           <span>Belum punya akun?</span>

@@ -188,6 +188,59 @@ export async function sendUserSignupEmail({
   }
 }
 
+export async function sendPasswordResetEmail({
+  userEmail,
+  resetLink,
+}: {
+  userEmail: string;
+  resetLink: string;
+}): Promise<{ success: boolean; error?: string }> {
+  const transporter = createTransporter();
+  if (!transporter) {
+    console.log(`[COPM SMTP Mock] Reset password link for ${userEmail}: ${resetLink}`);
+    return { success: true };
+  }
+
+  const htmlContent = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #fdfdfd; border: 1px solid #e0e0e0; border-radius: 8px;">
+      <div style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 12px;">
+        <span style="font-size: 18px; font-weight: 700; color: #1e1e1e; letter-spacing: -0.5px;">COPM</span>
+        <span style="font-size: 13px; color: #6e6e6e; margin-left: 8px;">Reset Kata Sandi</span>
+      </div>
+      <h2 style="font-size: 16px; font-weight: 600; color: #1e1e1e; margin-top: 0;">
+        Permintaan Atur Ulang Kata Sandi Akun
+      </h2>
+      <p style="font-size: 14px; color: #444; line-height: 1.5;">
+        Kami menerima permintaan untuk mengatur ulang kata sandi akun COPM Anda. Klik tombol di bawah ini untuk melanjutkan:
+      </p>
+      <div style="margin: 24px 0;">
+        <a href="${resetLink}" style="display: inline-block; background: #0d99ff; color: #ffffff; padding: 10px 18px; font-size: 13px; font-weight: 600; text-decoration: none; border-radius: 6px;">Atur Ulang Kata Sandi</a>
+      </div>
+      <p style="font-size: 12px; color: #777; line-height: 1.5;">
+        Jika tombol di atas tidak berfungsi, salin dan tempel tautan berikut ke peramban Anda:<br />
+        <a href="${resetLink}" style="color: #0d99ff; word-break: break-all;">${resetLink}</a>
+      </p>
+      <div style="margin-top: 32px; font-size: 11px; color: #999; border-top: 1px solid #f0f0f0; padding-top: 12px;">
+        Jika Anda tidak meminta pengaturan ulang kata sandi, abaikan email ini. Tautan ini bersifat rahasia dan akan kedaluwarsa demi keamanan.
+      </div>
+    </div>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM || 'COPM <notifications@example.com>',
+      to: userEmail,
+      subject: '[COPM] Permintaan Reset Kata Sandi Akun',
+      html: htmlContent,
+    });
+    return { success: true };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Gagal mengirim email reset kata sandi';
+    console.error('Error sending password reset email:', message);
+    return { success: false, error: message };
+  }
+}
+
 export async function sendUserApprovalEmail({
   userEmail,
   userFullName,

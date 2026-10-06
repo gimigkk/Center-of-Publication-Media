@@ -3,6 +3,7 @@ import { middleware } from '../src/middleware';
 import { createServerSupabaseClient } from '../src/lib/supabase/server';
 import { db, schema } from '../src/lib/db';
 import { loginAction } from '../src/app/actions/login';
+import { requestPasswordReset } from '../src/app/actions/password-reset';
 import { checkLoginRateLimit } from '../src/lib/login-attempts';
 import { eq } from 'drizzle-orm';
 
@@ -183,6 +184,18 @@ async function runAuthTestSuite() {
     const rate = await checkLoginRateLimit('test_rate_limit@copm.local');
     assert(typeof rate.limited === 'boolean', 'Rate limit status must be boolean');
     assert(typeof rate.retryAfterSeconds === 'number', 'RetryAfterSeconds must be number');
+  });
+
+  await test('Password reset rejects invalid email format with INVALID_EMAIL', async () => {
+    const res = await requestPasswordReset('not-an-email');
+    assertEquals(res.success, false, 'Should fail validation');
+    assertEquals(res.diagnostic.code, 'INVALID_EMAIL');
+  });
+
+  await test('Password reset handles valid email and returns accepted status', async () => {
+    const res = await requestPasswordReset('test_nonexistent@copm.local');
+    assertEquals(res.success, true, 'Should accept reset request cleanly');
+    assertEquals(res.diagnostic.code, 'RESET_REQUEST_ACCEPTED');
   });
 
   // --------------------------------------------------------------------------
