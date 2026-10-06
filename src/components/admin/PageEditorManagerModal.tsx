@@ -194,7 +194,7 @@ export function PageEditorManagerModal({
       onClose={onClose}
       title="Kelola Editor & Penugasan Halaman"
       subtitle={`Tentukan editor yang bertugas pada halaman dan otorisasi persetujuan akun`}
-      maxWidth={680}
+      maxWidth={720}
       footer={
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
           <button className="btn-secondary" onClick={onClose} disabled={isSubmitting}>
@@ -317,45 +317,48 @@ export function PageEditorManagerModal({
           )}
         </div>
 
-        {/* Editor Checklist - Ultra Compact 2 Columns */}
-        <div
-          style={{
-            maxHeight: pendingUsers.length > 0 ? '220px' : '320px',
-            overflowY: 'auto',
-            border: '1px solid rgba(0, 0, 0, 0.08)',
-            borderRadius: 'var(--radius-sm)',
-            padding: '6px',
-            backgroundColor: '#fafafa',
-          }}
-        >
-          {isLoading ? (
+        {/* Editor Checklist - 3 Columns with Profile Pic, No Outer Container Box */}
+        {isLoading ? (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '30px',
+              gap: '8px',
+              color: '#64748b',
+              fontSize: '12px',
+            }}
+          >
+            <Loader2 size={14} className="spin" />
+            <span>Memuat daftar editor...</span>
+          </div>
+        ) : filteredEditors.length === 0 ? (
+          <div
+            style={{
+              padding: '24px',
+              textAlign: 'center',
+              color: '#94a3b8',
+              fontSize: '12px',
+            }}
+          >
+            Tidak ada editor ditemukan.
+          </div>
+        ) : (
+          <div
+            style={{
+              maxHeight: pendingUsers.length > 0 ? '240px' : '360px',
+              overflowY: 'auto',
+              paddingRight: '4px',
+            }}
+          >
             <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '24px',
-                gap: '8px',
-                color: '#64748b',
-                fontSize: '12px',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: '6px',
               }}
             >
-              <Loader2 size={14} className="spin" />
-              <span>Memuat daftar editor...</span>
-            </div>
-          ) : filteredEditors.length === 0 ? (
-            <div
-              style={{
-                padding: '24px',
-                textAlign: 'center',
-                color: '#94a3b8',
-                fontSize: '12px',
-              }}
-            >
-              Tidak ada editor ditemukan.
-            </div>
-          ) : (
-            <div className="division-manager-grid" style={{ gap: '5px' }}>
               {filteredEditors.map((editor) => {
                 const isChecked = assignedEditorIds.includes(editor.id);
                 return (
@@ -367,54 +370,62 @@ export function PageEditorManagerModal({
                       userSelect: 'none',
                       backgroundColor: isChecked ? '#f0fdf4' : '#ffffff',
                       borderColor: isChecked ? '#86efac' : 'rgba(0, 0, 0, 0.08)',
-                      padding: '4px 8px',
-                      minHeight: '34px',
-                      borderRadius: '4px',
-                      gap: '6px',
+                      padding: '5px 8px',
+                      borderRadius: 'var(--radius-sm)',
+                      gap: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-start',
+                      minWidth: 0,
+                      transition: 'all 100ms ease',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleEditor(editor.id)}
-                        style={{ cursor: 'pointer', width: '13px', height: '13px', flexShrink: 0 }}
-                      />
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', minWidth: 0 }}>
-                        <span
-                          style={{
-                            fontSize: '12px',
-                            fontWeight: 500,
-                            color: '#0f172a',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            maxWidth: '120px',
-                          }}
-                          title={editor.fullName}
-                        >
-                          {editor.fullName}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: '10.5px',
-                            color: '#64748b',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
-                          title={editor.email}
-                        >
-                          {editor.role === 'admin' ? 'Admin' : 'Editor'}
-                        </span>
-                      </div>
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => toggleEditor(editor.id)}
+                      style={{ cursor: 'pointer', width: '13px', height: '13px', flexShrink: 0 }}
+                    />
+                    <Avatar
+                      src={editor.avatarUrl}
+                      name={editor.fullName}
+                      size={22}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                      <span
+                        style={{
+                          fontSize: '12px',
+                          fontWeight: 500,
+                          color: '#0f172a',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          lineHeight: 1.25,
+                        }}
+                        title={editor.fullName}
+                      >
+                        {editor.fullName}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          color: '#64748b',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          lineHeight: 1.2,
+                        }}
+                        title={editor.email}
+                      >
+                        {editor.role === 'admin' ? 'Admin' : 'Editor'}
+                      </span>
                     </div>
                   </label>
                 );
               })}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Bottom Panel: Persetujuan Akun Pending (only shown if there are pending users) */}
         {pendingUsers.length > 0 && (
