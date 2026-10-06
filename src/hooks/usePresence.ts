@@ -168,34 +168,34 @@ export function usePresence(currentPage: Page | null, currentUser: Profile | nul
     try {
       const existingChannel = supabase.getChannels().find((c) => c.topic === `realtime:${channelName}`);
       if (existingChannel) {
-        supabase.removeChannel(existingChannel);
-      }
-
-      const channel = supabase.channel(channelName, {
-        config: {
-          presence: {
-            key: currentUser.id,
+        channelRef.current = existingChannel;
+      } else {
+        const channel = supabase.channel(channelName, {
+          config: {
+            presence: {
+              key: currentUser.id,
+            },
           },
-        },
-      });
-
-      channel
-        .on('presence', { event: 'sync' }, () => {
-          syncSupabaseState(channel.presenceState<OnlineUser>());
-        })
-        .on('presence', { event: 'join' }, () => {
-          syncSupabaseState(channel.presenceState<OnlineUser>());
-        })
-        .on('presence', { event: 'leave' }, () => {
-          syncSupabaseState(channel.presenceState<OnlineUser>());
-        })
-        .subscribe(async (status) => {
-          if (status === 'SUBSCRIBED') {
-            channelRef.current = channel;
-            await channel.track(myUser);
-            syncSupabaseState(channel.presenceState<OnlineUser>());
-          }
         });
+
+        channel
+          .on('presence', { event: 'sync' }, () => {
+            syncSupabaseState(channel.presenceState<OnlineUser>());
+          })
+          .on('presence', { event: 'join' }, () => {
+            syncSupabaseState(channel.presenceState<OnlineUser>());
+          })
+          .on('presence', { event: 'leave' }, () => {
+            syncSupabaseState(channel.presenceState<OnlineUser>());
+          })
+          .subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+              channelRef.current = channel;
+              await channel.track(myUser);
+              syncSupabaseState(channel.presenceState<OnlineUser>());
+            }
+          });
+      }
     } catch (e) {
       console.warn('Supabase Presence error:', e);
     }

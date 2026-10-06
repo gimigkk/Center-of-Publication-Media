@@ -166,30 +166,29 @@ export function useCursors(
       }
     }
 
-    // 2. Supabase Realtime Broadcast for remote network collaborators
     const supabase = createClient();
     try {
       const existingChannel = supabase.getChannels().find((c) => c.topic === `realtime:${channelName}`);
       if (existingChannel) {
-        supabase.removeChannel(existingChannel);
-      }
-
-      const channel = supabase.channel(channelName, {
-        config: { broadcast: { self: false } },
-      });
-
-      channel
-        .on('broadcast', { event: 'cursor-pos' }, ({ payload }) => {
-          handleIncomingCursor(payload);
-        })
-        .on('broadcast', { event: 'cursor-leave' }, ({ payload }) => {
-          handleIncomingCursorLeave(payload);
-        })
-        .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-            channelRef.current = channel;
-          }
+        channelRef.current = existingChannel;
+      } else {
+        const channel = supabase.channel(channelName, {
+          config: { broadcast: { self: false } },
         });
+
+        channel
+          .on('broadcast', { event: 'cursor-pos' }, ({ payload }) => {
+            handleIncomingCursor(payload);
+          })
+          .on('broadcast', { event: 'cursor-leave' }, ({ payload }) => {
+            handleIncomingCursorLeave(payload);
+          })
+          .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              channelRef.current = channel;
+            }
+          });
+      }
     } catch (e) {
       console.warn('Supabase Realtime channel error:', e);
     }

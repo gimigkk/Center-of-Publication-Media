@@ -213,7 +213,7 @@ export function useRealtimeWorkspaceSync({
       }
       supabase.removeChannel(channel);
     };
-  }, [syncUsers, syncJobs, syncDivisions, syncPages, syncNotifications, requestBoardRefresh]);
+  }, []); // Only register global sync listeners once on mount
 
   const broadcastSync = useCallback((type: 'sync-users' | 'sync-jobs' | 'sync-divisions' | 'sync-pages' | 'sync-notifications') => {
     if (bcRef.current) {

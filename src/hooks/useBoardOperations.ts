@@ -90,19 +90,22 @@ export function useBoardOperations({
 
   // Load jobs and divisions when switching page
   const handleSelectPage = useCallback(async (page: Page) => {
-    setCurrentPage(page);
+    if (page.id === activePageId) return;
     setIsPageLoading?.(true);
+
     try {
       const bundle = await getPageBundleAction(page.id);
+      // Update data bundle first, then switch active page to avoid empty flash
       setInitialJobs(bundle.jobs);
       setDivisions(bundle.divisions);
       setDesignerSuggestions(bundle.designerSuggestions);
+      setCurrentPage(page);
     } catch (e) {
       console.error('Failed to switch page:', e);
     } finally {
       setIsPageLoading?.(false);
     }
-  }, [setCurrentPage, setInitialJobs, setDivisions, setDesignerSuggestions, setIsPageLoading]);
+  }, [activePageId, setCurrentPage, setInitialJobs, setDivisions, setDesignerSuggestions, setIsPageLoading]);
 
   // Move Job Action Handler
   const handleMoveJob = useCallback(
