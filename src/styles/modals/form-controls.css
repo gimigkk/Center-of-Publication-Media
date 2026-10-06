@@ -177,6 +177,19 @@
   border-color: rgba(0, 0, 0, 0.15);
 }
 
+.page-editors-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+@media (max-width: 640px) {
+  .page-editors-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+  }
+}
+
 @media (max-width: 560px) {
   .division-manager-grid {
     grid-template-columns: 1fr;

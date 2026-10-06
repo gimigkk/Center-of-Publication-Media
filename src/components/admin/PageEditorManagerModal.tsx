@@ -369,13 +369,7 @@ export function PageEditorManagerModal({
               paddingRight: '4px',
             }}
           >
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                gap: '6px',
-              }}
-            >
+            <div className="page-editors-grid">
               {filteredEditors.map((editor) => {
                 const isChecked = assignedEditorIds.includes(editor.id);
                 return (
