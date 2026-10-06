@@ -7,6 +7,7 @@ import { DivisionManagerModal } from '@/components/admin/DivisionManagerModal';
 import { PageEditorManagerModal } from '@/components/admin/PageEditorManagerModal';
 import { EditProfileModal } from '@/components/forms/EditProfileModal';
 import { JobStatsModal } from '@/components/analytics/JobStatsModal';
+import { NotificationRequirementModal } from '@/components/notifications/NotificationRequirementModal';
 
 interface BoardModalsProps {
   currentUser: Profile;
@@ -179,6 +180,8 @@ export function BoardModals({
         currentUser={currentUser}
         pages={pages}
       />
+
+      <NotificationRequirementModal userId={currentUser?.id} />
     </>
   );
 }
