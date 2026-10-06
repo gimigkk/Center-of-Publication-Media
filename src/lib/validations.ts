@@ -48,12 +48,3 @@ export const loginSchema = z.object({
   email: z.string().email('Harap masukkan alamat email yang valid'),
   password: z.string().min(1, 'Kata sandi wajib diisi'),
 });
-
-export const pageFormSchema = z.object({
-  name: z.string().min(2, 'Nama halaman minimal 2 karakter').max(60, 'Nama halaman terlalu panjang'),
-  description: z.string().max(200, 'Deskripsi terlalu panjang').optional(),
-});
-
-export const divisionFormSchema = z.object({
-  name: z.string().min(2, 'Nama divisi minimal 2 karakter').max(60, 'Nama divisi terlalu panjang'),
-});

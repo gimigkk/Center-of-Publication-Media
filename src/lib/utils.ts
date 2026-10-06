@@ -155,10 +155,6 @@ export function getAvatarColor(identifier: string): string {
   return FIGJAM_COLORS[index];
 }
 
-export function cn(...classes: (string | boolean | undefined | null)[]): string {
-  return classes.filter(Boolean).join(' ');
-}
-
 export function compressImageToJpeg(file: File, maxDim = 1200, quality = 0.78): Promise<Blob> {
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined') {

@@ -108,18 +108,6 @@ export async function createDeliverablePreviewUploadUrl(key: string): Promise<st
   return createUploadUrl(createDeliverablePreviewKey(key), 'image/jpeg');
 }
 
-export async function hasDeliverableObject(key: string): Promise<boolean> {
-  const config = getR2Config();
-  try {
-    await getClient(config.endpoint, config.accessKeyId, config.secretAccessKey).send(
-      new HeadObjectCommand({ Bucket: config.bucket, Key: key })
-    );
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export async function inspectDeliverable(key: string) {
   const config = getR2Config();
   const r2 = getClient(config.endpoint, config.accessKeyId, config.secretAccessKey);
@@ -199,10 +187,6 @@ async function createPreviewUrl(key: string): Promise<string> {
 }
 
 export async function createDeliverablePreviewUrl(key: string): Promise<string> {
-  return createPreviewUrl(key);
-}
-
-export async function createDeliverableThumbnailUrl(key: string): Promise<string> {
   return createPreviewUrl(key);
 }
 
