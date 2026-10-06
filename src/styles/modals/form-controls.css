@@ -161,8 +161,6 @@
 
 .editor-3d-card-wrapper.inactive:hover .editor-3d-card-surface {
   border-color: rgba(0, 0, 0, 0.14);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
   opacity: 0.75;
 }
 
@@ -177,15 +175,6 @@
 
 .editor-3d-card-wrapper.active:hover .editor-3d-card-surface {
   border-color: rgba(0, 0, 0, 0.15);
-  transform: translateY(-3.5px);
-  box-shadow: 0 3.5px 0 rgba(0, 0, 0, 0.15),
-              0 6px 12px rgba(0, 0, 0, 0.06);
-}
-
-.editor-3d-card-wrapper:active .editor-3d-card-surface {
-  transform: translateY(0px) !important;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06) !important;
-  transition-duration: 50ms;
 }
 
 @media (max-width: 560px) {
