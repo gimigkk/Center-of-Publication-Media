@@ -263,6 +263,7 @@ export default function Home() {
         setFilterDivision={setFilterDivision}
         filterSearch={filterSearch}
         setFilterSearch={setFilterSearch}
+        isNewJobOpen={modals.isJobFormOpen}
         onOpenNewJob={modals.handleOpenNewJob}
         onOpenDivisions={modals.handleOpenDivisions}
         isGraphOpen={modals.isGraphOpen}

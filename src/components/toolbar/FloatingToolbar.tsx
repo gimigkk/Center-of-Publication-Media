@@ -14,6 +14,7 @@ interface FloatingToolbarProps {
   setFilterDivision: (divId: string | null) => void;
   filterSearch: string;
   setFilterSearch: (query: string) => void;
+  isNewJobOpen?: boolean;
   onOpenNewJob: () => void;
   onOpenDivisions: () => void;
   isGraphOpen?: boolean;
@@ -28,6 +29,7 @@ export const FloatingToolbar = memo(function FloatingToolbar({
   setFilterDivision,
   filterSearch,
   setFilterSearch,
+  isNewJobOpen = false,
   onOpenNewJob,
   onOpenDivisions,
   isGraphOpen = false,
@@ -73,7 +75,10 @@ export const FloatingToolbar = memo(function FloatingToolbar({
     <div className="floating-toolbar-container">
       <div className="floating-toolbar">
         {/* 1. New Job Card Button */}
-        <button className="toolbar-btn primary" onClick={onOpenNewJob}>
+        <button
+          className={`toolbar-btn primary ${isNewJobOpen ? 'is-open' : ''}`}
+          onClick={onOpenNewJob}
+        >
           <Plus size={10} strokeWidth={4} />
           <span>REQUEST COPM</span>
         </button>

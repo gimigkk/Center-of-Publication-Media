@@ -86,6 +86,22 @@
   transition-duration: 50ms;
 }
 
+/* Modal Open State: stayed pressed down, muted gray */
+.toolbar-btn.primary.is-open {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  border-color: rgba(255, 255, 255, 0.08);
+  transform: translateY(1px);
+  box-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.toolbar-btn.primary.is-open:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  transform: translateY(1px);
+  box-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
 .toolbar-btn.active-popover {
   background-color: rgba(255, 255, 255, 0.14);
   color: #ffffff;
