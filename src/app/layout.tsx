@@ -7,6 +7,7 @@ import '@/styles/toolbar.css';
 import '@/styles/modal.css';
 import '@/styles/cursors.css';
 import '@/styles/archive.css';
+import { SmoothScroll } from '@/components/ui/SmoothScroll';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -32,7 +33,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id">
-      <body>{children}</body>
+      <body>
+        <SmoothScroll />
+        {children}
+      </body>
     </html>
   );
 }
