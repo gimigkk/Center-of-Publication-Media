@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, memo } from 'react';
-import { Plus, ListFilter, Shapes, Search, TrendingUp, UserCheck } from 'lucide-react';
+import { Plus, ListFilter, Shapes, Search, TrendingUp } from 'lucide-react';
 import { Profile, Division } from '@/types';
 import { SimpleSelect } from '@/components/ui/Select';
 import { useSafeZone } from '@/hooks/useSafeZone';
@@ -16,7 +16,6 @@ interface FloatingToolbarProps {
   setFilterSearch: (query: string) => void;
   onOpenNewJob: () => void;
   onOpenDivisions: () => void;
-  onOpenPageEditors?: () => void;
   isGraphOpen?: boolean;
   onOpenGraph?: () => void;
   onDropdownChange?: (state: string | null) => void;
@@ -31,7 +30,6 @@ export const FloatingToolbar = memo(function FloatingToolbar({
   setFilterSearch,
   onOpenNewJob,
   onOpenDivisions,
-  onOpenPageEditors,
   isGraphOpen = false,
   onOpenGraph,
   onDropdownChange,
@@ -160,18 +158,10 @@ export const FloatingToolbar = memo(function FloatingToolbar({
 
         {/* 4. Admin Tools */}
         {currentUser.role === 'admin' && (
-          <>
-            <button className="toolbar-btn toolbar-btn-collapse" onClick={onOpenDivisions} title="Kelola Divisi">
-              <Shapes size={13} strokeWidth={2.2} />
-              <span className="toolbar-btn-text">Divisi</span>
-            </button>
-            {onOpenPageEditors && (
-              <button className="toolbar-btn toolbar-btn-collapse" onClick={onOpenPageEditors} title="Kelola Editor Halaman">
-                <UserCheck size={13} strokeWidth={2.2} />
-                <span className="toolbar-btn-text">Editor</span>
-              </button>
-            )}
-          </>
+          <button className="toolbar-btn toolbar-btn-collapse" onClick={onOpenDivisions} title="Kelola Divisi">
+            <Shapes size={13} strokeWidth={2.2} />
+            <span className="toolbar-btn-text">Divisi</span>
+          </button>
         )}
       </div>
     </div>

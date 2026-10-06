@@ -9,7 +9,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { useSafeZone } from '@/hooks/useSafeZone';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
 import { getRelativeTime, getWhatsAppUrl } from '@/lib/utils';
-import { User, LogOut } from 'lucide-react';
+import { User, LogOut, Users } from 'lucide-react';
 
 interface HeaderProps {
   pages: Page[];
@@ -31,6 +31,7 @@ interface HeaderProps {
   onRejectUser?: (userId: string) => Promise<{ success: boolean; error?: string }>;
   onSignOut?: () => void;
   onOpenEditProfile?: () => void;
+  onOpenPageEditors?: () => void;
   onDropdownChange?: (state: string | null) => void;
 }
 
@@ -54,6 +55,7 @@ export const Header = memo(function Header({
   onRejectUser,
   onSignOut,
   onOpenEditProfile,
+  onOpenPageEditors,
   onDropdownChange,
 }: HeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -261,6 +263,20 @@ export const Header = memo(function Header({
                     >
                       <User size={13} />
                       <span>Edit Akun</span>
+                    </button>
+                  )}
+                  {currentUser.role === 'admin' && onOpenPageEditors && (
+                    <button
+                      type="button"
+                      className="figma-profile-btn-secondary"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        onOpenPageEditors();
+                      }}
+                      title="Kelola Editor & Penugasan Halaman"
+                    >
+                      <Users size={13} />
+                      <span>Kelola Editor</span>
                     </button>
                   )}
                   {onSignOut && (

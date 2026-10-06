@@ -3,19 +3,21 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { SimpleSelect } from '@/components/ui/Select';
-import { Page, Profile } from '@/types';
+import { Page, Profile, UserRole } from '@/types';
 import {
   getPageEditorsAction,
   updatePageEditorsAction,
   getPageDesignerSuggestionsAction,
 } from '@/app/actions/page-editors';
+import { Avatar } from '@/components/ui/Avatar';
+import { getRelativeTime } from '@/lib/utils';
 import {
-  Users,
   Search,
   Check,
+  X,
   AlertCircle,
   Loader2,
-  FileText,
+  UserCheck,
 } from 'lucide-react';
 
 interface PageEditorManagerModalProps {
@@ -24,6 +26,9 @@ interface PageEditorManagerModalProps {
   currentPage: Page;
   pages: Page[];
   allUsers: Profile[];
+  pendingUsers?: Profile[];
+  onApproveUser?: (userId: string, role?: UserRole) => Promise<{ success: boolean; error?: string }>;
+  onRejectUser?: (userId: string) => Promise<{ success: boolean; error?: string }>;
   onAssignmentsUpdated?: (
     pageId: string,
     suggestions: { designer: Profile; activeWipCount: number }[]
@@ -36,6 +41,9 @@ export function PageEditorManagerModal({
   currentPage,
   pages,
   allUsers,
+  pendingUsers = [],
+  onApproveUser,
+  onRejectUser,
   onAssignmentsUpdated,
 }: PageEditorManagerModalProps) {
   const [selectedPageId, setSelectedPageId] = useState<string>(currentPage.id);
@@ -45,6 +53,10 @@ export function PageEditorManagerModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Approval panel state
+  const [selectedRoles, setSelectedRoles] = useState<Record<string, UserRole>>({});
+  const [processingApprovalId, setProcessingApprovalId] = useState<string | null>(null);
 
   // Filter candidate editors: approved users with designer or admin role
   const candidateEditors = useMemo(() => {
@@ -131,7 +143,6 @@ export function PageEditorManagerModal({
 
       setSuccessMsg('Penugasan editor berhasil disimpan!');
 
-      // Notify parent to refresh designer suggestions for active page
       const freshSuggestions = await getPageDesignerSuggestionsAction(selectedPageId);
       if (onAssignmentsUpdated) {
         onAssignmentsUpdated(selectedPageId, freshSuggestions);
@@ -143,15 +154,47 @@ export function PageEditorManagerModal({
     }
   };
 
+  const handleApprove = async (user: Profile) => {
+    if (!onApproveUser) return;
+    setProcessingApprovalId(user.id);
+    const assignedRole = selectedRoles[user.id] || user.role || 'designer';
+    try {
+      const res = await onApproveUser(user.id, assignedRole);
+      if (res.success) {
+        setSuccessMsg(`Akun ${user.fullName} disetujui`);
+      } else {
+        setError(res.error || 'Gagal menyetujui akun');
+      }
+    } finally {
+      setProcessingApprovalId(null);
+    }
+  };
+
+  const handleReject = async (user: Profile) => {
+    if (!onRejectUser) return;
+    if (!confirm(`Tolak dan hapus pendaftaran akun ${user.fullName}?`)) return;
+    setProcessingApprovalId(user.id);
+    try {
+      const res = await onRejectUser(user.id);
+      if (res.success) {
+        setSuccessMsg(`Pendaftaran ${user.fullName} ditolak`);
+      } else {
+        setError(res.error || 'Gagal menolak akun');
+      }
+    } finally {
+      setProcessingApprovalId(null);
+    }
+  };
+
   const selectedPage = pages.find((p) => p.id === selectedPageId) || currentPage;
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Kelola Editor Halaman"
-      subtitle={`Tentukan editor yang bertugas dan dapat ditugaskan pada halaman ini`}
-      maxWidth={640}
+      title="Kelola Editor & Penugasan Halaman"
+      subtitle={`Tentukan editor yang bertugas pada halaman dan otorisasi persetujuan akun`}
+      maxWidth={680}
       footer={
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', width: '100%' }}>
           <button className="btn-secondary" onClick={onClose} disabled={isSubmitting}>
@@ -177,7 +220,7 @@ export function PageEditorManagerModal({
         </div>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {error && (
           <div className="modal-alert-error">
             <AlertCircle size={14} style={{ flexShrink: 0 }} />
@@ -193,8 +236,8 @@ export function PageEditorManagerModal({
         )}
 
         {/* Page Selector */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <label style={{ fontSize: '11.5px', fontWeight: 600, color: '#475569' }}>
             Pilih Halaman Target
           </label>
           <SimpleSelect
@@ -212,7 +255,7 @@ export function PageEditorManagerModal({
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: 1 }}>
             <Search
-              size={14}
+              size={13}
               style={{
                 position: 'absolute',
                 left: '10px',
@@ -224,7 +267,7 @@ export function PageEditorManagerModal({
             <input
               type="text"
               className="form-input"
-              style={{ paddingLeft: '32px' }}
+              style={{ paddingLeft: '30px', height: '32px', fontSize: '12px' }}
               placeholder="Cari nama atau email editor..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -235,7 +278,7 @@ export function PageEditorManagerModal({
             <button
               type="button"
               className="btn-secondary"
-              style={{ padding: '6px 10px', fontSize: '12px' }}
+              style={{ padding: '4px 8px', fontSize: '11px', height: '32px' }}
               onClick={handleSelectAll}
               disabled={isLoading}
             >
@@ -244,7 +287,7 @@ export function PageEditorManagerModal({
             <button
               type="button"
               className="btn-secondary"
-              style={{ padding: '6px 10px', fontSize: '12px' }}
+              style={{ padding: '4px 8px', fontSize: '11px', height: '32px' }}
               onClick={handleClearAll}
               disabled={isLoading}
             >
@@ -256,7 +299,7 @@ export function PageEditorManagerModal({
         {/* Summary note */}
         <div
           style={{
-            fontSize: '12px',
+            fontSize: '11.5px',
             color: '#64748b',
             display: 'flex',
             alignItems: 'center',
@@ -268,20 +311,20 @@ export function PageEditorManagerModal({
             <strong>{selectedPage.name}</strong>
           </span>
           {assignedEditorIds.length === 0 && (
-            <span style={{ color: '#d97706' }}>
-              (Jika kosong, semua editor otomatis dapat dipilih)
+            <span style={{ color: '#d97706', fontSize: '11px' }}>
+              (Jika kosong, semua editor dapat dipilih)
             </span>
           )}
         </div>
 
-        {/* Editor Checklist */}
+        {/* Editor Checklist - Ultra Compact 2 Columns */}
         <div
           style={{
-            maxHeight: '340px',
+            maxHeight: '220px',
             overflowY: 'auto',
             border: '1px solid rgba(0, 0, 0, 0.08)',
             borderRadius: 'var(--radius-sm)',
-            padding: '8px',
+            padding: '6px',
             backgroundColor: '#fafafa',
           }}
         >
@@ -291,28 +334,28 @@ export function PageEditorManagerModal({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '30px',
+                padding: '24px',
                 gap: '8px',
                 color: '#64748b',
-                fontSize: '13px',
+                fontSize: '12px',
               }}
             >
-              <Loader2 size={16} className="spin" />
+              <Loader2 size={14} className="spin" />
               <span>Memuat daftar editor...</span>
             </div>
           ) : filteredEditors.length === 0 ? (
             <div
               style={{
-                padding: '30px',
+                padding: '24px',
                 textAlign: 'center',
                 color: '#94a3b8',
-                fontSize: '13px',
+                fontSize: '12px',
               }}
             >
               Tidak ada editor ditemukan.
             </div>
           ) : (
-            <div className="division-manager-grid">
+            <div className="division-manager-grid" style={{ gap: '5px' }}>
               {filteredEditors.map((editor) => {
                 const isChecked = assignedEditorIds.includes(editor.id);
                 return (
@@ -324,25 +367,29 @@ export function PageEditorManagerModal({
                       userSelect: 'none',
                       backgroundColor: isChecked ? '#f0fdf4' : '#ffffff',
                       borderColor: isChecked ? '#86efac' : 'rgba(0, 0, 0, 0.08)',
-                      padding: '8px 10px',
+                      padding: '4px 8px',
+                      minHeight: '34px',
+                      borderRadius: '4px',
+                      gap: '6px',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flex: 1 }}>
                       <input
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => toggleEditor(editor.id)}
-                        style={{ cursor: 'pointer', width: '15px', height: '15px', flexShrink: 0 }}
+                        style={{ cursor: 'pointer', width: '13px', height: '13px', flexShrink: 0 }}
                       />
-                      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', minWidth: 0 }}>
                         <span
                           style={{
-                            fontSize: '12.5px',
+                            fontSize: '12px',
                             fontWeight: 500,
                             color: '#0f172a',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
+                            maxWidth: '120px',
                           }}
                           title={editor.fullName}
                         >
@@ -350,7 +397,7 @@ export function PageEditorManagerModal({
                         </span>
                         <span
                           style={{
-                            fontSize: '11px',
+                            fontSize: '10.5px',
                             color: '#64748b',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
@@ -358,7 +405,7 @@ export function PageEditorManagerModal({
                           }}
                           title={editor.email}
                         >
-                          {editor.role === 'admin' ? 'Admin' : 'Designer'} • {editor.email}
+                          {editor.role === 'admin' ? 'Admin' : 'Editor'}
                         </span>
                       </div>
                     </div>
@@ -367,6 +414,158 @@ export function PageEditorManagerModal({
               })}
             </div>
           )}
+        </div>
+
+        {/* Bottom Panel: Persetujuan Akun Pending */}
+        <div
+          style={{
+            marginTop: '4px',
+            borderTop: '1px solid rgba(0, 0, 0, 0.08)',
+            paddingTop: '10px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <UserCheck size={14} style={{ color: '#0284c7' }} />
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#1e293b' }}>
+                Persetujuan Akun Pendaftar
+              </span>
+            </div>
+            <span
+              style={{
+                fontSize: '11px',
+                padding: '1px 7px',
+                borderRadius: '10px',
+                backgroundColor: pendingUsers.length > 0 ? '#fef3c7' : '#f1f5f9',
+                color: pendingUsers.length > 0 ? '#b45309' : '#64748b',
+                fontWeight: 600,
+              }}
+            >
+              {pendingUsers.length} menunggu
+            </span>
+          </div>
+
+          <div
+            style={{
+              maxHeight: '160px',
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+            }}
+          >
+            {pendingUsers.length === 0 ? (
+              <div
+                style={{
+                  padding: '12px',
+                  textAlign: 'center',
+                  fontSize: '11.5px',
+                  color: '#94a3b8',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px dashed rgba(0, 0, 0, 0.08)',
+                }}
+              >
+                Tidak ada pendaftaran akun yang menunggu persetujuan.
+              </div>
+            ) : (
+              pendingUsers.map((user) => {
+                const isProcessing = processingApprovalId === user.id;
+                const currentRole = selectedRoles[user.id] || user.role || 'designer';
+
+                return (
+                  <div
+                    key={user.id}
+                    className="modal-row-item"
+                    style={{
+                      padding: '6px 10px',
+                      backgroundColor: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                      <Avatar src={user.avatarUrl} name={user.fullName} size={24} />
+                      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                        <span
+                          style={{
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            color: '#0f172a',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {user.fullName}
+                        </span>
+                        <span style={{ fontSize: '10.5px', color: '#64748b' }}>
+                          {user.email} {user.createdAt ? `• ${getRelativeTime(user.createdAt)}` : ''}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                      <div style={{ width: '105px' }}>
+                        <SimpleSelect
+                          value={currentRole}
+                          size="sm"
+                          onChange={(newRole) =>
+                            setSelectedRoles((prev) => ({ ...prev, [user.id]: newRole as UserRole }))
+                          }
+                          disabled={isProcessing}
+                          options={[
+                            { value: 'designer', label: 'Designer' },
+                            { value: 'requestor', label: 'Requestor' },
+                            { value: 'admin', label: 'Admin' },
+                          ]}
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        className="modal-row-action-btn"
+                        style={{
+                          color: '#16a34a',
+                          backgroundColor: '#f0fdf4',
+                          border: '1px solid #bbf7d0',
+                          padding: '4px',
+                          borderRadius: '4px',
+                        }}
+                        onClick={() => handleApprove(user)}
+                        disabled={isProcessing}
+                        title="Setujui Akun"
+                      >
+                        {isProcessing ? <Loader2 size={13} className="spin" /> : <Check size={13} />}
+                      </button>
+
+                      <button
+                        type="button"
+                        className="modal-row-action-btn"
+                        style={{
+                          color: '#dc2626',
+                          backgroundColor: '#fef2f2',
+                          border: '1px solid #fecaca',
+                          padding: '4px',
+                          borderRadius: '4px',
+                        }}
+                        onClick={() => handleReject(user)}
+                        disabled={isProcessing}
+                        title="Tolak & Hapus"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
     </Modal>

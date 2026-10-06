@@ -229,6 +229,7 @@ export default function Home() {
         onRenamePage={operations.handleRenamePage}
         onSignOut={operations.handleSignOut}
         onOpenEditProfile={modals.handleOpenEditProfile}
+        onOpenPageEditors={modals.handleOpenPageEditors}
         onDropdownChange={modals.setActiveDropdownState}
       />
 
@@ -260,7 +261,6 @@ export default function Home() {
         setFilterSearch={setFilterSearch}
         onOpenNewJob={modals.handleOpenNewJob}
         onOpenDivisions={modals.handleOpenDivisions}
-        onOpenPageEditors={modals.handleOpenPageEditors}
         isGraphOpen={modals.isGraphOpen}
         onOpenGraph={modals.handleOpenGraph}
         onDropdownChange={modals.setActiveDropdownState}
@@ -275,6 +275,9 @@ export default function Home() {
         jobs={jobs}
         allUsers={allUsers}
         pages={pages}
+        pendingUsers={pendingUsers}
+        onApproveUser={operations.handleApproveUser}
+        onRejectUser={operations.handleRejectUser}
         isJobFormOpen={modals.isJobFormOpen}
         onCloseJobForm={() => modals.setIsJobFormOpen(false)}
         isDetailOpen={modals.isDetailOpen}

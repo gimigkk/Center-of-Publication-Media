@@ -1,5 +1,5 @@
 import React from 'react';
-import { Job, JobStatus, Page, Profile, Division } from '@/types';
+import { Job, JobStatus, Page, Profile, Division, UserRole } from '@/types';
 import { JobFormModal } from '@/components/forms/JobFormModal';
 import { JobDetailModal } from '@/components/forms/JobDetailModal';
 import { CreatePageModal } from '@/components/forms/CreatePageModal';
@@ -16,6 +16,9 @@ interface BoardModalsProps {
   jobs: Job[];
   allUsers: Profile[];
   pages?: Page[];
+  pendingUsers?: Profile[];
+  onApproveUser?: (userId: string, role?: UserRole) => Promise<{ success: boolean; error?: string }>;
+  onRejectUser?: (userId: string) => Promise<{ success: boolean; error?: string }>;
   // Modal visibility states
   isJobFormOpen: boolean;
   onCloseJobForm: () => void;
@@ -69,6 +72,9 @@ export function BoardModals({
   jobs,
   allUsers,
   pages,
+  pendingUsers,
+  onApproveUser,
+  onRejectUser,
   isJobFormOpen,
   onCloseJobForm,
   isDetailOpen,
@@ -147,6 +153,9 @@ export function BoardModals({
           currentPage={currentPage}
           pages={pages || [currentPage]}
           allUsers={allUsers}
+          pendingUsers={pendingUsers}
+          onApproveUser={onApproveUser}
+          onRejectUser={onRejectUser}
           onAssignmentsUpdated={onPageEditorsUpdated}
         />
       )}
