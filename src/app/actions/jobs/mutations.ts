@@ -86,30 +86,34 @@ export async function createJobAction(formData: {
   const newJobId = crypto.randomUUID();
 
   try {
-    const [inserted] = await db
-      .insert(schema.jobs)
-      .values({
-        id: newJobId,
-        pageId,
-        title: title.trim(),
-        description: description?.trim() || null,
-        briefLink: briefLink.trim(),
-        briefTitle: fetchedTitle,
-        divisionId,
-        publicationMedia: publicationMedia.trim(),
-        deadline: new Date(deadline),
-        status: 'in_queue',
-        kanbanOrder: 0,
-        requestorId: requestor.id,
-        isArchived: false,
-      })
-      .returning();
+    const inserted = await db.transaction(async (tx) => {
+      const [jobRow] = await tx
+        .insert(schema.jobs)
+        .values({
+          id: newJobId,
+          pageId,
+          title: title.trim(),
+          description: description?.trim() || null,
+          briefLink: briefLink.trim(),
+          briefTitle: fetchedTitle,
+          divisionId,
+          publicationMedia: publicationMedia.trim(),
+          deadline: new Date(deadline),
+          status: 'in_queue',
+          kanbanOrder: 0,
+          requestorId: requestor.id,
+          isArchived: false,
+        })
+        .returning();
 
-    await db.insert(schema.jobActivity).values({
-      jobId: inserted.id,
-      actorId: requestor.id,
-      toStatus: 'in_queue',
-      note: description?.trim() || 'Request job baru dibuat',
+      await tx.insert(schema.jobActivity).values({
+        jobId: jobRow.id,
+        actorId: requestor.id,
+        toStatus: 'in_queue',
+        note: description?.trim() || 'Request job baru dibuat',
+      });
+
+      return jobRow;
     });
 
     const newJob: Job = {
