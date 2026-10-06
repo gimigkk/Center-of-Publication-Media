@@ -7,6 +7,7 @@ export function useBoardModals() {
   const [selectedJobForDetail, setSelectedJobForDetail] = useState<Job | null>(null);
   const [isCreatePageOpen, setIsCreatePageOpen] = useState(false);
   const [isDivisionsOpen, setIsDivisionsOpen] = useState(false);
+  const [isPageEditorsOpen, setIsPageEditorsOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isGraphOpen, setIsGraphOpen] = useState(false);
   const [activeDropdownState, setActiveDropdownState] = useState<string | null>(null);
@@ -24,6 +25,7 @@ export function useBoardModals() {
 
   const handleOpenNewJob = useCallback(() => setIsJobFormOpen(true), []);
   const handleOpenDivisions = useCallback(() => setIsDivisionsOpen(true), []);
+  const handleOpenPageEditors = useCallback(() => setIsPageEditorsOpen(true), []);
   const handleOpenCreatePage = useCallback(() => setIsCreatePageOpen(true), []);
   const handleOpenEditProfile = useCallback(() => setIsEditProfileOpen(true), []);
   const handleOpenGraph = useCallback(() => setIsGraphOpen(true), []);
@@ -38,6 +40,7 @@ export function useBoardModals() {
     }
     if (isCreatePageOpen) return 'Membuat Halaman Baru';
     if (isDivisionsOpen) return 'Mengelola Divisi';
+    if (isPageEditorsOpen) return 'Mengelola Editor Halaman';
     if (isGraphOpen) return 'Melihat Grafik Performa';
     if (activeDropdownState) return activeDropdownState;
     return null;
@@ -48,6 +51,7 @@ export function useBoardModals() {
     detailDropdownState,
     isCreatePageOpen,
     isDivisionsOpen,
+    isPageEditorsOpen,
     isGraphOpen,
     activeDropdownState,
   ]);
@@ -63,6 +67,8 @@ export function useBoardModals() {
     setIsCreatePageOpen,
     isDivisionsOpen,
     setIsDivisionsOpen,
+    isPageEditorsOpen,
+    setIsPageEditorsOpen,
     isEditProfileOpen,
     setIsEditProfileOpen,
     isGraphOpen,
@@ -78,6 +84,7 @@ export function useBoardModals() {
     handleCloseDetail,
     handleOpenNewJob,
     handleOpenDivisions,
+    handleOpenPageEditors,
     handleOpenCreatePage,
     handleOpenEditProfile,
   };

@@ -23,6 +23,7 @@ import {
   updateDivisionAction,
   deleteDivisionAction,
 } from '@/app/actions/divisions';
+import { getPageDesignerSuggestionsAction } from '@/app/actions/page-editors';
 import {
   getAllUsersAction,
   approveUserAction,
@@ -84,16 +85,18 @@ export function useBoardOperations({
   const handleSelectPage = useCallback(async (page: Page) => {
     setCurrentPage(page);
     try {
-      const [pageJobs, pageDivisions] = await Promise.all([
+      const [pageJobs, pageDivisions, pageDesigners] = await Promise.all([
         getJobsAction(page.id),
         getDivisionsAction(page.id),
+        getPageDesignerSuggestionsAction(page.id),
       ]);
       setInitialJobs(pageJobs);
       setDivisions(pageDivisions);
+      setDesignerSuggestions(pageDesigners);
     } catch (e) {
       console.error('Failed to switch page:', e);
     }
-  }, [setCurrentPage, setInitialJobs, setDivisions]);
+  }, [setCurrentPage, setInitialJobs, setDivisions, setDesignerSuggestions]);
 
   // Move Job Action Handler
   const handleMoveJob = useCallback(

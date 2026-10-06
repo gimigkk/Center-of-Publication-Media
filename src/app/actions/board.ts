@@ -174,7 +174,7 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
       }))
       .sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
 
-    const [pageJobsRecords, workloadRows, allJobDesignersRecords] = await Promise.all([
+    const [pageJobsRecords, workloadRows, allJobDesignersRecords, pageEditorRecords] = await Promise.all([
       currentPage
         ? db.select().from(schema.jobs).where(eq(schema.jobs.pageId, currentPage.id)).orderBy(schema.jobs.kanbanOrder, schema.jobs.id)
         : Promise.resolve([]),
@@ -197,6 +197,9 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
         FROM normalized_assignments GROUP BY designer_id
       `),
       db.select().from(schema.jobDesigners),
+      currentPage
+        ? db.select({ editorId: schema.pageEditors.editorId }).from(schema.pageEditors).where(eq(schema.pageEditors.pageId, currentPage.id))
+        : Promise.resolve([]),
     ]);
 
     // Build map of job designer assignments in memory.
@@ -250,8 +253,13 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
       wipCountMap.set(String(row.designer_id), Number(row.active_wip_count));
     }
 
+    const assignedEditorIds = new Set(pageEditorRecords.map((r) => r.editorId));
+
     const designers = allUsers.filter(
-      (u) => u.isApproved && (u.role === 'designer' || u.role === 'admin')
+      (u) =>
+        u.isApproved &&
+        (u.role === 'designer' || u.role === 'admin') &&
+        (assignedEditorIds.size === 0 || assignedEditorIds.has(u.id))
     );
     designers.forEach((d) => {
       if (!wipCountMap.has(d.id)) wipCountMap.set(d.id, 0);

@@ -114,6 +114,25 @@ export const jobDesigners = pgTable('job_designers', {
   index('job_designers_job_designer_idx').on(table.jobId, table.designerId),
 ]);
 
+export const pageEditors = pgTable(
+  'page_editors',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    pageId: uuid('page_id')
+      .references(() => pages.id, { onDelete: 'cascade' })
+      .notNull(),
+    editorId: uuid('editor_id')
+      .references(() => profiles.id, { onDelete: 'cascade' })
+      .notNull(),
+    assignedAt: timestamp('assigned_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('page_editors_page_editor_idx').on(table.pageId, table.editorId),
+    index('page_editors_page_id_idx').on(table.pageId),
+    index('page_editors_editor_id_idx').on(table.editorId),
+  ]
+);
+
 export const jobActivity = pgTable('job_activity', {
   id: uuid('id').primaryKey().defaultRandom(),
   jobId: uuid('job_id').references(() => jobs.id, { onDelete: 'cascade' }).notNull(),
@@ -166,6 +185,18 @@ export const pagesRelations = relations(pages, ({ one, many }) => ({
   }),
   divisions: many(divisions),
   jobs: many(jobs),
+  editors: many(pageEditors),
+}));
+
+export const pageEditorsRelations = relations(pageEditors, ({ one }) => ({
+  page: one(pages, {
+    fields: [pageEditors.pageId],
+    references: [pages.id],
+  }),
+  editor: one(profiles, {
+    fields: [pageEditors.editorId],
+    references: [profiles.id],
+  }),
 }));
 
 export const jobsRelations = relations(jobs, ({ one, many }) => ({

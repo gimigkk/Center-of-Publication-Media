@@ -4,6 +4,7 @@ import { JobFormModal } from '@/components/forms/JobFormModal';
 import { JobDetailModal } from '@/components/forms/JobDetailModal';
 import { CreatePageModal } from '@/components/forms/CreatePageModal';
 import { DivisionManagerModal } from '@/components/admin/DivisionManagerModal';
+import { PageEditorManagerModal } from '@/components/admin/PageEditorManagerModal';
 import { EditProfileModal } from '@/components/forms/EditProfileModal';
 import { JobStatsModal } from '@/components/analytics/JobStatsModal';
 
@@ -25,6 +26,9 @@ interface BoardModalsProps {
   onCloseCreatePage: () => void;
   isDivisionsOpen: boolean;
   onCloseDivisions: () => void;
+  isPageEditorsOpen?: boolean;
+  onClosePageEditors?: () => void;
+  onPageEditorsUpdated?: (pageId: string, suggestions: { designer: Profile; activeWipCount: number }[]) => void;
   isEditProfileOpen: boolean;
   onCloseEditProfile: () => void;
   isGraphOpen: boolean;
@@ -74,6 +78,9 @@ export function BoardModals({
   onCloseCreatePage,
   isDivisionsOpen,
   onCloseDivisions,
+  isPageEditorsOpen = false,
+  onClosePageEditors,
+  onPageEditorsUpdated,
   isEditProfileOpen,
   onCloseEditProfile,
   isGraphOpen,
@@ -132,6 +139,17 @@ export function BoardModals({
         onUpdateDivision={onUpdateDivision}
         onDeleteDivision={onDeleteDivision}
       />
+
+      {onClosePageEditors && (
+        <PageEditorManagerModal
+          isOpen={isPageEditorsOpen}
+          onClose={onClosePageEditors}
+          currentPage={currentPage}
+          pages={pages || [currentPage]}
+          allUsers={allUsers}
+          onAssignmentsUpdated={onPageEditorsUpdated}
+        />
+      )}
 
       <EditProfileModal
         isOpen={isEditProfileOpen}

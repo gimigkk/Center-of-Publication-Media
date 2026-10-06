@@ -260,6 +260,7 @@ export default function Home() {
         setFilterSearch={setFilterSearch}
         onOpenNewJob={modals.handleOpenNewJob}
         onOpenDivisions={modals.handleOpenDivisions}
+        onOpenPageEditors={modals.handleOpenPageEditors}
         isGraphOpen={modals.isGraphOpen}
         onOpenGraph={modals.handleOpenGraph}
         onDropdownChange={modals.setActiveDropdownState}
@@ -283,6 +284,13 @@ export default function Home() {
         onCloseCreatePage={() => modals.setIsCreatePageOpen(false)}
         isDivisionsOpen={modals.isDivisionsOpen}
         onCloseDivisions={() => modals.setIsDivisionsOpen(false)}
+        isPageEditorsOpen={modals.isPageEditorsOpen}
+        onClosePageEditors={() => modals.setIsPageEditorsOpen(false)}
+        onPageEditorsUpdated={(pageId, suggestions) => {
+          if (pageId === currentPage.id) {
+            setDesignerSuggestions(suggestions);
+          }
+        }}
         isEditProfileOpen={modals.isEditProfileOpen}
         onCloseEditProfile={() => modals.setIsEditProfileOpen(false)}
         isGraphOpen={modals.isGraphOpen}
