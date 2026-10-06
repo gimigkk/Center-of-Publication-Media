@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Modal } from '@/components/ui/Modal';
+import { SimpleSelect } from '@/components/ui/Select';
 import { Page, Profile } from '@/types';
 import {
   getPageEditorsAction,
@@ -208,21 +209,15 @@ export function PageEditorManagerModal({
           <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
             Pilih Halaman Target
           </label>
-          <div style={{ position: 'relative' }}>
-            <select
-              className="form-input"
-              value={selectedPageId}
-              onChange={(e) => setSelectedPageId(e.target.value)}
-              disabled={isLoading || isSubmitting}
-              style={{ width: '100%', appearance: 'auto' }}
-            >
-              {pages.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} {p.id === currentPage.id ? '(Halaman Aktif)' : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SimpleSelect
+            value={selectedPageId}
+            onChange={(val) => setSelectedPageId(val)}
+            disabled={isLoading || isSubmitting}
+            options={pages.map((p) => ({
+              value: p.id,
+              label: `${p.name}${p.id === currentPage.id ? ' (Halaman Aktif)' : ''}`,
+            }))}
+          />
         </div>
 
         {/* Search & Bulk Select Toolbar */}
@@ -294,14 +289,11 @@ export function PageEditorManagerModal({
         {/* Editor Checklist */}
         <div
           style={{
-            maxHeight: '320px',
+            maxHeight: '340px',
             overflowY: 'auto',
             border: '1px solid rgba(0, 0, 0, 0.08)',
             borderRadius: 'var(--radius-sm)',
             padding: '8px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
             backgroundColor: '#fafafa',
           }}
         >
@@ -332,58 +324,60 @@ export function PageEditorManagerModal({
               Tidak ada editor ditemukan.
             </div>
           ) : (
-            filteredEditors.map((editor) => {
-              const isChecked = assignedEditorIds.includes(editor.id);
-              return (
-                <label
-                  key={editor.id}
-                  className="modal-row-item"
-                  style={{
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    backgroundColor: isChecked ? '#f0fdf4' : '#ffffff',
-                    borderColor: isChecked ? '#bbf7d0' : 'rgba(0, 0, 0, 0.08)',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => toggleEditor(editor.id)}
-                      style={{ cursor: 'pointer', width: '15px', height: '15px' }}
-                    />
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span
-                        style={{
-                          fontSize: '13px',
-                          fontWeight: 500,
-                          color: '#0f172a',
-                        }}
-                      >
-                        {editor.fullName}
-                      </span>
-                      <span style={{ fontSize: '11px', color: '#64748b' }}>
-                        {editor.email} • {editor.role === 'admin' ? 'Admin' : 'Designer'}
-                      </span>
+            <div className="division-manager-grid">
+              {filteredEditors.map((editor) => {
+                const isChecked = assignedEditorIds.includes(editor.id);
+                return (
+                  <label
+                    key={editor.id}
+                    className="modal-row-item"
+                    style={{
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      backgroundColor: isChecked ? '#f0fdf4' : '#ffffff',
+                      borderColor: isChecked ? '#86efac' : 'rgba(0, 0, 0, 0.08)',
+                      padding: '8px 10px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => toggleEditor(editor.id)}
+                        style={{ cursor: 'pointer', width: '15px', height: '15px', flexShrink: 0 }}
+                      />
+                      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                        <span
+                          style={{
+                            fontSize: '12.5px',
+                            fontWeight: 500,
+                            color: '#0f172a',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                          title={editor.fullName}
+                        >
+                          {editor.fullName}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            color: '#64748b',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                          title={editor.email}
+                        >
+                          {editor.role === 'admin' ? 'Admin' : 'Designer'} • {editor.email}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  {isChecked && (
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        color: '#16a34a',
-                        backgroundColor: '#dcfce7',
-                        padding: '2px 8px',
-                        borderRadius: '12px',
-                      }}
-                    >
-                      Ditugaskan
-                    </span>
-                  )}
-                </label>
-              );
-            })
+                  </label>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>
