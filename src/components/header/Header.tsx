@@ -277,20 +277,6 @@ export const Header = memo(function Header({
                       <span>Edit Akun</span>
                     </button>
                   )}
-                  {currentUser.role === 'admin' && onOpenPageEditors && (
-                    <button
-                      type="button"
-                      className="figma-profile-btn-secondary"
-                      onClick={() => {
-                        setShowUserMenu(false);
-                        onOpenPageEditors();
-                      }}
-                      title="Kelola Editor & Penugasan Halaman"
-                    >
-                      <Users size={13} />
-                      <span>Kelola Editor</span>
-                    </button>
-                  )}
                   {onSignOut && (
                     <button
                       type="button"
