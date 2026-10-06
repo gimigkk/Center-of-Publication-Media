@@ -4,12 +4,11 @@ import React, { useState, useRef, useEffect, useMemo, memo } from 'react';
 import { Page, Profile, OnlineUser, AppNotification, UserRole } from '@/types';
 import { PageSwitcher } from './PageSwitcher';
 import { NotificationInbox } from './NotificationInbox';
-import { ApprovalDropdown } from './ApprovalDropdown';
 import { Avatar } from '@/components/ui/Avatar';
 import { useSafeZone } from '@/hooks/useSafeZone';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
 import { getRelativeTime, getWhatsAppUrl } from '@/lib/utils';
-import { User, LogOut, Users } from 'lucide-react';
+import { User, LogOut, Users, UserCheck } from 'lucide-react';
 
 interface HeaderProps {
   pages: Page[];
@@ -161,14 +160,27 @@ export const Header = memo(function Header({
       {/* 2. Right Cluster: Notifications + Approvals + Collaborators + User Menu */}
       <div className="header-right">
         <div className="figjam-right-widget">
-          {/* Admin User Approval Dropdown */}
-          {currentUser.role === 'admin' && onApproveUser && onRejectUser && (
-            <ApprovalDropdown
-              pendingUsers={pendingUsers}
-              onApprove={onApproveUser}
-              onReject={onRejectUser}
-              onDropdownChange={onDropdownChange}
-            />
+          {/* Admin User Approval Button - opens the editor & approval modal */}
+          {currentUser.role === 'admin' && onOpenPageEditors && (
+            <div className="figjam-inbox-wrapper">
+              <button
+                type="button"
+                className={`figjam-inbox-btn ${pendingUsers.length > 0 ? 'has-unread' : ''}`}
+                onClick={onOpenPageEditors}
+                title={
+                  pendingUsers.length > 0
+                    ? `${pendingUsers.length} Persetujuan Akun Tertunda`
+                    : 'Kelola Editor & Persetujuan Akun'
+                }
+              >
+                <UserCheck size={16} strokeWidth={2} />
+                {pendingUsers.length > 0 && (
+                  <span className="inbox-badge-count approval-badge-count">
+                    {pendingUsers.length}
+                  </span>
+                )}
+              </button>
+            </div>
           )}
 
           {/* Notification Inbox */}
