@@ -16,12 +16,19 @@ export function NotificationRequirementModal({ userId }: NotificationRequirement
   if (isSubscribed && permission === 'granted') return null;
 
   const isBlocked = permission === 'denied';
+  const hasBrowserPermission = permission === 'granted';
 
   return (
     <Modal
       isOpen={true}
       onClose={() => {}}
-      title={isBlocked ? 'Izin Notifikasi Diblokir' : 'Aktifkan Notifikasi'}
+      title={
+        isBlocked
+          ? 'Izin Notifikasi Diblokir'
+          : hasBrowserPermission
+          ? 'Sinkronisasi Notifikasi'
+          : 'Aktifkan Notifikasi'
+      }
       subtitle="Pemberitahuan perubahan status dan penugasan job secara real-time"
       maxWidth={480}
       showCloseButton={false}
@@ -33,6 +40,16 @@ export function NotificationRequirementModal({ userId }: NotificationRequirement
             onClick={() => window.location.reload()}
           >
             Muat Ulang Halaman
+          </button>
+        ) : hasBrowserPermission ? (
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={subscribe}
+            disabled={loading}
+          >
+            <Bell size={13} />
+            <span>{loading ? 'Menyinkronkan...' : 'Selesaikan Registrasi'}</span>
           </button>
         ) : (
           <button

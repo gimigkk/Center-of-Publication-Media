@@ -25,13 +25,18 @@ export function useWebPush(userId?: string) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window) {
       setIsSupported(true);
-      setPermission(Notification.permission);
+      const currentPerm = Notification.permission;
+      setPermission(currentPerm);
 
       navigator.serviceWorker.register('/sw.js').then((registration) => {
         registration.pushManager.getSubscription().then((sub) => {
-          setIsSubscribed(Boolean(sub));
+          if (sub && currentPerm === 'granted') {
+            setIsSubscribed(true);
+          } else {
+            setIsSubscribed(false);
+          }
         });
       }).catch((err) => {
         console.warn('SW registration failed:', err);
@@ -70,11 +75,17 @@ export function useWebPush(userId?: string) {
       const p256dh = btoa(String.fromCharCode(...new Uint8Array(rawKey)));
       const auth = btoa(String.fromCharCode(...new Uint8Array(rawAuth)));
 
-      await savePushSubscriptionAction({
+      // Save subscription to database
+      const res = await savePushSubscriptionAction({
         endpoint: subscription.endpoint,
         keys: { p256dh, auth },
       });
 
+      if (!res.success) {
+        console.warn('Failed saving subscription to DB:', res.error);
+      }
+
+      // Mark subscribed once browser push permission & subscription exist
       setIsSubscribed(true);
       return true;
     } catch (e) {
