@@ -101,7 +101,7 @@ async function getAuthorizedJob(jobId: string, mode: 'read' | 'upload', timings?
   const isAssignedDesigner =
     user.role === 'designer' &&
     (job.designerId === user.id || assignments.length > 0);
-  const canRead = user.role === 'admin' || user.id === job.requestorId || isAssignedDesigner;
+  const canRead = true; // Any authenticated user can view and download deliverables
   const canUpload =
     (user.role === 'admin' || isAssignedDesigner) &&
     !job.isArchived &&

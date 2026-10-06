@@ -100,7 +100,6 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
     (job.status === 'wip' || job.status === 'revisions') &&
     (currentUser.role === 'admin' || (currentUser.role === 'designer' && assignedDesigner));
   const canDelete = currentUser.role === 'admin' || currentUser.role === 'designer';
-  const canManageFiles = currentUser.role === 'admin' || currentUser.role === 'designer';
 
   const formatFileSize = (sizeBytes: number) => {
     if (sizeBytes < 1024 * 1024) return `${Math.max(1, Math.round(sizeBytes / 1024))} KB`;
@@ -495,10 +494,10 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
               </span>
             </div>
           </div>
-          {canManageFiles && <div className="job-deliverable-buttons">
+          <div className="job-deliverable-buttons">
             <button type="button" className="job-deliverable-download-button" onClick={() => void handleDownload(deliverable)} title={`Unduh ${deliverable.originalFilename}`} aria-label={`Unduh ${deliverable.originalFilename}, ${formatFileSize(deliverable.sizeBytes)}`}><Download size={15} /><span>{formatFileSize(deliverable.sizeBytes)}</span></button>
             {canDelete && <button type="button" className="job-deliverable-icon-button is-danger" onClick={() => void handleDelete(deliverable)} disabled={isDeleting} title={`Hapus ${deliverable.originalFilename}`} aria-label={`Hapus ${deliverable.originalFilename}`}>{isDeleting ? <Loader2 size={14} className="spin" /> : <Trash2 size={14} />}</button>}
-          </div>}
+          </div>
         </div>
       </article>
     );
@@ -555,7 +554,7 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
                 </button>
               </>
             )}
-            {canManageFiles && deliverables.length > 0 && (
+            {deliverables.length > 0 && (
               <button
                 type="button"
                 className="job-deliverables-download-all-button"
