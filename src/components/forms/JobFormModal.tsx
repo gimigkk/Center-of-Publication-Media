@@ -8,7 +8,7 @@ import { GOOGLE_DOCS_REGEX, BRIEF_TEMPLATE_URL } from '@/lib/validations';
 import { GoogleDocsIcon } from '@/components/ui/GoogleDocsIcon';
 import { SimpleSelect } from '@/components/ui/Select';
 import { fetchGoogleDocTitleAction } from '@/app/actions/jobs';
-import { AlertCircle, CheckCircle2, CornerDownRight, ExternalLink, X } from 'lucide-react';
+import { AlertCircle, Check, CheckCircle2, CornerDownRight, ExternalLink, X } from 'lucide-react';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
 
 interface JobFormModalProps {
@@ -125,6 +125,11 @@ export function JobFormModal({
 
     if (!activeDivisionId) {
       setError('Silakan pilih divisi Requester Anda');
+      return;
+    }
+
+    if (!description.trim()) {
+      setError('Harap masukkan deskripsi kebutuhan desain');
       return;
     }
 
@@ -392,14 +397,17 @@ export function JobFormModal({
                 </span>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Deskripsi</label>
+              <div className="form-group" style={{ marginBottom: '2px' }}>
+                <label className="form-label">
+                  Deskripsi <span className="required-star">*</span>
+                </label>
                 <textarea
                   className="form-textarea"
                   rows={3}
                   placeholder="Hasil utama yang diharapkan, dimensi, atau instruksi khusus..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  required
                 />
               </div>
 
@@ -409,9 +417,12 @@ export function JobFormModal({
                   type="checkbox"
                   checked={hasAgreedToRules}
                   onChange={(e) => setHasAgreedToRules(e.target.checked)}
-                  style={{ accentColor: 'var(--accent-blue)', cursor: 'pointer', width: '15px', height: '15px' }}
+                  style={{ display: 'none' }}
                   required
                 />
+                <div className="copm-rules-custom-checkbox">
+                  {hasAgreedToRules && <Check size={11} strokeWidth={3} color="#ffffff" />}
+                </div>
                 <span className="copm-rules-checkbox-label">
                   Saya sudah membaca aturan, dan mengerti semua isinya. <span className="required-star">*</span>
                 </span>
