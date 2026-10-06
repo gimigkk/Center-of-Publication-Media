@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Bell, AlertTriangle } from 'lucide-react';
+import { Bell, AlertTriangle, ExternalLink } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { useWebPush } from '@/hooks/useWebPush';
 
@@ -12,7 +12,6 @@ interface NotificationRequirementModalProps {
 export function NotificationRequirementModal({ userId }: NotificationRequirementModalProps) {
   const { isSupported, permission, isSubscribed, loading, subscribe } = useWebPush(userId);
 
-  // If push isn't supported (ancient browser), or already subscribed and granted, don't show
   if (!isSupported || !userId) return null;
   if (isSubscribed && permission === 'granted') return null;
 
@@ -21,78 +20,81 @@ export function NotificationRequirementModal({ userId }: NotificationRequirement
   return (
     <Modal
       isOpen={true}
-      onClose={() => {}} // Non-closable: required modal
-      maxWidth={440}
+      onClose={() => {}}
+      title={isBlocked ? 'Izin Notifikasi Diblokir' : 'Aktifkan Notifikasi'}
+      subtitle="Pemberitahuan perubahan status dan penugasan job secara real-time"
+      maxWidth={480}
       showCloseButton={false}
-      showHeader={false}
-    >
-      <div style={{ padding: '28px 24px 20px', textAlign: 'center' }}>
-        <div
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: '50%',
-            background: isBlocked ? 'rgba(239, 68, 68, 0.12)' : 'rgba(13, 153, 255, 0.12)',
-            color: isBlocked ? '#ef4444' : '#0d99ff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 18px',
-          }}
-        >
-          {isBlocked ? <AlertTriangle size={28} /> : <Bell size={28} />}
-        </div>
-
-        <h3
-          style={{
-            fontSize: '18px',
-            fontWeight: 700,
-            color: 'var(--text-primary, #1e1e1e)',
-            marginBottom: '8px',
-            letterSpacing: '-0.3px',
-          }}
-        >
-          {isBlocked ? 'Izin Notifikasi Diblokir' : 'Wajib Mengaktifkan Notifikasi'}
-        </h3>
-
-        <p
-          style={{
-            fontSize: '13px',
-            lineHeight: 1.6,
-            color: 'var(--text-secondary, #666)',
-            marginBottom: '24px',
-          }}
-        >
-          {isBlocked ? (
-            <>
-              Browser Anda memblokir notifikasi COPM. Untuk melanjutkan kolaborasi, klik ikon <strong>gembok / pengaturan situs</strong> di address bar browser Anda, ubah <strong>Notifikasi</strong> menjadi <strong>Izinkan</strong>, lalu muat ulang halaman.
-            </>
-          ) : (
-            <>
-              Untuk memastikan setiap update status job, penugasan editor, dan deadline tersampaikan seketika tanpa tertinggal, notifikasi browser <strong>wajib diaktifkan</strong>.
-            </>
-          )}
-        </p>
-
-        {isBlocked ? (
+      footer={
+        isBlocked ? (
           <button
             type="button"
-            className="btn btn-primary"
+            className="btn-primary"
             onClick={() => window.location.reload()}
-            style={{ width: '100%', padding: '12px', justifyContent: 'center' }}
           >
-            Sudah Saya Izinkan, Muat Ulang Halaman
+            Muat Ulang Halaman
           </button>
         ) : (
           <button
             type="button"
-            className="btn btn-primary"
+            className="btn-primary"
             onClick={subscribe}
             disabled={loading}
-            style={{ width: '100%', padding: '12px', justifyContent: 'center' }}
           >
-            {loading ? 'Mengaktifkan...' : 'Aktifkan Notifikasi Sekarang'}
+            <Bell size={13} />
+            <span>{loading ? 'Mengaktifkan...' : 'Izinkan Notifikasi'}</span>
           </button>
+        )
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {isBlocked ? (
+          <>
+            <div className="modal-alert-error">
+              <AlertTriangle size={15} style={{ flexShrink: 0 }} />
+              <span>
+                Browser memblokir izin notifikasi untuk situs ini.
+              </span>
+            </div>
+
+            <div
+              style={{
+                fontSize: '12.5px',
+                color: 'var(--text-secondary, #475569)',
+                lineHeight: 1.55,
+                background: '#f8fafc',
+                border: '1px solid rgba(0, 0, 0, 0.06)',
+                borderRadius: '6px',
+                padding: '12px 14px',
+              }}
+            >
+              Untuk membuka akses board:
+              <ol style={{ margin: '8px 0 0', paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <li>Klik ikon <strong>setelan situs / gembok</strong> di sebelah URL address bar browser.</li>
+                <li>Ubah setelan <strong>Notifikasi</strong> menjadi <strong>Izinkan (Allow)</strong>.</li>
+                <li>Klik tombol <strong>Muat Ulang Halaman</strong> di bawah.</li>
+              </ol>
+            </div>
+          </>
+        ) : (
+          <div
+            style={{
+              fontSize: '12.5px',
+              color: 'var(--text-secondary, #475569)',
+              lineHeight: 1.55,
+              background: '#f8fafc',
+              border: '1px solid rgba(0, 0, 0, 0.06)',
+              borderRadius: '6px',
+              padding: '12px 14px',
+            }}
+          >
+            <p style={{ margin: 0, marginBottom: '8px' }}>
+              COPM mewajibkan notifikasi browser agar update tim (pemindahan status tiket, penugasan editor, revisi brief) tersampaikan langsung ke desktop Anda.
+            </p>
+            <p style={{ margin: 0, fontSize: '11.5px', color: 'var(--text-tertiary, #64748b)' }}>
+              Klik tombol <strong>Izinkan Notifikasi</strong> di bawah, lalu pilih <strong>Allow</strong> pada dialog konfirmasi browser Anda.
+            </p>
+          </div>
         )}
       </div>
     </Modal>
