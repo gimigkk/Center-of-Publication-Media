@@ -5,13 +5,19 @@ import Lenis from 'lenis';
 
 export function SmoothScroll() {
   useEffect(() => {
+    const boardContainer = document.querySelector('.board-container') as HTMLElement | null;
+
+    if (!boardContainer) return;
+
     const lenis = new Lenis({
+      wrapper: boardContainer,
+      content: boardContainer.firstElementChild as HTMLElement || boardContainer,
       duration: 1.1,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       smoothWheel: true,
       wheelMultiplier: 1,
-      touchMultiplier: 2,
+      touchMultiplier: 1.5,
     });
 
     let animationFrameId: number;
