@@ -164,7 +164,7 @@ export function PageEditorManagerModal({
           >
             {isSubmitting ? (
               <>
-                <Loader2 size={14} className="animate-spin" />
+                <Loader2 size={14} className="spin" />
                 <span>Menyimpan...</span>
               </>
             ) : (
@@ -186,19 +186,7 @@ export function PageEditorManagerModal({
         )}
 
         {successMsg && (
-          <div
-            style={{
-              padding: '8px 12px',
-              backgroundColor: '#ecfdf5',
-              border: '1px solid #a7f3d0',
-              color: '#065f46',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: '13px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
+          <div className="modal-alert-success">
             <Check size={14} style={{ flexShrink: 0 }} />
             <span>{successMsg}</span>
           </div>
@@ -309,7 +297,7 @@ export function PageEditorManagerModal({
                 fontSize: '13px',
               }}
             >
-              <Loader2 size={16} className="animate-spin" />
+              <Loader2 size={16} className="spin" />
               <span>Memuat daftar editor...</span>
             </div>
           ) : filteredEditors.length === 0 ? (
