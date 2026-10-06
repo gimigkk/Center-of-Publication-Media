@@ -12,20 +12,12 @@ interface NotificationRequirementModalProps {
 export function NotificationRequirementModal({ userId }: NotificationRequirementModalProps) {
   const { isSupported, permission, loading, subscribe } = useWebPush(userId);
 
-  // If already granted or bypassed in dev, don't block user
-  if (
-    !isSupported ||
-    !userId ||
-    permission === 'granted' ||
-    (typeof window !== 'undefined' && sessionStorage.getItem('bypass_notif_dev') === '1')
-  ) {
+  // If already granted, allow entry immediately
+  if (!isSupported || !userId || permission === 'granted') {
     return null;
   }
 
   const isBlocked = permission === 'denied';
-
-  // ponytail: localhost/HTTP insecure context or local dev toggle fallback
-  const isDev = process.env.NODE_ENV === 'development';
 
   return (
     <Modal
@@ -37,51 +29,23 @@ export function NotificationRequirementModal({ userId }: NotificationRequirement
       showCloseButton={false}
       footer={
         isBlocked ? (
-          <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'flex-end' }}>
-            {isDev && (
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => {
-                  sessionStorage.setItem('bypass_notif_dev', '1');
-                  window.location.reload();
-                }}
-              >
-                Lewati (Dev Mode)
-              </button>
-            )}
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={() => window.location.reload()}
-            >
-              Muat Ulang Halaman
-            </button>
-          </div>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => window.location.reload()}
+          >
+            Muat Ulang Halaman
+          </button>
         ) : (
-          <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'flex-end' }}>
-            {isDev && (
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => {
-                  sessionStorage.setItem('bypass_notif_dev', '1');
-                  window.location.reload();
-                }}
-              >
-                Lewati (Dev Mode)
-              </button>
-            )}
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={subscribe}
-              disabled={loading}
-            >
-              <Bell size={13} />
-              <span>{loading ? 'Mengaktifkan...' : 'Izinkan Notifikasi'}</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={subscribe}
+            disabled={loading}
+          >
+            <Bell size={13} />
+            <span>{loading ? 'Mengaktifkan...' : 'Izinkan Notifikasi'}</span>
+          </button>
         )
       }
     >
