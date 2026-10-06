@@ -17,6 +17,7 @@ import { Board } from '@/components/board/Board';
 import { FloatingToolbar } from '@/components/toolbar/FloatingToolbar';
 import { CursorOverlay } from '@/components/cursors/CursorOverlay';
 import { BoardModals } from '@/components/board/BoardModals';
+import { TopLoader } from '@/components/ui/TopLoader';
 
 export default function Home() {
   // Primary Workspace state
@@ -33,6 +34,7 @@ export default function Home() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [pageEditorsMap, setPageEditorsMap] = useState<Record<string, string[]>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isPageLoading, setIsPageLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeDraggedJob, setActiveDraggedJob] = useState<Job | null>(null);
 
@@ -115,6 +117,7 @@ export default function Home() {
     setNotifications,
     setSelectedJobForDetail: modals.setSelectedJobForDetail,
     setIsDetailOpen: modals.setIsDetailOpen,
+    setIsPageLoading,
   });
 
   // Load initial dataset in 1 single fast roundtrip with safety timeout
@@ -219,6 +222,9 @@ export default function Home() {
 
   return (
     <div className="figjam-canvas">
+      {/* Top Loading Progress Bar */}
+      <TopLoader isLoading={isPageLoading} />
+
       {/* Real-time remote collaborative cursors */}
       <CursorOverlay cursors={cursors} currentUser={currentUser} currentPageId={currentPage.id} />
 

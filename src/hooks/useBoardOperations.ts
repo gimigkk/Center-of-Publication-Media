@@ -24,6 +24,7 @@ import {
   deleteDivisionAction,
 } from '@/app/actions/divisions';
 import { getPageDesignerSuggestionsAction } from '@/app/actions/page-editors';
+import { getPageBundleAction } from '@/app/actions/page-bundle';
 import {
   getAllUsersAction,
   approveUserAction,
@@ -60,6 +61,7 @@ interface UseBoardOperationsParams {
   setNotifications: React.Dispatch<React.SetStateAction<AppNotification[]>>;
   setSelectedJobForDetail: (job: Job | null) => void;
   setIsDetailOpen: (open: boolean) => void;
+  setIsPageLoading?: (loading: boolean) => void;
 }
 
 export function useBoardOperations({
@@ -81,6 +83,7 @@ export function useBoardOperations({
   setNotifications,
   setSelectedJobForDetail,
   setIsDetailOpen,
+  setIsPageLoading,
 }: UseBoardOperationsParams) {
   const router = useRouter();
   const activePageId = currentPage?.id || 'default-page';
@@ -88,19 +91,18 @@ export function useBoardOperations({
   // Load jobs and divisions when switching page
   const handleSelectPage = useCallback(async (page: Page) => {
     setCurrentPage(page);
+    setIsPageLoading?.(true);
     try {
-      const [pageJobs, pageDivisions, pageDesigners] = await Promise.all([
-        getJobsAction(page.id),
-        getDivisionsAction(page.id),
-        getPageDesignerSuggestionsAction(page.id),
-      ]);
-      setInitialJobs(pageJobs);
-      setDivisions(pageDivisions);
-      setDesignerSuggestions(pageDesigners);
+      const bundle = await getPageBundleAction(page.id);
+      setInitialJobs(bundle.jobs);
+      setDivisions(bundle.divisions);
+      setDesignerSuggestions(bundle.designerSuggestions);
     } catch (e) {
       console.error('Failed to switch page:', e);
+    } finally {
+      setIsPageLoading?.(false);
     }
-  }, [setCurrentPage, setInitialJobs, setDivisions, setDesignerSuggestions]);
+  }, [setCurrentPage, setInitialJobs, setDivisions, setDesignerSuggestions, setIsPageLoading]);
 
   // Move Job Action Handler
   const handleMoveJob = useCallback(
