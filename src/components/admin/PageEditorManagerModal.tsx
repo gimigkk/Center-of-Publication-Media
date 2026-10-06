@@ -364,6 +364,8 @@ export function PageEditorManagerModal({
             style={{
               maxHeight: pendingUsers.length > 0 ? '240px' : '360px',
               overflowY: 'auto',
+              paddingTop: '6px',
+              paddingBottom: '6px',
               paddingRight: '4px',
             }}
           >
@@ -371,7 +373,7 @@ export function PageEditorManagerModal({
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                gap: '6px',
+                gap: '8px',
               }}
             >
               {filteredEditors.map((editor) => {
@@ -379,61 +381,49 @@ export function PageEditorManagerModal({
                 return (
                   <label
                     key={editor.id}
-                    className="modal-row-item"
-                    style={{
-                      cursor: 'pointer',
-                      userSelect: 'none',
-                      backgroundColor: isChecked ? '#f0fdf4' : '#ffffff',
-                      borderColor: isChecked ? '#86efac' : 'rgba(0, 0, 0, 0.08)',
-                      padding: '5px 8px',
-                      borderRadius: 'var(--radius-sm)',
-                      gap: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'flex-start',
-                      minWidth: 0,
-                      transition: 'all 100ms ease',
-                    }}
+                    className={`editor-3d-card-wrapper ${isChecked ? 'active' : 'inactive'}`}
                   >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => toggleEditor(editor.id)}
-                      style={{ cursor: 'pointer', width: '13px', height: '13px', flexShrink: 0 }}
-                    />
-                    <Avatar
-                      src={editor.avatarUrl}
-                      name={editor.fullName}
-                      size={22}
-                    />
-                    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, overflow: 'hidden' }}>
-                      <span
-                        style={{
-                          fontSize: '12px',
-                          fontWeight: 500,
-                          color: '#0f172a',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          lineHeight: 1.25,
-                        }}
-                        title={editor.fullName}
-                      >
-                        {editor.fullName}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '10px',
-                          color: '#64748b',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          lineHeight: 1.2,
-                        }}
-                        title={editor.email}
-                      >
-                        {editor.role === 'admin' ? 'Admin' : 'Editor'}
-                      </span>
+                    <div className="editor-3d-card-surface">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => toggleEditor(editor.id)}
+                        style={{ cursor: 'pointer', width: '13px', height: '13px', flexShrink: 0 }}
+                      />
+                      <Avatar
+                        src={editor.avatarUrl}
+                        name={editor.fullName}
+                        size={22}
+                      />
+                      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                        <span
+                          style={{
+                            fontSize: '12px',
+                            fontWeight: isChecked ? 600 : 500,
+                            color: isChecked ? '#0f172a' : '#475569',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            lineHeight: 1.25,
+                          }}
+                          title={editor.fullName}
+                        >
+                          {editor.fullName}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            color: isChecked ? '#64748b' : '#94a3b8',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            lineHeight: 1.2,
+                          }}
+                          title={editor.email}
+                        >
+                          {editor.role === 'admin' ? 'Admin' : 'Editor'}
+                        </span>
+                      </div>
                     </div>
                   </label>
                 );

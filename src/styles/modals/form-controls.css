@@ -127,6 +127,71 @@
   gap: 8px;
 }
 
+/* 3D Tactile Card for Editor Selection */
+.editor-3d-card-wrapper {
+  position: relative;
+  background-color: #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+  min-width: 0;
+  display: block;
+}
+
+.editor-3d-card-surface {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  min-width: 0;
+  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              background-color 160ms ease,
+              border-color 160ms ease,
+              box-shadow 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              filter 160ms ease;
+}
+
+/* Inactive state: pushed down, grayed/muted */
+.editor-3d-card-wrapper.inactive .editor-3d-card-surface {
+  background-color: #e2e8f0;
+  border-color: #cbd5e1;
+  transform: translateY(0px);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+  filter: grayscale(0.55) opacity(0.8);
+}
+
+.editor-3d-card-wrapper.inactive:hover .editor-3d-card-surface {
+  transform: translateY(-1.5px);
+  filter: grayscale(0.3) opacity(0.92);
+}
+
+/* Active state: elevated up (3D pop), clean white, bouncy shadow */
+.editor-3d-card-wrapper.active {
+  background-color: #0284c7;
+}
+
+.editor-3d-card-wrapper.active .editor-3d-card-surface {
+  background-color: #ffffff;
+  border-color: rgba(2, 132, 199, 0.35);
+  transform: translateY(-3.5px);
+  box-shadow: 0 4px 8px -1px rgba(2, 132, 199, 0.22),
+              0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  filter: none;
+}
+
+.editor-3d-card-wrapper.active:hover .editor-3d-card-surface {
+  transform: translateY(-4.5px);
+  box-shadow: 0 6px 12px -2px rgba(2, 132, 199, 0.28),
+              0 3px 6px -1px rgba(0, 0, 0, 0.08);
+}
+
+.editor-3d-card-wrapper:active .editor-3d-card-surface {
+  transform: translateY(0px) !important;
+  transition-duration: 60ms;
+}
+
 @media (max-width: 560px) {
   .division-manager-grid {
     grid-template-columns: 1fr;
