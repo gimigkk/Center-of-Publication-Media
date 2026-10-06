@@ -20,6 +20,7 @@ function LoginForm() {
   const [resetStatus, setResetStatus] = useState<{ success: boolean; message: string } | null>(null);
 
   const handlePasswordReset = async () => {
+    setDiagnostic(null);
     if (!email.trim()) {
       setResetStatus({
         success: false,
@@ -40,6 +41,7 @@ function LoginForm() {
   const handleLogin = async (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
     setDiagnostic(null);
+    setResetStatus(null);
     setIsSubmitting(true);
 
     try {
@@ -83,6 +85,15 @@ function LoginForm() {
           </div>
         )}
 
+        {resetStatus && (
+          <div className={`auth-error-panel ${resetStatus.success ? 'auth-success-panel' : ''}`} role="alert" aria-live="polite">
+            {resetStatus.success ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />}
+            <div className="auth-error-content">
+              <strong>{resetStatus.message}</strong>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleLogin} className="auth-form">
           <div className="form-group">
             <label className="form-label">Alamat Email</label>
@@ -102,14 +113,6 @@ function LoginForm() {
             {isResetting ? 'Mengirim tautan...' : 'Lupa kata sandi?'}
           </button>
         </div>
-        {resetStatus && (
-          <div className={`auth-error-panel ${resetStatus.success ? 'auth-success-panel' : ''}`} role="alert" style={{ marginTop: '10px' }}>
-            {resetStatus.success ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />}
-            <div className="auth-error-content">
-              <strong>{resetStatus.message}</strong>
-            </div>
-          </div>
-        )}
 
         <div className="auth-footer-links">
           <span>Belum punya akun?</span>
