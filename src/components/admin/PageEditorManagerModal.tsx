@@ -320,7 +320,7 @@ export function PageEditorManagerModal({
         {/* Editor Checklist - Ultra Compact 2 Columns */}
         <div
           style={{
-            maxHeight: '220px',
+            maxHeight: pendingUsers.length > 0 ? '220px' : '320px',
             overflowY: 'auto',
             border: '1px solid rgba(0, 0, 0, 0.08)',
             borderRadius: 'var(--radius-sm)',
@@ -416,63 +416,49 @@ export function PageEditorManagerModal({
           )}
         </div>
 
-        {/* Bottom Panel: Persetujuan Akun Pending */}
-        <div
-          style={{
-            marginTop: '4px',
-            borderTop: '1px solid rgba(0, 0, 0, 0.08)',
-            paddingTop: '10px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <UserCheck size={14} style={{ color: '#0284c7' }} />
-              <span style={{ fontSize: '12px', fontWeight: 600, color: '#1e293b' }}>
-                Persetujuan Akun Pendaftar
-              </span>
-            </div>
-            <span
-              style={{
-                fontSize: '11px',
-                padding: '1px 7px',
-                borderRadius: '10px',
-                backgroundColor: pendingUsers.length > 0 ? '#fef3c7' : '#f1f5f9',
-                color: pendingUsers.length > 0 ? '#b45309' : '#64748b',
-                fontWeight: 600,
-              }}
-            >
-              {pendingUsers.length} menunggu
-            </span>
-          </div>
-
+        {/* Bottom Panel: Persetujuan Akun Pending (only shown if there are pending users) */}
+        {pendingUsers.length > 0 && (
           <div
             style={{
-              maxHeight: '160px',
-              overflowY: 'auto',
+              marginTop: '4px',
+              borderTop: '1px solid rgba(0, 0, 0, 0.08)',
+              paddingTop: '10px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '6px',
+              gap: '8px',
             }}
           >
-            {pendingUsers.length === 0 ? (
-              <div
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <UserCheck size={14} style={{ color: '#0284c7' }} />
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#1e293b' }}>
+                  Persetujuan Akun Pendaftar
+                </span>
+              </div>
+              <span
                 style={{
-                  padding: '12px',
-                  textAlign: 'center',
-                  fontSize: '11.5px',
-                  color: '#94a3b8',
-                  backgroundColor: '#f8fafc',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px dashed rgba(0, 0, 0, 0.08)',
+                  fontSize: '11px',
+                  padding: '1px 7px',
+                  borderRadius: '10px',
+                  backgroundColor: '#fef3c7',
+                  color: '#b45309',
+                  fontWeight: 600,
                 }}
               >
-                Tidak ada pendaftaran akun yang menunggu persetujuan.
-              </div>
-            ) : (
-              pendingUsers.map((user) => {
+                {pendingUsers.length} menunggu
+              </span>
+            </div>
+
+            <div
+              style={{
+                maxHeight: '160px',
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+              }}
+            >
+              {pendingUsers.map((user) => {
                 const isProcessing = processingApprovalId === user.id;
                 const currentRole = selectedRoles[user.id] || user.role || 'designer';
 
@@ -563,10 +549,10 @@ export function PageEditorManagerModal({
                     </div>
                   </div>
                 );
-              })
-            )}
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </Modal>
   );
