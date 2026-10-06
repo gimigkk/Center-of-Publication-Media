@@ -13,12 +13,12 @@ export function SmoothScroll() {
     const lenis = new Lenis({
       wrapper: boardContainer,
       content: boardContent,
-      duration: 1.2,
+      duration: 0.75,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       smoothWheel: true,
-      wheelMultiplier: 1.2,
-      touchMultiplier: 1.5,
+      wheelMultiplier: 1.0,
+      touchMultiplier: 1.2,
       autoRaf: false,
     });
 
