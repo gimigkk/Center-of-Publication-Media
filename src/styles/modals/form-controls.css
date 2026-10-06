@@ -130,7 +130,7 @@
 /* 3D Tactile Card for Editor Selection */
 .editor-3d-card-wrapper {
   position: relative;
-  background-color: rgba(0, 0, 0, 0.06);
+  background-color: rgba(0, 0, 0, 0.03);
   border-radius: var(--radius-sm);
   cursor: pointer;
   user-select: none;
@@ -144,7 +144,7 @@
   gap: 8px;
   padding: 5px 8px;
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.16);
   min-width: 0;
   transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1),
               background-color 150ms ease,
@@ -156,24 +156,25 @@
 /* Inactive state: pushed down, low opacity */
 .editor-3d-card-wrapper.inactive .editor-3d-card-surface {
   background-color: #ffffff;
-  border-color: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.14);
   transform: translateY(0px);
   opacity: 0.45;
 }
 
 .editor-3d-card-wrapper.inactive:hover .editor-3d-card-surface {
   transform: translateY(-1px);
+  border-color: rgba(0, 0, 0, 0.18);
   opacity: 0.75;
 }
 
 /* Active state: elevated up (3D pop), clean white */
 .editor-3d-card-wrapper.active {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .editor-3d-card-wrapper.active .editor-3d-card-surface {
   background-color: #ffffff;
-  border-color: rgba(0, 0, 0, 0.12);
+  border-color: rgba(0, 0, 0, 0.2);
   transform: translateY(-3px);
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.06);
   opacity: 1;
@@ -181,6 +182,7 @@
 
 .editor-3d-card-wrapper.active:hover .editor-3d-card-surface {
   transform: translateY(-3.5px);
+  border-color: rgba(0, 0, 0, 0.24);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
 }
 
