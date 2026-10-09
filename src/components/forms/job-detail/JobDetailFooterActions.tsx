@@ -1,7 +1,14 @@
 import React from 'react';
 import { Job, JobStatus, Profile } from '@/types';
 import { RotateCcw } from 'lucide-react';
-import { SimpleSelect } from '@/components/ui/Select';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+  SelectSeparator,
+} from '@/components/ui/Select';
 
 interface JobDetailFooterActionsProps {
   job: Job;
@@ -11,6 +18,7 @@ interface JobDetailFooterActionsProps {
   onAction: (toStatus: JobStatus, note?: string) => Promise<void>;
   onArchive?: (jobId: string) => Promise<void>;
   onUnarchive?: (jobId: string) => Promise<void>;
+  onDelete?: (jobId: string) => Promise<void>;
   onClose: () => void;
 }
 
@@ -20,6 +28,7 @@ export const JobDetailFooterActions = React.memo(function JobDetailFooterActions
   isSubmitting,
   onAction,
   onUnarchive,
+  onDelete,
   onClose,
 }: JobDetailFooterActionsProps) {
   // Check if any actions are visible
@@ -32,6 +41,23 @@ export const JobDetailFooterActions = React.memo(function JobDetailFooterActions
     return null;
   }
 
+  const handleSelectChange = async (val: string) => {
+    if (val === '__delete__') {
+      if (confirm(`Yakin ingin menghapus job "${job.title}"? Tindakan ini tidak dapat dibatalkan.`)) {
+        if (onDelete) {
+          await onDelete(job.id);
+          onClose();
+        }
+      }
+      return;
+    }
+
+    await onAction(
+      val as JobStatus,
+      `Dipindahkan manual ke status ${val}`
+    );
+  };
+
   return (
     <div className="simple-modal-footer simple-modal-footer-actions">
       {/* Action buttons on bottom right */}
@@ -39,25 +65,33 @@ export const JobDetailFooterActions = React.memo(function JobDetailFooterActions
         {/* Admin quick stage switcher */}
         {hasAdminStageSwitcher && (
           <div className="simple-modal-action-item">
-            <SimpleSelect
-              size="sm"
-              className="modal-stage-select"
+            <Select
               value={job.status}
               disabled={isSubmitting}
-              onChange={(val) =>
-                onAction(
-                  val as JobStatus,
-                  `Dipindahkan manual ke status ${val}`
-                )
-              }
-              title="Pindahkan status kartu ini"
-              options={[
-                { value: 'in_queue', label: 'Antrian' },
-                { value: 'wip', label: 'Sedang Dikerjakan' },
-                { value: 'revisions', label: 'Revisi' },
-                { value: 'done', label: 'Selesai' },
-              ]}
-            />
+              onValueChange={handleSelectChange}
+            >
+              <SelectTrigger
+                size="sm"
+                className="modal-stage-select"
+                title="Pindahkan status kartu ini"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="in_queue">Antrian</SelectItem>
+                <SelectItem value="wip">Sedang Dikerjakan</SelectItem>
+                <SelectItem value="revisions">Revisi</SelectItem>
+                <SelectItem value="done">Selesai</SelectItem>
+                {currentUser.role === 'admin' && (
+                  <>
+                    <SelectSeparator />
+                    <SelectItem value="__delete__" className="is-danger">
+                      Hapus
+                    </SelectItem>
+                  </>
+                )}
+              </SelectContent>
+            </Select>
           </div>
         )}
 

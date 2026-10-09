@@ -54,6 +54,7 @@ interface BoardModalsProps {
   onUpdateDeadline?: (jobId: string, deadline: string) => Promise<{ success: boolean; error?: string }>;
   onArchiveJob: (jobId: string) => Promise<void>;
   onUnarchiveJob: (jobId: string) => Promise<void>;
+  onDeleteJob?: (jobId: string) => Promise<void>;
   onMoveJobStatus: (jobId: string, toStatus: JobStatus, note?: string) => Promise<{ success: boolean; error?: string }>;
   onCreatePage: (name: string, description?: string) => Promise<{ success: boolean; page?: Page; error?: string }>;
   onCreateDivision: (name: string) => Promise<{ success: boolean; division?: Division; error?: string }>;
@@ -100,6 +101,7 @@ export function BoardModals({
   onUpdateDeadline,
   onArchiveJob,
   onUnarchiveJob,
+  onDeleteJob,
   onMoveJobStatus,
   onCreatePage,
   onCreateDivision,
@@ -128,6 +130,7 @@ export function BoardModals({
         onUpdateDeadline={onUpdateDeadline}
         onArchive={onArchiveJob}
         onUnarchive={onUnarchiveJob}
+        onDelete={onDeleteJob}
         onMoveStatus={onMoveJobStatus}
         onDropdownChange={onDetailDropdownChange}
       />

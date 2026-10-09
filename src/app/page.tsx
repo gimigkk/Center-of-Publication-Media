@@ -329,6 +329,7 @@ export default function Home() {
         onUpdateDeadline={operations.handleUpdateDeadline}
         onArchiveJob={operations.handleArchiveJob}
         onUnarchiveJob={operations.handleUnarchiveJob}
+        onDeleteJob={operations.handleDeleteJob}
         onMoveJobStatus={async (jobId, toStatus, note) => {
           const res = await moveJobAction(jobId, toStatus, currentUser, note);
           if (res.success) {

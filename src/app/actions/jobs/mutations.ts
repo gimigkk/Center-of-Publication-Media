@@ -12,6 +12,8 @@ import { getDivisionsAction } from '../divisions';
 import { createNotificationAction } from '../notifications';
 import { isMockEnabled, getMockStore } from '@/lib/mock-store';
 import { formatDate } from '@/lib/utils';
+import { getAuthenticatedUser } from '@/lib/auth-guard';
+import { deleteDeliverableObject } from '@/lib/r2';
 
 export async function createJobAction(formData: {
   pageId: string;
@@ -403,6 +405,66 @@ export async function updateJobDeadlineAction(
     return {
       success: false,
       error: e instanceof Error ? e.message : 'Gagal memperbarui deadline job',
+    };
+  }
+}
+
+export async function deleteJobAction(
+  jobId: string,
+  actor: Profile
+): Promise<{ success: boolean; error?: string }> {
+  // Session authentication & authorization check
+  const authenticatedUser = await getAuthenticatedUser(false);
+  if (!authenticatedUser || authenticatedUser.role !== 'admin' || actor.role !== 'admin') {
+    return { success: false, error: 'Hanya admin yang berhak menghapus job' };
+  }
+
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    const index = store.jobs.findIndex((j) => j.id === jobId);
+    if (index === -1) {
+      return { success: false, error: 'Job tidak ditemukan' };
+    }
+    store.jobs.splice(index, 1);
+    return { success: true };
+  }
+
+  if (!db) return { success: false, error: 'Database belum terhubung' };
+
+  try {
+    // 1. Ambil deliverable storage keys sebelum cascade delete di DB
+    const deliverables = await db
+      .select({ storageKey: schema.deliverables.storageKey })
+      .from(schema.deliverables)
+      .where(eq(schema.deliverables.jobId, jobId));
+
+    // 2. ACID Transactional delete
+    await db.transaction(async (tx) => {
+      const [currentJob] = await tx
+        .select({ id: schema.jobs.id })
+        .from(schema.jobs)
+        .where(eq(schema.jobs.id, jobId));
+
+      if (!currentJob) {
+        throw new Error('Job tidak ditemukan');
+      }
+
+      await tx.delete(schema.jobs).where(eq(schema.jobs.id, jobId));
+    });
+
+    // 3. Bersihkan file R2 storage di background setelah transaksi database committed
+    if (deliverables.length > 0) {
+      Promise.allSettled(
+        deliverables.map((d) => deleteDeliverableObject(d.storageKey))
+      ).catch((err) => console.error('Failed to clean up R2 deliverables on job deletion:', err));
+    }
+
+    revalidatePath('/');
+    return { success: true };
+  } catch (e: unknown) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : 'Gagal menghapus job',
     };
   }
 }

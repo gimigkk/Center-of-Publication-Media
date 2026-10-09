@@ -21,6 +21,7 @@ interface JobDetailModalProps {
   onMoveStatus: (jobId: string, toStatus: JobStatus, note?: string) => Promise<{ success: boolean; error?: string }>;
   onArchive?: (jobId: string) => Promise<void>;
   onUnarchive?: (jobId: string) => Promise<void>;
+  onDelete?: (jobId: string) => Promise<void>;
   onDropdownChange?: (state: string | null) => void;
 }
 
@@ -35,6 +36,7 @@ export const JobDetailModal = React.memo(function JobDetailModal({
   onMoveStatus,
   onArchive,
   onUnarchive,
+  onDelete,
 }: JobDetailModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [dynamicBriefTitle, setDynamicBriefTitle] = useState<string | null>(null);
@@ -148,6 +150,7 @@ export const JobDetailModal = React.memo(function JobDetailModal({
             onAction={handleAction}
             onArchive={onArchive}
             onUnarchive={onUnarchive}
+            onDelete={onDelete}
             onClose={onClose}
           />
         </div>

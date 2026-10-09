@@ -10,6 +10,7 @@ import {
   getDesignerSuggestionsAction,
   archiveJobAction,
   unarchiveJobAction,
+  deleteJobAction,
   archiveAllDoneJobsAction,
 } from '@/app/actions/jobs';
 import {
@@ -259,6 +260,24 @@ export function useBoardOperations({
     [currentUser, activePageId, broadcastBoardChange, setJobs]
   );
 
+  // Delete Job Handler
+  const handleDeleteJob = useCallback(
+    async (jobId: string) => {
+      if (!currentUser || currentUser.role !== 'admin') return;
+
+      setJobs((prev) => prev.filter((j) => j.id !== jobId));
+
+      const res = await deleteJobAction(jobId, currentUser);
+      if (res.success) {
+        broadcastBoardChange();
+      } else {
+        const fresh = await getJobsAction(activePageId);
+        setJobs(fresh);
+      }
+    },
+    [currentUser, activePageId, broadcastBoardChange, setJobs]
+  );
+
   // Unarchive / Restore Job Handler
   const handleUnarchiveJob = useCallback(
     async (jobId: string) => {
@@ -486,6 +505,7 @@ export function useBoardOperations({
     handleAssignDesigner,
     handleUpdateDeadline,
     handleArchiveJob,
+    handleDeleteJob,
     handleUnarchiveJob,
     handleArchiveAllDone,
     handleCreatePage,

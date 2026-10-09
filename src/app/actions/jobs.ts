@@ -9,6 +9,7 @@ import {
   createJobAction as _createJobAction,
   moveJobAction as _moveJobAction,
   updateJobDeadlineAction as _updateJobDeadlineAction,
+  deleteJobAction as _deleteJobAction,
 } from './jobs/mutations';
 
 import {
@@ -89,6 +90,13 @@ export async function unarchiveJobAction(
   actor: Profile
 ) {
   return _unarchiveJobAction(jobId, actor);
+}
+
+export async function deleteJobAction(
+  jobId: string,
+  actor: Profile
+) {
+  return _deleteJobAction(jobId, actor);
 }
 
 export async function archiveAllDoneJobsAction(

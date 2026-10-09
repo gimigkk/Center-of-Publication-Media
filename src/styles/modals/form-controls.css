@@ -544,6 +544,17 @@
   cursor: not-allowed;
 }
 
+.figma-select-item.is-danger,
+.figma-select-item.danger {
+  color: #ef4444;
+}
+
+.figma-select-item.is-danger[data-highlighted],
+.figma-select-item.danger[data-highlighted] {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
 /* Dark Variant Triggers (e.g. Floating Toolbar Popover) */
 .figma-select-trigger-dark {
   background-color: #1e1e1e;
