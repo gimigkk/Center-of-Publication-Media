@@ -236,8 +236,6 @@ export default function Home() {
         onlineUsers={activeOnlineUsers}
         notifications={notifications}
         pendingUsers={pendingUsers}
-        onApproveUser={operations.handleApproveUser}
-        onRejectUser={operations.handleRejectUser}
         onMarkAsRead={operations.handleMarkAsRead}
         onMarkAllAsRead={operations.handleMarkAllAsRead}
         onClearAllNotifications={operations.handleClearAllNotifications}

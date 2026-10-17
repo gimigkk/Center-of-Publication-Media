@@ -10,7 +10,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const DEFAULT_PUT_TTL_SECONDS = 10 * 60;
-const DEFAULT_GET_TTL_SECONDS = 24 * 60 * 60;
+const DEFAULT_GET_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 let client: S3Client | null = null;
 

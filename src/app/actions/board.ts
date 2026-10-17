@@ -446,6 +446,7 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
             createdAt: new Date(d.created_at).toISOString(),
             registeredAt: d.registered_at ? new Date(d.registered_at).toISOString() : new Date(d.created_at).toISOString(),
             previewUrl,
+            fileUrl: `/api/deliverables/${d.id}/view`,
           };
           if (!initialDeliverables[d.job_id]) {
             initialDeliverables[d.job_id] = [];

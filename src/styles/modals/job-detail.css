@@ -10,19 +10,30 @@
   width: 100%;
   max-width: 440px;
   animation: scaleUp 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
   margin: auto;
 }
 
 @media (min-width: 1180px) {
   .modal-dual-container {
     flex-direction: row;
-    align-items: flex-start;
-    max-width: none;
-    width: min(960px, calc(100vw - 48px));
+    align-items: stretch;
+    justify-content: center;
+    max-width: calc(100vw - 48px);
+    width: fit-content;
+    height: clamp(500px, 68vh, 540px);
+    max-height: calc(100vh - 48px);
   }
 
-  .figma-detail-card {
+  .figma-detail-card,
+  .job-deliverables-column {
+    width: 440px;
     min-width: 380px;
+    max-width: 440px;
+    flex: 1 1 440px;
+    height: 100%;
   }
 }
 
@@ -104,19 +115,15 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .simple-modal-title-group {
   display: flex;
   flex-direction: column;
   gap: 3px;
-}
-
-.simple-modal-created-at {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-tertiary);
-  letter-spacing: -0.1px;
 }
 
 .simple-modal-title {
@@ -129,7 +136,7 @@
 }
 
 .simple-modal-desc {
-  font-size: 11px;
+  font-size: 11.5px;
   color: #475569;
   line-height: 1.45;
   margin: 0;
@@ -141,9 +148,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 10px 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  /* border-bottom: 1px solid rgba(0, 0, 0, 0.06); */
+  padding: 2px 0 8px;
 }
 
 .simple-prop-row {
@@ -184,13 +189,16 @@
   justify-content: flex-end;
   gap: 5px;
   min-height: 20px;
+  max-width: 155px;
   padding: 2px 7px 2px 3px;
   color: var(--text-primary);
   background-color: rgba(0, 0, 0, 0.04);
   border-radius: var(--radius-full);
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 500;
   white-space: nowrap;
+  min-width: 0;
+  flex-shrink: 1;
 }
 
 .simple-profile-chip a,
@@ -203,11 +211,26 @@ a.simple-profile-chip {
   background-color: rgba(0, 0, 0, 0.04);
 }
 
+.simple-profile-chip span,
 .simple-profile-chip-name {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--text-primary);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
+
+.simple-prop-division {
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 155px;
+  flex-shrink: 0;
 }
 
 .simple-prop-row.has-multiple-values {
@@ -219,17 +242,20 @@ a.simple-profile-chip {
 }
 
 .simple-editor-list-value {
-  flex-direction: column;
-  align-items: flex-end;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
   gap: 5px;
 }
 
 .simple-editor-list {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
   gap: 5px;
-  width: 100%;
 }
 
 .simple-prop-empty {
@@ -371,6 +397,46 @@ a.simple-profile-chip {
 }
 
 /* Google Docs Brief Box with Copy & Open Actions */
+.simple-brief-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 0;
+  min-height: 180px;
+}
+
+.simple-brief-preview-container {
+  flex: 1 1 0;
+  height: 100%;
+  min-height: 140px;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: #ffffff;
+  overflow: hidden;
+  position: relative;
+}
+
+@media (max-width: 1179px) {
+  .simple-brief-preview-container {
+    height: 220px;
+    min-height: 220px;
+  }
+}
+
+.simple-brief-iframe {
+  position: absolute;
+  top: -24px;
+  left: -32px;
+  width: calc(165% + 80px);
+  height: calc(160% + 70px);
+  transform: scale(0.66);
+  transform-origin: top left;
+  border: none;
+  display: block;
+  background-color: #ffffff;
+}
+
 .simple-brief-box {
   display: flex;
   align-items: center;
@@ -381,6 +447,7 @@ a.simple-profile-chip {
   background-color: #f8fafc;
   transition: all 120ms ease;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .simple-brief-box:hover {
@@ -482,6 +549,8 @@ a.simple-profile-chip {
   gap: 6px;
   flex-wrap: nowrap;
   overflow: hidden;
+  flex-shrink: 0;
+  margin-top: auto;
 }
 
 .simple-modal-footer-actions {

@@ -12,17 +12,15 @@ import { requireAdmin } from '@/lib/auth-guard';
 
 export async function assignDesignerAction(
   jobId: string,
-  designerId: string,
-  actor?: Profile | null
+  designerId: string
 ): Promise<{ success: boolean; error?: string }> {
   const ids = designerId ? designerId.split(',').filter(Boolean) : [];
-  return await setJobDesignersAction(jobId, ids, actor);
+  return await setJobDesignersAction(jobId, ids);
 }
 
 export async function setJobDesignersAction(
   jobId: string,
-  designerIds: string[],
-  actor?: Profile | null
+  designerIds: string[]
 ): Promise<{ success: boolean; error?: string }> {
   let verifiedAdmin: Profile;
   try {

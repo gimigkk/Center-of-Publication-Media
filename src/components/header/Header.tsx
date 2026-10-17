@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo, memo } from 'react';
-import { Page, Profile, OnlineUser, AppNotification, UserRole } from '@/types';
+import { Page, Profile, OnlineUser, AppNotification } from '@/types';
 import { PageSwitcher } from './PageSwitcher';
 import { NotificationInbox } from './NotificationInbox';
 import { Avatar } from '@/components/ui/Avatar';
 import { useSafeZone } from '@/hooks/useSafeZone';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
 import { getRelativeTime, getWhatsAppUrl } from '@/lib/utils';
-import { User, LogOut, Users, UserCheck } from 'lucide-react';
+import { User, LogOut, UserCheck } from 'lucide-react';
 
 interface HeaderProps {
   pages: Page[];
@@ -26,8 +26,6 @@ interface HeaderProps {
   onOpenCreatePage: () => void;
   onDeletePage?: (pageId: string) => Promise<void>;
   onRenamePage?: (pageId: string, name: string) => Promise<void>;
-  onApproveUser?: (userId: string, role?: UserRole) => Promise<{ success: boolean; error?: string }>;
-  onRejectUser?: (userId: string) => Promise<{ success: boolean; error?: string }>;
   onSignOut?: () => void;
   onOpenEditProfile?: () => void;
   onOpenPageEditors?: () => void;
@@ -50,8 +48,6 @@ export const Header = memo(function Header({
   onOpenCreatePage,
   onDeletePage,
   onRenamePage,
-  onApproveUser,
-  onRejectUser,
   onSignOut,
   onOpenEditProfile,
   onOpenPageEditors,

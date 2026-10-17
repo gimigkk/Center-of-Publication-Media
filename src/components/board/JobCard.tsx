@@ -12,7 +12,7 @@ interface JobCardProps {
   job: Job;
   currentUser: Profile;
   onCardClick: (job: Job) => void;
-  onAssignClick: (job: Job) => void;
+  onAssignClick?: (job: Job) => void;
   onArchiveJob?: (jobId: string) => Promise<void>;
   isDraggable?: boolean;
   isRemotelyDragged?: boolean;
@@ -23,7 +23,6 @@ export const JobCard = memo(function JobCard({
   job,
   currentUser,
   onCardClick,
-  onAssignClick,
   onArchiveJob,
   isDraggable = true,
   isRemotelyDragged = false,

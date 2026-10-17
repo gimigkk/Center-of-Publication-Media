@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Bell, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Bell, AlertTriangle } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { useWebPush } from '@/hooks/useWebPush';
 

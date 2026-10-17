@@ -77,9 +77,7 @@ export const Cursor = memo(function Cursor({
   const cursorRootRef = useRef<HTMLDivElement | null>(null);
   const targetPosRef = useRef({ x: targetX, y: targetY });
   const posRef = useRef({ x: targetX, y: targetY });
-  const velRef = useRef({ x: 0, y: 0 });
   const tiltRef = useRef<number>(0);
-  const tiltVelRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
   const isLoopRunningRef = useRef<boolean>(false);
   const animIdRef = useRef<number | null>(null);
@@ -157,17 +155,13 @@ export const Cursor = memo(function Cursor({
 
   const activeJob = cursor.draggedJob || cachedJobRef.current;
 
-  // On mount, set initial transform directly
-  useEffect(() => {
-    if (cursorRootRef.current) {
-      cursorRootRef.current.style.transform = `translate3d(${targetX}px, ${targetY}px, 0)`;
-    }
-  }, []);
-
   return (
     <div
       ref={cursorRootRef}
       className="remote-cursor"
+      style={{
+        transform: `translate3d(${targetX}px, ${targetY}px, 0)`,
+      }}
     >
       {/* Zoom-invariant cursor pointer group */}
       <div

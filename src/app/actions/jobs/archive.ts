@@ -1,15 +1,14 @@
 'use server';
 
 import { db, schema } from '@/lib/db';
-import { eq, and } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { JobStatus, Profile } from '@/types';
+import { JobStatus } from '@/types';
 import { isMockEnabled, getMockStore } from '@/lib/mock-store';
 import { getAuthenticatedUser } from '@/lib/auth-guard';
 
 export async function archiveJobAction(
-  jobId: string,
-  actor?: Profile | null
+  jobId: string
 ): Promise<{ success: boolean; error?: string }> {
   if (isMockEnabled()) {
     const store = getMockStore();
@@ -59,8 +58,7 @@ export async function archiveJobAction(
 }
 
 export async function unarchiveJobAction(
-  jobId: string,
-  actor?: Profile | null
+  jobId: string
 ): Promise<{ success: boolean; error?: string }> {
   if (isMockEnabled()) {
     const store = getMockStore();
@@ -115,7 +113,6 @@ export async function unarchiveJobAction(
 export async function restoreAndMoveJobAction(
   jobId: string,
   toStatus: JobStatus,
-  actor?: Profile | null,
   note?: string
 ): Promise<{ success: boolean; error?: string }> {
   if (isMockEnabled()) {
@@ -168,8 +165,7 @@ export async function restoreAndMoveJobAction(
 }
 
 export async function archiveAllDoneJobsAction(
-  pageId: string,
-  _actor?: Profile | null
+  pageId: string
 ): Promise<{ success: boolean; archivedCount?: number; error?: string }> {
   if (isMockEnabled()) {
     const store = getMockStore();

@@ -13,6 +13,27 @@ interface JobDetailPropertiesProps {
   onUpdateDeadline?: (jobId: string, deadline: string) => Promise<{ success: boolean; error?: string }>;
 }
 
+function formatMedia(media: string | undefined): string {
+  if (!media) return 'Media';
+  const stripped = media
+    .replace(/\binstagram\b/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/^\s*[&,/-]\s*/, '')
+    .replace(/\s*[&,/-]\s*$/, '')
+    .trim();
+  return stripped || 'Media';
+}
+
+function cleanPersonName(name: string | undefined): string {
+  if (!name) return 'Anonim';
+  const stripped = name
+    .replace(/\b(muhammad|muhamad|mohammad|mohamad|mochammad|muh\.|mhd\.)\b/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  const target = stripped || name;
+  return target.split(/\s+/).slice(0, 2).join(' ');
+}
+
 export const JobDetailProperties = React.memo(function JobDetailProperties({
   job,
   assignedDesigners,
@@ -20,6 +41,7 @@ export const JobDetailProperties = React.memo(function JobDetailProperties({
   onUpdateDeadline,
 }: JobDetailPropertiesProps) {
   const deadlineStatus = getDeadlineStatus(job.deadline);
+  const cleanMedia = formatMedia(job.publicationMedia);
 
   const [isEditingDeadline, setIsEditingDeadline] = useState(false);
   const [editDeadline, setEditDeadline] = useState(
@@ -52,27 +74,33 @@ export const JobDetailProperties = React.memo(function JobDetailProperties({
 
   return (
     <div className="simple-props-list">
-      {/* Requestor */}
+      {/* Requester & Division */}
       <div className="simple-prop-row">
         <span className="simple-prop-label">Requester</span>
         <div className="simple-prop-value">
-          <div className="simple-profile-chip" title={job.requestor?.email}>
+          <span className="simple-prop-division" title={job.divisionName || 'Umum'}>
+            {job.divisionName || 'Umum'} by
+          </span>
+          <div className="simple-profile-chip" title={job.requestor?.fullName || 'Requester'}>
             <Avatar
               src={job.requestor?.avatarUrl}
               name={job.requestor?.fullName || 'Requester'}
               size={18}
             />
-            <span>{job.requestor?.fullName || 'Anonim'}</span>
+            <span className="simple-profile-chip-name">
+              {cleanPersonName(job.requestor?.fullName)}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Editor(s) */}
+      {/* Editor & Media */}
       <div className={`simple-prop-row ${assignedDesigners.length > 1 ? 'has-multiple-values' : ''}`}>
-        <span className="simple-prop-label">
-          {assignedDesigners.length > 1 ? 'Daftar Editor' : 'Editor'}
-        </span>
+        <span className="simple-prop-label">Editor</span>
         <div className="simple-prop-value simple-editor-list-value">
+          <span className="simple-prop-division" title={cleanMedia}>
+            {cleanMedia} by
+          </span>
           {assignedDesigners.length > 0 ? (
             <div className="simple-editor-list">
               {assignedDesigners.map((designer) => {
@@ -80,8 +108,8 @@ export const JobDetailProperties = React.memo(function JobDetailProperties({
                 const designerContent = (
                   <>
                     <Avatar src={designer.avatarUrl} name={designer.fullName} size={18} />
-                    <span className="simple-profile-chip-name" title={designer.email}>
-                      {designer.fullName}
+                    <span className="simple-profile-chip-name" title={designer.fullName}>
+                      {cleanPersonName(designer.fullName)}
                     </span>
                   </>
                 );
@@ -109,16 +137,8 @@ export const JobDetailProperties = React.memo(function JobDetailProperties({
               })}
             </div>
           ) : (
-            <span className="simple-prop-empty">Belum Ditugaskan</span>
+            <span className="simple-prop-empty">???</span>
           )}
-        </div>
-      </div>
-
-      {/* Division */}
-      <div className="simple-prop-row">
-        <span className="simple-prop-label">Divisi</span>
-        <div className="simple-prop-value">
-          <span>{job.divisionName || 'Umum'}</span>
         </div>
       </div>
 
@@ -187,14 +207,6 @@ export const JobDetailProperties = React.memo(function JobDetailProperties({
               </span>
             </>
           )}
-        </div>
-      </div>
-
-      {/* Publication Media */}
-      <div className="simple-prop-row">
-        <span className="simple-prop-label">Media</span>
-        <div className="simple-prop-value">
-          <span>{job.publicationMedia}</span>
         </div>
       </div>
     </div>

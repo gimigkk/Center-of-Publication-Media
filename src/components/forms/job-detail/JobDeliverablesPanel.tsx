@@ -18,7 +18,7 @@ import { compressImageToJpeg, formatDateTime } from '@/lib/utils';
 import { createPdfFallbackDataUrl, renderPdfToJpegBlob } from '@/lib/pdf-thumbnail';
 
 const MAX_DELIVERABLE_SIZE = 15 * 1024 * 1024;
-type LoadMode = 'initial' | 'silent';
+type LoadMode = 'initial' | 'silent' | 'manual';
 
 type UploadFileResult = {
   fileName: string;
@@ -29,18 +29,29 @@ type UploadFileResult = {
 // 12-hour client cache matching 24-hour presigned URL lifetime
 const DELIVERABLES_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const deliverablesCache = new Map<string, Deliverable[]>();
+const deliverableMetaCache = new Map<string, { ratio: number; resolution: string }>();
 
 function readCachedDeliverables(jobId: string): Deliverable[] | undefined {
   const memory = deliverablesCache.get(jobId);
   if (memory) return memory;
+  if (typeof window === 'undefined') return undefined;
 
   try {
     const raw = window.sessionStorage.getItem(`deliverables:${jobId}`);
     if (!raw) return undefined;
-    const parsed = JSON.parse(raw) as { cachedAt: number; data: Deliverable[] };
+    const parsed = JSON.parse(raw) as {
+      cachedAt: number;
+      data: Deliverable[];
+      meta?: Record<string, { ratio: number; resolution: string }>;
+    };
     if (!parsed.cachedAt || Date.now() - parsed.cachedAt > DELIVERABLES_CACHE_TTL_MS) {
       window.sessionStorage.removeItem(`deliverables:${jobId}`);
       return undefined;
+    }
+    if (parsed.meta) {
+      Object.entries(parsed.meta).forEach(([id, meta]) => {
+        deliverableMetaCache.set(id, meta);
+      });
     }
     deliverablesCache.set(jobId, parsed.data);
     return parsed.data;
@@ -51,10 +62,16 @@ function readCachedDeliverables(jobId: string): Deliverable[] | undefined {
 
 function writeCachedDeliverables(jobId: string, data: Deliverable[]) {
   deliverablesCache.set(jobId, data);
+  if (typeof window === 'undefined') return;
   try {
+    const meta: Record<string, { ratio: number; resolution: string }> = {};
+    data.forEach((d) => {
+      const m = deliverableMetaCache.get(d.id);
+      if (m) meta[d.id] = m;
+    });
     window.sessionStorage.setItem(
       `deliverables:${jobId}`,
-      JSON.stringify({ cachedAt: Date.now(), data })
+      JSON.stringify({ cachedAt: Date.now(), data, meta })
     );
   } catch {}
 }
@@ -90,8 +107,24 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
   const isUploadingRef = useRef(false);
   const [isDownloadingAll, setIsDownloadingAll] = useState(false);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
-  const [imageResolutions, setImageResolutions] = useState<Record<string, string>>({});
-  const [imageRatios, setImageRatios] = useState<Record<string, number>>({});
+  const [imageResolutions, setImageResolutions] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    const cached = readCachedDeliverables(job.id) || [];
+    cached.forEach((d) => {
+      const meta = deliverableMetaCache.get(d.id);
+      if (meta) initial[d.id] = meta.resolution;
+    });
+    return initial;
+  });
+  const [imageRatios, setImageRatios] = useState<Record<string, number>>(() => {
+    const initial: Record<string, number> = {};
+    const cached = readCachedDeliverables(job.id) || [];
+    cached.forEach((d) => {
+      const meta = deliverableMetaCache.get(d.id);
+      if (meta) initial[d.id] = meta.ratio;
+    });
+    return initial;
+  });
   const [loadedPreviewIds, setLoadedPreviewIds] = useState<Record<string, boolean>>({});
   const [pdfThumbnails, setPdfThumbnails] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -122,12 +155,12 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
 
   const loadDeliverables = useCallback(async (mode: LoadMode = 'initial') => {
     const cached = readCachedDeliverables(job.id);
-    if (mode === 'silent' || cached) {
+    if (mode === 'silent' || mode === 'manual' || cached) {
       if (isRefreshingRef.current) return;
       isRefreshingRef.current = true;
-      setIsRefreshing(true);
+      if (mode === 'manual') setIsRefreshing(true);
       if (cached) {
-        setDeliverables(cached);
+        setDeliverables((current) => (current.length > 0 ? current : cached));
         setIsLoading(false);
       }
     } else {
@@ -142,8 +175,24 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
       if (requestId !== requestIdRef.current) return;
       if (result.success) {
         const nextDeliverables = result.data || [];
-        writeCachedDeliverables(job.id, nextDeliverables);
-        setDeliverables(nextDeliverables);
+        setDeliverables((current) => {
+          const isSameList =
+            current.length === nextDeliverables.length &&
+            current.every((item, i) => item.id === nextDeliverables[i]?.id);
+
+          if (isSameList) {
+            // Keep existing previewUrls so <img> doesn't reload and flicker!
+            return current;
+          }
+
+          const currentUrlMap = new Map(current.map((item) => [item.id, item.previewUrl]));
+          const merged = nextDeliverables.map((item) => ({
+            ...item,
+            previewUrl: currentUrlMap.get(item.id) || item.previewUrl,
+          }));
+          writeCachedDeliverables(job.id, merged);
+          return merged;
+        });
       } else {
         console.error('[deliverables] load failed:', result.error);
         setError(result.error || 'Gagal memuat deliverable');
@@ -154,23 +203,21 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
     } finally {
       if (requestId === requestIdRef.current) {
         if (mode === 'initial') setIsLoading(false);
-        else setIsRefreshing(false);
+        else if (mode === 'manual') setIsRefreshing(false);
       }
-      if (mode === 'silent') isRefreshingRef.current = false;
+      isRefreshingRef.current = false;
     }
   }, [job.id]);
 
   useEffect(() => {
     if (!isOpen) return;
     const cached = readCachedDeliverables(job.id);
-    if (!cached) {
-      const timer = window.setTimeout(() => void loadDeliverables('initial'), 0);
-      return () => {
-        window.clearTimeout(timer);
-        requestIdRef.current += 1;
-        isRefreshingRef.current = false;
-      };
-    }
+    const timer = window.setTimeout(() => void loadDeliverables(cached ? 'silent' : 'initial'), 0);
+    return () => {
+      window.clearTimeout(timer);
+      requestIdRef.current += 1;
+      isRefreshingRef.current = false;
+    };
   }, [isOpen, job.id, loadDeliverables]);
 
   useEffect(() => {
@@ -207,9 +254,12 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
               bytes[i] = binaryString.charCodeAt(i);
             }
             const rendered = await renderPdfToJpegBlob(bytes);
+            const ratio = rendered.width / rendered.height;
+            const resolution = `${rendered.width} × ${rendered.height}px`;
+            deliverableMetaCache.set(deliverable.id, { ratio, resolution });
             setPdfThumbnails((prev) => ({ ...prev, [deliverable.id]: rendered.dataUrl }));
-            setImageRatios((prev) => ({ ...prev, [deliverable.id]: rendered.width / rendered.height }));
-            setImageResolutions((prev) => ({ ...prev, [deliverable.id]: `${rendered.width} × ${rendered.height}px` }));
+            setImageRatios((prev) => ({ ...prev, [deliverable.id]: ratio }));
+            setImageResolutions((prev) => ({ ...prev, [deliverable.id]: resolution }));
             setLoadedPreviewIds((prev) => ({ ...prev, [deliverable.id]: true }));
             void saveDeliverablePreviewAction(deliverable.id, rendered.dataUrl);
           })
@@ -502,21 +552,8 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
   });
 
   const galleryColumns: Array<Array<{ deliverable: Deliverable; index: number }>> = [[], []];
-  const galleryHeights = [0, 0];
-  const areAllImageRatiosKnown = columnDeliverables.every(
-    ({ deliverable }) => imageRatios[deliverable.id] !== undefined
-  );
-
   columnDeliverables.forEach(({ deliverable, index }) => {
-    const isPdf = deliverable.mimeType === 'application/pdf' || /\.pdf$/i.test(deliverable.originalFilename);
-    const ratio = imageRatios[deliverable.id] || (isPdf ? 0.75 : 1);
-    const estimatedHeight = 1 / Math.max(ratio, 0.1);
-    const columnIndex = areAllImageRatiosKnown
-      ? (galleryHeights[0] <= galleryHeights[1] ? 0 : 1)
-      : index % 2;
-
-    galleryColumns[columnIndex].push({ deliverable, index });
-    galleryHeights[columnIndex] += estimatedHeight;
+    galleryColumns[index % 2].push({ deliverable, index });
   });
 
   const renderDeliverable = (deliverable: Deliverable, index: number) => {
@@ -525,8 +562,9 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
     const isDeleting = deletingIds.has(deliverable.id);
     const displaySrc = pdfThumbnails[deliverable.id] || deliverable.previewUrl;
     const isLoaded = Boolean(loadedPreviewIds[deliverable.id]);
+    const ratio = imageRatios[deliverable.id] || (isPdf ? 0.75 : undefined);
 
-    const targetUrl = deliverable.fileUrl || deliverable.previewUrl;
+    const targetUrl = `/api/deliverables/${deliverable.id}/view`;
 
     return (
       <article
@@ -550,8 +588,9 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`Buka preview ${uploadDescription}`}
+          style={ratio ? { aspectRatio: `${ratio}` } : undefined}
         >
-          {!isLoaded && (
+          {!isLoaded && !ratio && (
             <span className="deliverables-loading-dots preview-loading-dots" aria-label="Loading preview">
               <i /><i /><i />
             </span>
@@ -560,15 +599,18 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
             className="job-deliverable-preview"
             src={displaySrc}
             alt={`Preview ${uploadDescription}`}
-            loading={index === 0 ? 'eager' : 'lazy'}
+            loading="eager"
             decoding="async"
             fetchPriority={index === 0 ? 'high' : 'auto'}
             onLoad={(event) => {
               const image = event.currentTarget;
               setLoadedPreviewIds((current) => ({ ...current, [deliverable.id]: true }));
               if (image.naturalWidth && image.naturalHeight) {
-                setImageResolutions((current) => ({ ...current, [deliverable.id]: `${image.naturalWidth} × ${image.naturalHeight}px` }));
-                setImageRatios((current) => ({ ...current, [deliverable.id]: image.naturalWidth / image.naturalHeight }));
+                const imgRatio = image.naturalWidth / image.naturalHeight;
+                const imgResolution = `${image.naturalWidth} × ${image.naturalHeight}px`;
+                deliverableMetaCache.set(deliverable.id, { ratio: imgRatio, resolution: imgResolution });
+                setImageResolutions((current) => ({ ...current, [deliverable.id]: imgResolution }));
+                setImageRatios((current) => ({ ...current, [deliverable.id]: imgRatio }));
               }
             }}
             onError={() => {
@@ -647,7 +689,7 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
             <button
               type="button"
               className="job-deliverables-refresh-button"
-              onClick={() => void loadDeliverables('silent')}
+              onClick={() => void loadDeliverables('manual')}
               disabled={isLoading || isRefreshing || isUploading}
               title="Refresh submitted designs"
               aria-label="Refresh submitted designs"

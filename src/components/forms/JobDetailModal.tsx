@@ -3,7 +3,6 @@ import { Job, JobStatus, Profile } from '@/types';
 import { AssignDesignerDropdown } from '@/components/forms/AssignDesignerDropdown';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
 import { fetchGoogleDocTitleAction } from '@/app/actions/jobs';
-import { formatDate } from '@/lib/utils';
 import { JobDetailProperties } from './job-detail/JobDetailProperties';
 import { JobDetailBriefBox } from './job-detail/JobDetailBriefBox';
 import { JobDetailFooterActions } from './job-detail/JobDetailFooterActions';
@@ -49,17 +48,18 @@ export const JobDetailModal = React.memo(function JobDetailModal({
 
   const { shouldRender, isClosing } = useAnimatePresence(isOpen, 140);
   const activeJob = job || cachedJob;
+  const briefLink = activeJob?.briefLink;
+  const briefTitle = activeJob?.briefTitle;
 
   useEffect(() => {
-    if (activeJob) {
-      setDynamicBriefTitle(activeJob.briefTitle || null);
-      if (!activeJob.briefTitle && activeJob.briefLink) {
-        fetchGoogleDocTitleAction(activeJob.briefLink).then((t) => {
-          if (t) setDynamicBriefTitle(t);
-        });
-      }
+    if (!briefLink) return;
+    setDynamicBriefTitle(briefTitle || null);
+    if (!briefTitle) {
+      fetchGoogleDocTitleAction(briefLink).then((t) => {
+        if (t) setDynamicBriefTitle(t);
+      });
     }
-  }, [activeJob?.id, activeJob?.briefLink, activeJob?.briefTitle]);
+  }, [briefLink, briefTitle]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -115,11 +115,8 @@ export const JobDetailModal = React.memo(function JobDetailModal({
         <div className="figma-detail-card" onClick={(e) => e.stopPropagation()}>
           {/* 1. Header */}
           <div className="simple-modal-header">
-            {/* Title Group with Created At timestamp above Title & tight gap with Description */}
+            {/* Title Group with tight gap with Description */}
             <div className="simple-modal-title-group">
-              <span className="simple-modal-created-at">
-                Dibuat pada {formatDate(activeJob.createdAt)}
-              </span>
               <h2 className="simple-modal-title">{activeJob.title}</h2>
               {activeJob.description && (
                 <p className="simple-modal-desc">{activeJob.description}</p>
@@ -165,6 +162,7 @@ export const JobDetailModal = React.memo(function JobDetailModal({
         </div>
 
         <JobDeliverablesPanel
+          key={activeJob.id}
           job={activeJob}
           currentUser={currentUser}
           isOpen={isOpen}

@@ -394,8 +394,7 @@ export async function moveJobAction(
 
 export async function updateJobDeadlineAction(
   jobId: string,
-  deadline: string,
-  actor?: Profile | null
+  deadline: string
 ): Promise<{ success: boolean; error?: string }> {
   const sessionUser = await getAuthenticatedUser();
   if (!sessionUser || sessionUser.role !== 'admin') {

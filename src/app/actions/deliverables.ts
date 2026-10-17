@@ -143,7 +143,7 @@ function toDeliverable(
     createdAt: record.createdAt.toISOString(),
     registeredAt: (record.registeredAt || record.createdAt).toISOString(),
     previewUrl,
-    fileUrl: fileUrl || previewUrl,
+    fileUrl: fileUrl || `/api/deliverables/${record.id}/view`,
   };
 }
 
@@ -283,14 +283,12 @@ export async function completeDeliverableUploadAction(uploadId: string): Promise
       if ('error' in auth) return { success: false, error: auth.error };
       const [uploader] = await db.select({ fullName: schema.profiles.fullName }).from(schema.profiles).where(eq(schema.profiles.id, record.uploadedBy));
       const previewUrl = await createDeliverablePreviewUrl(record.previewStorageKey || record.storageKey);
-      const fileUrl = record.previewStorageKey ? await createDeliverablePreviewUrl(record.storageKey) : previewUrl;
       return {
         success: true,
         data: toDeliverable(
           record,
           uploader?.fullName || null,
-          previewUrl,
-          fileUrl
+          previewUrl
         ),
       };
     }
@@ -369,28 +367,24 @@ export async function completeDeliverableUploadAction(uploadId: string): Promise
         .from(schema.profiles)
         .where(eq(schema.profiles.id, readyRecord.uploadedBy));
       const previewUrl = await createDeliverablePreviewUrl(readyRecord.previewStorageKey || readyRecord.storageKey);
-      const fileUrl = readyRecord.previewStorageKey ? await createDeliverablePreviewUrl(readyRecord.storageKey) : previewUrl;
       return {
         success: true,
         data: toDeliverable(
           readyRecord,
           uploader?.fullName || null,
-          previewUrl,
-          fileUrl
+          previewUrl
         ),
       };
     }
 
     revalidatePath('/');
     const previewUrl = await createDeliverablePreviewUrl(updated.previewStorageKey || updated.storageKey);
-    const fileUrl = updated.previewStorageKey ? await createDeliverablePreviewUrl(updated.storageKey) : previewUrl;
     return {
       success: true,
       data: toDeliverable(
         updated,
         user.fullName,
-        previewUrl,
-        fileUrl
+        previewUrl
       ),
     };
   } catch (error) {

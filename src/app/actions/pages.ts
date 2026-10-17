@@ -6,7 +6,6 @@ import { revalidatePath } from 'next/cache';
 import { Page } from '@/types';
 import { getAuthenticatedUser, requireAdmin } from '@/lib/auth-guard';
 import { isMockEnabled, getMockStore } from '@/lib/mock-store';
-import { createDefaultDivisionsAction } from './divisions';
 import { EVENT_DIVISION_TEMPLATES, KABINET_DIVISION_TEMPLATES } from '@/lib/division-templates';
 
 export async function getPagesAction(): Promise<Page[]> {

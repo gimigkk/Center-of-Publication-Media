@@ -49,7 +49,7 @@
   top: auto;
   bottom: auto;
   left: auto;
-  height: fit-content;
+  height: 100%;
   width: 100%;
   min-width: 0;
   max-width: 100%;
@@ -59,28 +59,39 @@
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
-  padding: 10px;
-  gap: 6px;
+  padding: 10px 12px;
+  gap: 8px;
   flex-shrink: 0;
   order: 2; /* Place at the BOTTOM on mobile */
 }
 
 @media (min-width: 1180px) {
   .assign-dropdown-popover.position-modal-left {
-    width: 240px;
-    min-width: 240px;
-    max-width: 240px;
+    width: 250px;
+    min-width: 250px;
+    max-width: 250px;
+    height: 100%;
     order: -1; /* Place to the LEFT on desktop */
+  }
+
+  .assign-dropdown-popover.position-modal-left .assign-dropdown-list {
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    gap: 0px;
   }
 }
 
-.assign-dropdown-popover.position-modal-left .assign-dropdown-list {
-  flex: 1;
-  min-height: 0;
-  max-height: 400px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  gap: 0px;
+@media (max-width: 1179px) {
+  .assign-dropdown-popover.position-modal-left {
+    height: auto;
+  }
+
+  .assign-dropdown-popover.position-modal-left .assign-dropdown-list {
+    max-height: 280px;
+  }
 }
 
 .assign-dropdown-popover.position-modal-left .assign-dropdown-item {
@@ -113,8 +124,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 6px 6px;
+  padding: 2px 2px 8px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  min-height: 28px;
+  flex-shrink: 0;
 }
 
 .assign-dropdown-title-group {
@@ -124,14 +137,14 @@
 }
 
 .assign-dropdown-title {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.1px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #0f172a;
+  letter-spacing: -0.01em;
 }
 
 .assign-dropdown-subtitle {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-secondary);
 }
 
@@ -209,7 +222,7 @@
 }
 
 .assign-count-badge {
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 600;
   padding: 1px 5px;
   border-radius: var(--radius-full);
@@ -236,9 +249,9 @@
 }
 
 .assign-dropdown-item-name {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 500;
+  color: #0f172a;
   display: block;
   white-space: nowrap;
   overflow: hidden;
@@ -247,7 +260,7 @@
 }
 
 .assign-dropdown-item-email {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-secondary);
   display: block;
   white-space: nowrap;

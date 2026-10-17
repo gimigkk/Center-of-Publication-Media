@@ -1,7 +1,7 @@
 'use server';
 
 import { db, schema } from '@/lib/db';
-import { eq, inArray, and, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { Profile } from '@/types';
 import { requireAdmin, getAuthenticatedUser } from '@/lib/auth-guard';

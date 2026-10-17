@@ -41,6 +41,11 @@ export function useRealtimeWorkspaceSync({
   const bcRef = useRef<BroadcastChannel | null>(null);
   const activePageIdRef = useRef(activePageId);
   const currentUserIdRef = useRef(currentUser?.id);
+  const setDesignerSuggestionsRef = useRef(setDesignerSuggestions);
+
+  useEffect(() => {
+    setDesignerSuggestionsRef.current = setDesignerSuggestions;
+  }, [setDesignerSuggestions]);
 
   useEffect(() => {
     activePageIdRef.current = activePageId;
@@ -156,7 +161,7 @@ export function useRealtimeWorkspaceSync({
           else if (type === 'sync-page-editors') {
             if (activePageIdRef.current) {
               void getPageDesignerSuggestionsAction(activePageIdRef.current).then((suggs) => {
-                setDesignerSuggestions(suggs);
+                setDesignerSuggestionsRef.current(suggs);
               });
             }
           }
@@ -204,7 +209,7 @@ export function useRealtimeWorkspaceSync({
       () => {
         if (activePageIdRef.current) {
           void getPageDesignerSuggestionsAction(activePageIdRef.current).then((suggs) => {
-            setDesignerSuggestions(suggs);
+            setDesignerSuggestionsRef.current(suggs);
           });
         }
       }

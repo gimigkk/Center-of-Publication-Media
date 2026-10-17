@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
 import { Job, Profile, Division } from '@/types';
-import { Search, Layers, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Pencil } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Pencil } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import * as SelectPrimitive from '@radix-ui/react-select';
 import { Select, SelectContent, SelectItem, SimpleSelect } from '@/components/ui/Select';

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { createSignupAction } from '@/app/actions/signup';
 import type { LoginDiagnostic } from '@/lib/login-attempts';
@@ -11,6 +12,7 @@ import { compressImageToAvatarDataUrl } from '@/lib/utils';
 import '@/styles/auth.css';
 
 export default function SignupPage() {
+  const router = useRouter();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -26,7 +28,7 @@ export default function SignupPage() {
   };
 
   const handleExistingAccount = () => {
-    window.location.href = `/login?email=${encodeURIComponent(email.trim().toLowerCase())}`;
+    router.push(`/login?email=${encodeURIComponent(email.trim().toLowerCase())}`);
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

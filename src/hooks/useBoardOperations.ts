@@ -7,7 +7,6 @@ import {
   moveJobAction,
   updateJobDeadlineAction,
   assignDesignerAction,
-  getDesignerSuggestionsAction,
   archiveJobAction,
   unarchiveJobAction,
   deleteJobAction,
@@ -277,7 +276,7 @@ export function useBoardOperations({
       );
 
       try {
-        const res = await archiveJobAction(jobId, currentUser);
+        const res = await archiveJobAction(jobId);
         if (res.success) {
           broadcastBoardChange();
         } else {
@@ -331,7 +330,7 @@ export function useBoardOperations({
       );
 
       try {
-        const res = await unarchiveJobAction(jobId, currentUser);
+        const res = await unarchiveJobAction(jobId);
         if (res.success) {
           broadcastBoardChange();
         } else {
@@ -361,7 +360,7 @@ export function useBoardOperations({
       )
     );
 
-    const res = await archiveAllDoneJobsAction(activePageId, currentUser);
+    const res = await archiveAllDoneJobsAction(activePageId);
     if (res.success) {
       broadcastBoardChange();
     } else {

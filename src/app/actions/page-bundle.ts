@@ -1,6 +1,6 @@
 'use server';
 
-import { db, schema, sqlClient } from '@/lib/db';
+import { db, sqlClient } from '@/lib/db';
 import { Job, Division, Profile, Deliverable } from '@/types';
 import { isMockEnabled, getMockStore } from '@/lib/mock-store';
 import { getAuthenticatedUser } from '@/lib/auth-guard';
@@ -289,6 +289,7 @@ export async function getPageBundleAction(
             createdAt: new Date(d.created_at).toISOString(),
             registeredAt: d.registered_at ? new Date(d.registered_at).toISOString() : new Date(d.created_at).toISOString(),
             previewUrl,
+            fileUrl: `/api/deliverables/${d.id}/view`,
           };
           if (!deliverablesByJobId[d.job_id]) {
             deliverablesByJobId[d.job_id] = [];

@@ -50,25 +50,28 @@ export async function moveJobAction(
 export async function updateJobDeadlineAction(
   jobId: string,
   deadline: string,
-  actor: Profile
+  _actor?: Profile
 ) {
-  return _updateJobDeadlineAction(jobId, deadline, actor);
+  void _actor;
+  return _updateJobDeadlineAction(jobId, deadline);
 }
 
 export async function assignDesignerAction(
   jobId: string,
   designerId: string,
-  actor: Profile
+  _actor?: Profile
 ) {
-  return _assignDesignerAction(jobId, designerId, actor);
+  void _actor;
+  return _assignDesignerAction(jobId, designerId);
 }
 
 export async function setJobDesignersAction(
   jobId: string,
   designerIds: string[],
-  actor: Profile
+  _actor?: Profile
 ) {
-  return _setJobDesignersAction(jobId, designerIds, actor);
+  void _actor;
+  return _setJobDesignersAction(jobId, designerIds);
 }
 
 export async function getDesignerWorkloadsAction() {
@@ -79,18 +82,12 @@ export async function getDesignerSuggestionsAction(pageId?: string) {
   return _getDesignerSuggestionsAction(pageId);
 }
 
-export async function archiveJobAction(
-  jobId: string,
-  actor: Profile
-) {
-  return _archiveJobAction(jobId, actor);
+export async function archiveJobAction(jobId: string) {
+  return _archiveJobAction(jobId);
 }
 
-export async function unarchiveJobAction(
-  jobId: string,
-  actor: Profile
-) {
-  return _unarchiveJobAction(jobId, actor);
+export async function unarchiveJobAction(jobId: string) {
+  return _unarchiveJobAction(jobId);
 }
 
 export async function deleteJobAction(
@@ -100,9 +97,6 @@ export async function deleteJobAction(
   return _deleteJobAction(jobId, actor);
 }
 
-export async function archiveAllDoneJobsAction(
-  pageId: string,
-  actor: Profile
-) {
-  return _archiveAllDoneJobsAction(pageId, actor);
+export async function archiveAllDoneJobsAction(pageId: string) {
+  return _archiveAllDoneJobsAction(pageId);
 }

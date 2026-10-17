@@ -245,6 +245,9 @@ textarea:focus:not(:focus-visible) {
   --float-up-delay: 0ms;
   animation: floatUp var(--float-up-duration) cubic-bezier(0.16, 1, 0.3, 1) var(--float-up-delay) both;
   will-change: opacity, filter, transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
 }
 
 /* Modal Dialog / Card animations */
