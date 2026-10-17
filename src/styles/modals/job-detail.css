@@ -2,6 +2,7 @@
    Figma-Grade Job Detail Modal
    ========================================================================== */
 
+/* Base: Mobile (< 768px) -> Stacked vertical 1 column */
 .modal-dual-container {
   display: flex;
   flex-direction: column;
@@ -16,31 +17,87 @@
   margin: auto;
 }
 
-@media (min-width: 1180px) {
+@media (max-width: 640px) {
   .modal-dual-container {
+    margin: 0 auto;
+    margin-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Intermediate: Tablet / Zoomed-in (768px - 1179px) -> 2 on top, 1 on bottom */
+@media (min-width: 768px) and (max-width: 1179px) {
+  .modal-dual-container.job-detail-dual-layout {
     flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: center;
+    width: min(900px, calc(100vw - 48px));
+    max-width: 900px;
+    height: auto;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    gap: 12px;
+  }
+
+  .job-detail-dual-layout .figma-detail-card {
+    order: 1;
+    flex: 1 1 360px;
+    width: clamp(340px, 42vw, 440px);
+    max-width: 440px;
+    height: clamp(480px, 60vh, 540px);
+  }
+
+  .job-detail-dual-layout .job-deliverables-column {
+    order: 2;
+    flex: 1 1 360px;
+    width: clamp(340px, 42vw, 440px);
+    max-width: 440px;
+    height: clamp(480px, 60vh, 540px);
+  }
+
+  .simple-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
+
+/* Wide Desktop (>= 1180px) -> All 3 in line: Editor | Detail Card | Deliverables */
+@media (min-width: 1180px) {
+  .modal-dual-container.job-detail-dual-layout {
+    flex-direction: row;
+    flex-wrap: nowrap;
     align-items: stretch;
     justify-content: center;
     max-width: calc(100vw - 48px);
     width: fit-content;
     height: clamp(500px, 68vh, 540px);
     max-height: calc(100vh - 48px);
+    gap: 12px;
   }
 
-  .figma-detail-card,
-  .job-deliverables-column {
+  .job-detail-dual-layout .figma-detail-card {
+    order: 2;
+    width: 420px;
+    min-width: 360px;
+    max-width: 440px;
+    flex: 1 1 420px;
+    height: 100%;
+  }
+
+  .job-detail-dual-layout .job-deliverables-column {
+    order: 3;
     width: 440px;
     min-width: 380px;
     max-width: 440px;
     flex: 1 1 440px;
     height: 100%;
   }
-}
 
-@media (max-width: 640px) {
-  .modal-dual-container {
-    margin: 0 auto;
-    margin-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  .simple-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
   }
 }
 
@@ -136,11 +193,10 @@
 }
 
 .simple-modal-desc {
-  font-size: 11.5px;
-  color: #475569;
+  font-size: 10.5px;
+  color: #94a3b8;
   line-height: 1.45;
   margin: 0;
-  text-wrap: balance;
 }
 
 /* Simple Properties list (Clean rows with NO heavy table borders) */
@@ -417,13 +473,6 @@ a.simple-profile-chip {
   position: relative;
 }
 
-@media (max-width: 1179px) {
-  .simple-brief-preview-container {
-    height: 220px;
-    min-height: 220px;
-  }
-}
-
 .simple-brief-iframe {
   position: absolute;
   top: -24px;
@@ -435,6 +484,42 @@ a.simple-profile-chip {
   border: none;
   display: block;
   background-color: #ffffff;
+}
+
+@media (max-width: 767px) {
+  .figma-detail-card {
+    order: 1;
+    height: auto;
+    max-height: none;
+    flex: none;
+  }
+
+  .simple-modal-body {
+    flex: none;
+    min-height: auto;
+    overflow-y: visible;
+  }
+
+  .simple-brief-section {
+    flex: none;
+    min-height: auto;
+  }
+
+  .simple-brief-preview-container {
+    height: 250px;
+    min-height: 250px;
+    flex: none;
+  }
+
+  .simple-brief-iframe {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 290%;
+    height: 290%;
+    transform: translateX(-50%) scale(0.34);
+    transform-origin: top center;
+  }
 }
 
 .simple-brief-box {

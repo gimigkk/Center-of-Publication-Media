@@ -105,7 +105,7 @@ export const JobDetailModal = React.memo(function JobDetailModal({
   return (
     <div className={`modal-backdrop ${isClosing ? 'is-closing' : ''}`} onClick={onClose}>
       <div
-        className={`modal-dual-container ${isClosing ? 'is-closing' : ''}`}
+        className={`modal-dual-container job-detail-dual-layout ${isClosing ? 'is-closing' : ''}`}
         onClick={(e) => {
           if (e.target === e.currentTarget) {
             onClose();
