@@ -10,7 +10,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const DEFAULT_PUT_TTL_SECONDS = 10 * 60;
-const DEFAULT_GET_TTL_SECONDS = 5 * 60;
+const DEFAULT_GET_TTL_SECONDS = 24 * 60 * 60;
 
 let client: S3Client | null = null;
 
@@ -197,4 +197,32 @@ export async function deleteDeliverableObject(key: string): Promise<void> {
     r2.send(new DeleteObjectCommand({ Bucket: config.bucket, Key: key })),
     r2.send(new DeleteObjectCommand({ Bucket: config.bucket, Key: createDeliverablePreviewKey(key) })),
   ]);
+}
+
+export async function getDeliverableObjectBytes(key: string): Promise<Uint8Array | null> {
+  const config = getR2Config();
+  const r2 = getClient(config.endpoint, config.accessKeyId, config.secretAccessKey);
+  const response = await r2.send(
+    new GetObjectCommand({
+      Bucket: config.bucket,
+      Key: key,
+    })
+  );
+  if (!response.Body) return null;
+  return response.Body.transformToByteArray();
+}
+
+export async function uploadDeliverablePreviewBuffer(storageKey: string, buffer: Buffer | Uint8Array): Promise<string> {
+  const config = getR2Config();
+  const r2 = getClient(config.endpoint, config.accessKeyId, config.secretAccessKey);
+  const previewKey = createDeliverablePreviewKey(storageKey);
+  await r2.send(
+    new PutObjectCommand({
+      Bucket: config.bucket,
+      Key: previewKey,
+      Body: buffer,
+      ContentType: 'image/jpeg',
+    })
+  );
+  return previewKey;
 }

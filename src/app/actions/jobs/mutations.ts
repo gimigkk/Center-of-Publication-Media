@@ -1,14 +1,12 @@
 'use server';
 
 import { db, schema } from '@/lib/db';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, or, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { Job, JobStatus, Profile } from '@/types';
 import { jobFormSchema } from '@/lib/validations';
 import { sendJobStatusEmail } from '@/lib/email';
 import { fetchGoogleDocTitle } from '@/lib/gdocs';
-import { getAllUsersAction } from '../auth';
-import { getDivisionsAction } from '../divisions';
 import { createNotificationAction } from '../notifications';
 import { isMockEnabled, getMockStore } from '@/lib/mock-store';
 import { formatDate } from '@/lib/utils';
@@ -75,15 +73,31 @@ export async function createJobAction(formData: {
     return { success: false, error: 'Database belum terhubung' };
   }
 
-  const users = await getAllUsersAction();
-  const divisions = await getDivisionsAction(pageId);
-  const userMap = new Map(users.map((u) => [u.id, u]));
-  const divMap = new Map(divisions.map((d) => [d.id, d.name]));
-
-  const requestor = userMap.get(formData.requestorId) || users[0];
-  if (!requestor) {
-    return { success: false, error: 'User requestor tidak valid' };
+  const authenticatedUser = await getAuthenticatedUser();
+  if (!authenticatedUser) {
+    return { success: false, error: 'Akses ditolak: Anda harus login terlebih dahulu.' };
   }
+
+  let requestor: Profile = authenticatedUser;
+  if (authenticatedUser.role === 'admin' && formData.requestorId && formData.requestorId !== authenticatedUser.id) {
+    const [found] = await db
+      .select()
+      .from(schema.profiles)
+      .where(eq(schema.profiles.id, formData.requestorId));
+    if (found) {
+      requestor = {
+        ...found,
+        createdAt: found.createdAt.toISOString(),
+        updatedAt: found.updatedAt.toISOString(),
+      };
+    }
+  }
+
+  const [divRow] = await db
+    .select({ name: schema.divisions.name })
+    .from(schema.divisions)
+    .where(eq(schema.divisions.id, divisionId));
+  const divisionName = divRow?.name || 'Umum';
 
   const newJobId = crypto.randomUUID();
 
@@ -126,7 +140,7 @@ export async function createJobAction(formData: {
       briefLink: inserted.briefLink,
       briefTitle: inserted.briefTitle,
       divisionId: inserted.divisionId,
-      divisionName: divMap.get(inserted.divisionId) || 'Umum',
+      divisionName,
       publicationMedia: inserted.publicationMedia,
       deadline: inserted.deadline.toISOString(),
       status: inserted.status,
@@ -142,8 +156,14 @@ export async function createJobAction(formData: {
       updatedAt: inserted.updatedAt.toISOString(),
     };
 
+    // Query admins only for notifications
+    const adminUsers = await db
+      .select({ id: schema.profiles.id, email: schema.profiles.email })
+      .from(schema.profiles)
+      .where(eq(schema.profiles.role, 'admin'));
+
     // 1. Dispatch Email to Admins (non-blocking background task)
-    const adminEmails = users.filter((u) => u.role === 'admin').map((u) => u.email);
+    const adminEmails = adminUsers.map((u) => u.email);
     if (adminEmails.length > 0) {
       sendJobStatusEmail({
         jobTitle: newJob.title,
@@ -158,7 +178,6 @@ export async function createJobAction(formData: {
     }
 
     // 2. Dispatch In-App Notification to Admins in parallel
-    const adminUsers = users.filter((u) => u.role === 'admin');
     Promise.all(
       adminUsers.map((admin) =>
         createNotificationAction({
@@ -187,7 +206,7 @@ export async function createJobAction(formData: {
 export async function moveJobAction(
   jobId: string,
   toStatus: JobStatus,
-  actor: Profile,
+  actor?: Profile | null,
   note?: string
 ): Promise<{ success: boolean; error?: string }> {
   if (isMockEnabled()) {
@@ -199,6 +218,11 @@ export async function moveJobAction(
       return { success: true };
     }
     return { success: false, error: 'Job tidak ditemukan' };
+  }
+
+  const authenticatedActor = await getAuthenticatedUser();
+  if (!authenticatedActor) {
+    return { success: false, error: 'Akses ditolak: Anda harus login terlebih dahulu.' };
   }
 
   if (!db) return { success: false, error: 'Database belum terhubung' };
@@ -215,9 +239,9 @@ export async function moveJobAction(
   const fromStatus = currentRecord.status;
 
   // Strict role check for status transitions
-  if (actor.role !== 'admin') {
-    if (actor.role === 'designer') {
-      if (currentRecord.designerId !== actor.id) {
+  if (authenticatedActor.role !== 'admin') {
+    if (authenticatedActor.role === 'designer') {
+      if (currentRecord.designerId !== authenticatedActor.id) {
         return { success: false, error: 'Hanya desainer yang ditugaskan yang dapat memperbarui status job ini.' };
       }
       if (fromStatus === 'in_queue' && toStatus !== 'wip') {
@@ -226,8 +250,8 @@ export async function moveJobAction(
       if (fromStatus === 'wip' && toStatus !== 'revisions') {
         return { success: false, error: 'Desainer hanya dapat mengirim job ke Revisi untuk ditinjau Requester.' };
       }
-    } else if (actor.role === 'requestor') {
-      if (currentRecord.requestorId !== actor.id) {
+    } else if (authenticatedActor.role === 'requestor') {
+      if (currentRecord.requestorId !== authenticatedActor.id) {
         return { success: false, error: 'Anda hanya dapat meninjau request job Anda sendiri.' };
       }
       if (fromStatus !== 'revisions' || (toStatus !== 'wip' && toStatus !== 'done')) {
@@ -256,7 +280,7 @@ export async function moveJobAction(
 
       await tx.insert(schema.jobActivity).values({
         jobId,
-        actorId: actor.id,
+        actorId: authenticatedActor.id,
         fromStatus,
         toStatus,
         note: note || null,
@@ -266,7 +290,20 @@ export async function moveJobAction(
     return { success: false, error: e instanceof Error ? e.message : 'Gagal memperbarui status job' };
   }
 
-  const users = await getAllUsersAction();
+  const relevantIds = [currentRecord.requestorId, currentRecord.designerId].filter(Boolean) as string[];
+  const users = await db
+    .select({
+      id: schema.profiles.id,
+      email: schema.profiles.email,
+      role: schema.profiles.role,
+      fullName: schema.profiles.fullName,
+    })
+    .from(schema.profiles)
+    .where(
+      relevantIds.length > 0
+        ? or(inArray(schema.profiles.id, relevantIds), eq(schema.profiles.role, 'admin'))
+        : eq(schema.profiles.role, 'admin')
+    );
   const userMap = new Map(users.map((u) => [u.id, u]));
 
   // Compile recipients for email notification
@@ -291,57 +328,60 @@ export async function moveJobAction(
     briefLink: currentRecord.briefLink,
     fromStatus,
     toStatus,
-    actorName: actor.fullName,
-    actorEmail: actor.email,
+    actorName: authenticatedActor.fullName,
+    actorEmail: authenticatedActor.email,
     recipients,
     note,
   }).catch((err) => console.error('Failed to send status email:', err));
 
   // Dispatch in-app notifications asynchronously in background
-  if (toStatus === 'revisions' && requestor && requestor.id !== actor.id) {
+  if (toStatus === 'revisions' && requestor && requestor.id !== authenticatedActor.id) {
     createNotificationAction({
       userId: requestor.id,
       title: 'Draft Siap Ditinjau',
-      message: `${actor.fullName} telah mengunggah draft untuk "${currentRecord.title}"`,
+      message: `${authenticatedActor.fullName} telah mengunggah draft untuk "${currentRecord.title}"`,
       type: 'job_status_changed',
       jobId: currentRecord.id,
       jobTitle: currentRecord.title,
-      actorId: actor.id,
-      actorName: actor.fullName,
-      actorAvatar: actor.avatarUrl,
+      actorId: authenticatedActor.id,
+      actorName: authenticatedActor.fullName,
+      actorAvatar: authenticatedActor.avatarUrl,
       note: note || undefined,
     }).catch((err) => console.error('Failed to dispatch notification:', err));
-  } else if (toStatus === 'wip' && designer && designer.id !== actor.id) {
+  } else if (toStatus === 'wip' && designer && designer.id !== authenticatedActor.id) {
+    const isRevision = fromStatus === 'revisions';
     createNotificationAction({
       userId: designer.id,
-      title: 'Revisi Diminta',
-      message: `${actor.fullName} meminta revisi untuk "${currentRecord.title}"`,
-      type: 'job_revisions',
+      title: isRevision ? 'Revisi Diminta' : 'Pekerjaan Dimulai',
+      message: isRevision
+        ? `${authenticatedActor.fullName} meminta revisi untuk "${currentRecord.title}"`
+        : `${authenticatedActor.fullName} memulai pengerjaan untuk "${currentRecord.title}"`,
+      type: isRevision ? 'job_revisions' : 'job_status_changed',
       jobId: currentRecord.id,
       jobTitle: currentRecord.title,
-      actorId: actor.id,
-      actorName: actor.fullName,
-      actorAvatar: actor.avatarUrl,
+      actorId: authenticatedActor.id,
+      actorName: authenticatedActor.fullName,
+      actorAvatar: authenticatedActor.avatarUrl,
       note: note || undefined,
     }).catch((err) => console.error('Failed to dispatch notification:', err));
   } else if (toStatus === 'done') {
     const notifyUserIds = new Set<string>();
-    if (requestor && requestor.id !== actor.id) notifyUserIds.add(requestor.id);
-    if (designer && designer.id !== actor.id) notifyUserIds.add(designer.id);
-    users.filter((u) => u.role === 'admin' && u.id !== actor.id).forEach((a) => notifyUserIds.add(a.id));
+    if (requestor && requestor.id !== authenticatedActor.id) notifyUserIds.add(requestor.id);
+    if (designer && designer.id !== authenticatedActor.id) notifyUserIds.add(designer.id);
+    users.filter((u) => u.role === 'admin' && u.id !== authenticatedActor.id).forEach((a) => notifyUserIds.add(a.id));
 
     Promise.all(
       Array.from(notifyUserIds).map((uid) =>
         createNotificationAction({
           userId: uid,
           title: 'Job Selesai (Done)',
-          message: `${actor.fullName} menandai "${currentRecord.title}" sebagai selesai`,
+          message: `${authenticatedActor.fullName} menandai "${currentRecord.title}" sebagai selesai`,
           type: 'job_completed',
           jobId: currentRecord.id,
           jobTitle: currentRecord.title,
-          actorId: actor.id,
-          actorName: actor.fullName,
-          actorAvatar: actor.avatarUrl,
+          actorId: authenticatedActor.id,
+          actorName: authenticatedActor.fullName,
+          actorAvatar: authenticatedActor.avatarUrl,
           note: note || undefined,
         })
       )
@@ -355,9 +395,10 @@ export async function moveJobAction(
 export async function updateJobDeadlineAction(
   jobId: string,
   deadline: string,
-  actor: Profile
+  actor?: Profile | null
 ): Promise<{ success: boolean; error?: string }> {
-  if (actor.role !== 'admin') {
+  const sessionUser = await getAuthenticatedUser();
+  if (!sessionUser || sessionUser.role !== 'admin') {
     return { success: false, error: 'Hanya admin yang dapat mengubah deadline' };
   }
 
@@ -375,28 +416,30 @@ export async function updateJobDeadlineAction(
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
   try {
-    const [currentJob] = await db.select().from(schema.jobs).where(eq(schema.jobs.id, jobId));
-    if (!currentJob) return { success: false, error: 'Job tidak ditemukan' };
-
     const newDeadlineDate = new Date(deadline);
     if (isNaN(newDeadlineDate.getTime())) {
       return { success: false, error: 'Format tanggal deadline tidak valid' };
     }
 
-    await db
-      .update(schema.jobs)
-      .set({
-        deadline: newDeadlineDate,
-        updatedAt: new Date(),
-      })
-      .where(eq(schema.jobs.id, jobId));
+    await db.transaction(async (tx) => {
+      const [currentJob] = await tx.select().from(schema.jobs).where(eq(schema.jobs.id, jobId)).for('update');
+      if (!currentJob) throw new Error('Job tidak ditemukan');
 
-    await db.insert(schema.jobActivity).values({
-      jobId,
-      actorId: actor.id,
-      fromStatus: currentJob.status,
-      toStatus: currentJob.status,
-      note: `Deadline diubah ke ${formatDate(newDeadlineDate)}`,
+      await tx
+        .update(schema.jobs)
+        .set({
+          deadline: newDeadlineDate,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.jobs.id, jobId));
+
+      await tx.insert(schema.jobActivity).values({
+        jobId,
+        actorId: sessionUser.id,
+        fromStatus: currentJob.status,
+        toStatus: currentJob.status,
+        note: `Deadline diubah ke ${formatDate(newDeadlineDate)}`,
+      });
     });
 
     revalidatePath('/');
@@ -432,9 +475,12 @@ export async function deleteJobAction(
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
   try {
-    // 1. Ambil deliverable storage keys sebelum cascade delete di DB
+    // 1. Ambil deliverable storage keys & preview keys sebelum cascade delete di DB
     const deliverables = await db
-      .select({ storageKey: schema.deliverables.storageKey })
+      .select({
+        storageKey: schema.deliverables.storageKey,
+        previewStorageKey: schema.deliverables.previewStorageKey,
+      })
       .from(schema.deliverables)
       .where(eq(schema.deliverables.jobId, jobId));
 
@@ -452,11 +498,13 @@ export async function deleteJobAction(
       await tx.delete(schema.jobs).where(eq(schema.jobs.id, jobId));
     });
 
-    // 3. Bersihkan file R2 storage di background setelah transaksi database committed
+    // 3. Bersihkan file R2 storage setelah transaksi database committed
     if (deliverables.length > 0) {
-      Promise.allSettled(
-        deliverables.map((d) => deleteDeliverableObject(d.storageKey))
-      ).catch((err) => console.error('Failed to clean up R2 deliverables on job deletion:', err));
+      const deletePromises = deliverables.flatMap((d) => [
+        deleteDeliverableObject(d.storageKey),
+        d.previewStorageKey ? deleteDeliverableObject(d.previewStorageKey) : Promise.resolve(),
+      ]);
+      await Promise.allSettled(deletePromises);
     }
 
     revalidatePath('/');

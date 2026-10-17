@@ -4,12 +4,15 @@ import { db, schema } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { Page } from '@/types';
-import { requireAdmin } from '@/lib/auth-guard';
+import { getAuthenticatedUser, requireAdmin } from '@/lib/auth-guard';
 import { isMockEnabled, getMockStore } from '@/lib/mock-store';
 import { createDefaultDivisionsAction } from './divisions';
 import { EVENT_DIVISION_TEMPLATES, KABINET_DIVISION_TEMPLATES } from '@/lib/division-templates';
 
 export async function getPagesAction(): Promise<Page[]> {
+  const currentUser = await getAuthenticatedUser(false);
+  if (!currentUser) return [];
+
   if (isMockEnabled()) {
     return getMockStore().pages;
   }

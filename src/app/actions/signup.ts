@@ -219,7 +219,7 @@ export async function createSignupAction(input: SignupInput): Promise<SignupResu
       avatarUrl: existing?.avatarUrl || null,
       role: existing?.role || input.role || 'designer',
       divisionId,
-      isApproved: existing?.isApproved ?? true,
+      isApproved: existing?.isApproved ?? false,
       updatedAt: new Date(),
     };
 

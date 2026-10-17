@@ -10,63 +10,59 @@ export async function fetchGoogleDocTitle(url: string): Promise<string | null> {
     `https://docs.google.com/document/d/${docId}/pub`,
   ];
 
-  for (const targetUrl of urlsToTry) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+  const fetchTitle = async (targetUrl: string, signal: AbortSignal): Promise<string> => {
+    const res = await fetch(targetUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+      signal,
+    });
 
-      const res = await fetch(targetUrl, {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml',
-          'Accept-Language': 'en-US,en;q=0.9',
-        },
-        signal: controller.signal,
-      });
+    if (!res.ok) throw new Error('Not ok');
+    const html = await res.text();
 
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const html = await res.text();
-
-        // 1. Check <meta property="og:title" content="..." />
-        const ogMatch =
-          html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i) ||
-          html.match(/<meta\s+content=["']([^"']+)["']\s+property=["']og:title["']/i);
-        if (ogMatch && ogMatch[1]) {
-          const raw = ogMatch[1].trim();
-          const clean = raw.replace(/\s*-\s*Google\s+(Docs|Drive|Dokumen)$/i, '').trim();
-          if (
-            clean &&
-            !clean.toLowerCase().includes('sign-in') &&
-            !clean.toLowerCase().includes('tidak ditemukan') &&
-            !clean.toLowerCase().includes('page not found')
-          ) {
-            return clean;
-          }
-        }
-
-        // 2. Check <title>...</title>
-        const titleMatch = html.match(/<title\b[^>]*>([^<]+)<\/title>/i);
-        if (titleMatch && titleMatch[1]) {
-          const raw = titleMatch[1].trim();
-          const clean = raw.replace(/\s*-\s*Google\s+(Docs|Drive|Dokumen)$/i, '').trim();
-          if (
-            clean &&
-            !clean.toLowerCase().includes('sign-in') &&
-            !clean.toLowerCase().includes('tidak ditemukan') &&
-            !clean.toLowerCase().includes('page not found') &&
-            !clean.toLowerCase().includes('google docs')
-          ) {
-            return clean;
-          }
-        }
+    const ogMatch =
+      html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i) ||
+      html.match(/<meta\s+content=["']([^"']+)["']\s+property=["']og:title["']/i);
+    if (ogMatch && ogMatch[1]) {
+      const clean = ogMatch[1].trim().replace(/\s*-\s*Google\s+(Docs|Drive|Dokumen)$/i, '').trim();
+      if (
+        clean &&
+        !clean.toLowerCase().includes('sign-in') &&
+        !clean.toLowerCase().includes('tidak ditemukan') &&
+        !clean.toLowerCase().includes('page not found')
+      ) {
+        return clean;
       }
-    } catch {
-      // Continue to next fallback URL attempt
     }
-  }
 
-  return null;
+    const titleMatch = html.match(/<title\b[^>]*>([^<]+)<\/title>/i);
+    if (titleMatch && titleMatch[1]) {
+      const clean = titleMatch[1].trim().replace(/\s*-\s*Google\s+(Docs|Drive|Dokumen)$/i, '').trim();
+      if (
+        clean &&
+        !clean.toLowerCase().includes('sign-in') &&
+        !clean.toLowerCase().includes('tidak ditemukan') &&
+        !clean.toLowerCase().includes('page not found') &&
+        !clean.toLowerCase().includes('google docs')
+      ) {
+        return clean;
+      }
+    }
+
+    throw new Error('No title found');
+  };
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2500);
+    const title = await Promise.any(urlsToTry.map((u) => fetchTitle(u, controller.signal)));
+    clearTimeout(timer);
+    return title;
+  } catch {
+    return null;
+  }
 }

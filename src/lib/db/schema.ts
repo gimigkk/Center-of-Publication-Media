@@ -103,6 +103,7 @@ export const deliverables = pgTable('deliverables', {
 }, (table) => [
   uniqueIndex('deliverables_storage_key_idx').on(table.storageKey),
   index('deliverables_job_id_idx').on(table.jobId),
+  index('deliverables_job_status_idx').on(table.jobId, table.status, table.registeredAt),
   index('deliverables_uploader_id_idx').on(table.uploadedBy),
 ]);
 

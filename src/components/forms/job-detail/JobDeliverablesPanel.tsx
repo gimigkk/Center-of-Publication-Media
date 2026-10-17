@@ -1,22 +1,23 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Download, FileText, Loader2, RefreshCw, Trash2, Upload } from 'lucide-react';
-import JSZip from 'jszip';
+import { Download, Loader2, RefreshCw, Trash2, Upload } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
   abortDeliverableUploadAction,
   completeDeliverableUploadAction,
   deleteDeliverableAction,
   getDeliverableDownloadUrlAction,
+  getDeliverablePdfDataAction,
   getDeliverablesAction,
   initiateDeliverableUploadAction,
+  saveDeliverablePreviewAction,
 } from '@/app/actions/deliverables';
 import { Deliverable, Job, Profile } from '@/types';
 import { compressImageToJpeg, formatDateTime } from '@/lib/utils';
+import { createPdfFallbackDataUrl, renderPdfToJpegBlob } from '@/lib/pdf-thumbnail';
 
 const MAX_DELIVERABLE_SIZE = 15 * 1024 * 1024;
-const DELIVERABLE_CACHE_MAX_AGE_MS = 2 * 60 * 1000;
 type LoadMode = 'initial' | 'silent';
 
 type UploadFileResult = {
@@ -25,28 +26,24 @@ type UploadFileResult = {
   error?: string;
 };
 
-type CachedDeliverables = {
-  cachedAt: number;
-  data: Deliverable[];
-};
-
-// Keep the last result available between modal opens and full page refreshes.
+// 12-hour client cache matching 24-hour presigned URL lifetime
+const DELIVERABLES_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const deliverablesCache = new Map<string, Deliverable[]>();
 
 function readCachedDeliverables(jobId: string): Deliverable[] | undefined {
-  const memoryCached = deliverablesCache.get(jobId);
-  if (memoryCached) return memoryCached;
+  const memory = deliverablesCache.get(jobId);
+  if (memory) return memory;
 
   try {
     const raw = window.sessionStorage.getItem(`deliverables:${jobId}`);
     if (!raw) return undefined;
-    const cached = JSON.parse(raw) as CachedDeliverables;
-    if (!cached.cachedAt || Date.now() - cached.cachedAt > DELIVERABLE_CACHE_MAX_AGE_MS) {
+    const parsed = JSON.parse(raw) as { cachedAt: number; data: Deliverable[] };
+    if (!parsed.cachedAt || Date.now() - parsed.cachedAt > DELIVERABLES_CACHE_TTL_MS) {
       window.sessionStorage.removeItem(`deliverables:${jobId}`);
       return undefined;
     }
-    deliverablesCache.set(jobId, cached.data);
-    return cached.data;
+    deliverablesCache.set(jobId, parsed.data);
+    return parsed.data;
   } catch {
     return undefined;
   }
@@ -57,11 +54,25 @@ function writeCachedDeliverables(jobId: string, data: Deliverable[]) {
   try {
     window.sessionStorage.setItem(
       `deliverables:${jobId}`,
-      JSON.stringify({ cachedAt: Date.now(), data } satisfies CachedDeliverables)
+      JSON.stringify({ cachedAt: Date.now(), data })
     );
-  } catch {
-    // Storage can be unavailable in private browsing or when quota is exhausted.
-  }
+  } catch {}
+}
+
+export function seedDeliverablesCache(deliverablesMap?: Record<string, Deliverable[]>) {
+  if (!deliverablesMap) return;
+  Object.entries(deliverablesMap).forEach(([jobId, items]) => {
+    writeCachedDeliverables(jobId, items);
+  });
+}
+
+export function prefetchDeliverables(jobId: string) {
+  if (!jobId || readCachedDeliverables(jobId)) return;
+  void getDeliverablesAction(jobId).then((result) => {
+    if (result.success && result.data) {
+      writeCachedDeliverables(jobId, result.data);
+    }
+  });
 }
 
 interface JobDeliverablesPanelProps {
@@ -71,8 +82,8 @@ interface JobDeliverablesPanelProps {
 }
 
 export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverablesPanelProps) {
-  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [deliverables, setDeliverables] = useState<Deliverable[]>(() => readCachedDeliverables(job.id) || []);
+  const [isLoading, setIsLoading] = useState(() => !readCachedDeliverables(job.id));
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ completed: 0, total: 0 });
@@ -82,6 +93,7 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
   const [imageResolutions, setImageResolutions] = useState<Record<string, string>>({});
   const [imageRatios, setImageRatios] = useState<Record<string, number>>({});
   const [loadedPreviewIds, setLoadedPreviewIds] = useState<Record<string, boolean>>({});
+  const [pdfThumbnails, setPdfThumbnails] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
   const dragDepthRef = useRef(0);
@@ -90,6 +102,8 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
   const [hasGalleryOverflow, setHasGalleryOverflow] = useState(false);
   const requestIdRef = useRef(0);
   const isRefreshingRef = useRef(false);
+  const loadingThumbnailsRef = useRef<Set<string>>(new Set());
+  const hasRetriedRef = useRef<Set<string>>(new Set());
 
   const assignedDesigner =
     job.designerId === currentUser.id ||
@@ -107,20 +121,18 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
   };
 
   const loadDeliverables = useCallback(async (mode: LoadMode = 'initial') => {
-    if (mode === 'silent') {
+    const cached = readCachedDeliverables(job.id);
+    if (mode === 'silent' || cached) {
       if (isRefreshingRef.current) return;
       isRefreshingRef.current = true;
       setIsRefreshing(true);
-    } else {
-      const cached = readCachedDeliverables(job.id);
       if (cached) {
-        // Show the previous result immediately while the background refresh runs.
         setDeliverables(cached);
         setIsLoading(false);
-      } else {
-        setIsLoading(true);
-        setDeliverables([]);
       }
+    } else {
+      setIsLoading(true);
+      setDeliverables([]);
     }
 
     const requestId = ++requestIdRef.current;
@@ -133,9 +145,11 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
         writeCachedDeliverables(job.id, nextDeliverables);
         setDeliverables(nextDeliverables);
       } else {
+        console.error('[deliverables] load failed:', result.error);
         setError(result.error || 'Gagal memuat deliverable');
       }
-    } catch {
+    } catch (err) {
+      console.error('[deliverables] load exception:', err);
       if (requestId === requestIdRef.current) setError('Gagal memuat deliverable');
     } finally {
       if (requestId === requestIdRef.current) {
@@ -148,13 +162,16 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
 
   useEffect(() => {
     if (!isOpen) return;
-    const timer = window.setTimeout(() => void loadDeliverables('initial'), 0);
-    return () => {
-      window.clearTimeout(timer);
-      requestIdRef.current += 1;
-      isRefreshingRef.current = false;
-    };
-  }, [isOpen, loadDeliverables]);
+    const cached = readCachedDeliverables(job.id);
+    if (!cached) {
+      const timer = window.setTimeout(() => void loadDeliverables('initial'), 0);
+      return () => {
+        window.clearTimeout(timer);
+        requestIdRef.current += 1;
+        isRefreshingRef.current = false;
+      };
+    }
+  }, [isOpen, job.id, loadDeliverables]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -174,6 +191,39 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
     };
   }, [isOpen, job.id, loadDeliverables]);
 
+  useEffect(() => {
+    deliverables.forEach((deliverable) => {
+      const isPdf = deliverable.mimeType === 'application/pdf' || /\.pdf$/i.test(deliverable.originalFilename);
+      const isPdfUrl = /\.pdf(\?|$)/i.test(deliverable.previewUrl);
+      if (isPdf && isPdfUrl && !pdfThumbnails[deliverable.id] && !loadingThumbnailsRef.current.has(deliverable.id)) {
+        loadingThumbnailsRef.current.add(deliverable.id);
+        void getDeliverablePdfDataAction(deliverable.id)
+          .then(async (res) => {
+            if (!res.success || !res.data) throw new Error(res.error || 'Gagal memuat file PDF');
+            const binaryString = atob(res.data.base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            const rendered = await renderPdfToJpegBlob(bytes);
+            setPdfThumbnails((prev) => ({ ...prev, [deliverable.id]: rendered.dataUrl }));
+            setImageRatios((prev) => ({ ...prev, [deliverable.id]: rendered.width / rendered.height }));
+            setImageResolutions((prev) => ({ ...prev, [deliverable.id]: `${rendered.width} × ${rendered.height}px` }));
+            setLoadedPreviewIds((prev) => ({ ...prev, [deliverable.id]: true }));
+            void saveDeliverablePreviewAction(deliverable.id, rendered.dataUrl);
+          })
+          .catch((err) => {
+            console.error('Failed to generate PDF thumbnail for', deliverable.originalFilename, err);
+            setPdfThumbnails((prev) => ({
+              ...prev,
+              [deliverable.id]: createPdfFallbackDataUrl(deliverable.originalFilename),
+            }));
+          });
+      }
+    });
+  }, [deliverables, pdfThumbnails]);
+
   const isImageFile = (file: File) => /\.(jpe?g|png)$/i.test(file.name) || file.type === 'image/jpeg' || file.type === 'image/png';
   const isPdfFile = (file: File) => /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
 
@@ -190,7 +240,18 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
 
     let uploadId: string | undefined;
     try {
-      const previewBlob = isPdf ? null : await compressImageToJpeg(file);
+      let previewBlob: Blob | null = null;
+      if (isPdf) {
+        try {
+          const rendered = await renderPdfToJpegBlob(file);
+          previewBlob = rendered.blob;
+        } catch (pdfErr) {
+          console.warn('Could not generate PDF preview during upload:', pdfErr);
+        }
+      } else {
+        previewBlob = await compressImageToJpeg(file);
+      }
+
       const effectiveMimeType = isPdf
         ? 'application/pdf'
         : (/\.png$/i.test(file.name) || file.type === 'image/png')
@@ -344,6 +405,7 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
         return;
       }
 
+      const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
       await Promise.all(results.map(async (result, index) => {
         const response = await fetch(result.data!.url);
@@ -374,7 +436,11 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
         setError(result.error || 'Gagal menghapus hasil desain.');
         return;
       }
-      setDeliverables((current) => current.filter((item) => item.id !== deliverable.id));
+      setDeliverables((current) => {
+        const next = current.filter((item) => item.id !== deliverable.id);
+        writeCachedDeliverables(job.id, next);
+        return next;
+      });
       void loadDeliverables('silent');
     } catch {
       setError('Gagal menghapus hasil desain.');
@@ -392,32 +458,58 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
     if (!gallery) return;
 
     const updateEdges = () => {
-      const maxScrollTop = gallery.scrollHeight - gallery.clientHeight;
-      setHasGalleryOverflow(maxScrollTop - gallery.scrollTop > 2);
+      // pony: real scroll check. No scroll room or single item -> never overflow
+      if (deliverables.length <= 1) {
+        setHasGalleryOverflow(false);
+        return;
+      }
+      const scrollableDistance = gallery.scrollHeight - gallery.clientHeight;
+      if (scrollableDistance <= 16) {
+        setHasGalleryOverflow(false);
+        return;
+      }
+      const remainingScroll = scrollableDistance - gallery.scrollTop;
+      setHasGalleryOverflow(remainingScroll > 8);
     };
 
     updateEdges();
     gallery.addEventListener('scroll', updateEdges, { passive: true });
     const observer = new ResizeObserver(updateEdges);
     observer.observe(gallery);
+    Array.from(gallery.children).forEach((child) => observer.observe(child));
     return () => {
       gallery.removeEventListener('scroll', updateEdges);
       observer.disconnect();
     };
-  }, [deliverables.length]);
+  }, [deliverables.length, loadedPreviewIds, pdfThumbnails]);
+
+  const isDeliverableWide = (deliverable: Deliverable) => {
+    if (deliverables.length === 1) return true;
+    const ratio = imageRatios[deliverable.id];
+    if (ratio !== undefined) return ratio > 1.25;
+    return false;
+  };
+
+  const wideDeliverables: Array<{ deliverable: Deliverable; index: number }> = [];
+  const columnDeliverables: Array<{ deliverable: Deliverable; index: number }> = [];
+
+  deliverables.forEach((deliverable, index) => {
+    if (isDeliverableWide(deliverable)) {
+      wideDeliverables.push({ deliverable, index });
+    } else {
+      columnDeliverables.push({ deliverable, index });
+    }
+  });
 
   const galleryColumns: Array<Array<{ deliverable: Deliverable; index: number }>> = [[], []];
   const galleryHeights = [0, 0];
-  const areAllImageRatiosKnown = deliverables.every(
-    (deliverable) =>
-      deliverable.mimeType === 'application/pdf' ||
-      /\.pdf$/i.test(deliverable.originalFilename) ||
-      imageRatios[deliverable.id] !== undefined
+  const areAllImageRatiosKnown = columnDeliverables.every(
+    ({ deliverable }) => imageRatios[deliverable.id] !== undefined
   );
 
-  deliverables.forEach((deliverable, index) => {
+  columnDeliverables.forEach(({ deliverable, index }) => {
     const isPdf = deliverable.mimeType === 'application/pdf' || /\.pdf$/i.test(deliverable.originalFilename);
-    const ratio = isPdf ? 0.75 : (imageRatios[deliverable.id] || 1);
+    const ratio = imageRatios[deliverable.id] || (isPdf ? 0.75 : 1);
     const estimatedHeight = 1 / Math.max(ratio, 0.1);
     const columnIndex = areAllImageRatiosKnown
       ? (galleryHeights[0] <= galleryHeights[1] ? 0 : 1)
@@ -431,58 +523,63 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
     const isPdf = deliverable.mimeType === 'application/pdf' || /\.pdf$/i.test(deliverable.originalFilename);
     const uploadDescription = `Hasil desain ${deliverable.originalFilename}, diunggah ${formatDateTime(deliverable.registeredAt)} oleh ${deliverable.uploaderName || 'editor'}`;
     const isDeleting = deletingIds.has(deliverable.id);
+    const displaySrc = pdfThumbnails[deliverable.id] || deliverable.previewUrl;
+    const isLoaded = Boolean(loadedPreviewIds[deliverable.id]);
+
+    const targetUrl = deliverable.fileUrl || deliverable.previewUrl;
+
     return (
       <article
-        className={`job-deliverable-item float-up-entry ${index === 0 ? 'is-latest' : ''} ${isDeleting ? 'is-deleting' : ''} ${isPdf ? 'is-pdf' : ''}`}
+        className={`job-deliverable-item float-up-entry ${index === 0 ? 'is-latest' : ''} ${isDeleting ? 'is-deleting' : ''}`}
         style={{
           '--float-up-duration': '900ms',
           '--float-up-delay': `${Math.min(index, 7) * 140}ms`,
         } as React.CSSProperties}
         key={deliverable.id}
         title={uploadDescription}
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest('button')) return;
+          if (!(e.target as HTMLElement).closest('a')) {
+            if (targetUrl) window.open(targetUrl, '_blank', 'noopener,noreferrer');
+          }
+        }}
       >
         <a
-          className={`job-deliverable-preview-link ${isPdf || loadedPreviewIds[deliverable.id] ? 'is-image-loaded' : 'is-loading-preview'} ${isPdf ? 'is-pdf-link' : ''}`}
-          href={deliverable.previewUrl}
+          className={`job-deliverable-preview-link ${isLoaded ? 'is-image-loaded' : 'is-loading-preview'}`}
+          href={targetUrl}
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`Buka preview ${uploadDescription}`}
         >
-          {!isPdf && !loadedPreviewIds[deliverable.id] && (
+          {!isLoaded && (
             <span className="deliverables-loading-dots preview-loading-dots" aria-label="Loading preview">
               <i /><i /><i />
             </span>
           )}
-          {isPdf ? (
-            <div className="job-deliverable-pdf-card">
-              <div className="job-deliverable-pdf-icon-badge">
-                <FileText size={38} className="job-deliverable-pdf-icon" />
-                <span className="job-deliverable-pdf-tag">PDF</span>
-              </div>
-              <span className="job-deliverable-pdf-title" title={deliverable.originalFilename}>
-                {deliverable.originalFilename}
-              </span>
-              <span className="job-deliverable-pdf-action-hint">Klik untuk buka dokumen</span>
-            </div>
-          ) : (
-            <img
-              className="job-deliverable-preview"
-              src={deliverable.previewUrl}
-              alt={`Preview ${uploadDescription}`}
-              loading={index === 0 ? 'eager' : 'lazy'}
-              decoding="async"
-              fetchPriority={index === 0 ? 'high' : 'auto'}
-              onLoad={(event) => {
-                const image = event.currentTarget;
-                const markLoaded = () => {
-                  setLoadedPreviewIds((current) => ({ ...current, [deliverable.id]: true }));
-                  setImageResolutions((current) => ({ ...current, [deliverable.id]: `${image.naturalWidth} × ${image.naturalHeight}px` }));
-                  setImageRatios((current) => ({ ...current, [deliverable.id]: image.naturalWidth / image.naturalHeight }));
-                };
-                void image.decode().then(markLoaded, markLoaded);
-              }}
-            />
-          )}
+          <img
+            className="job-deliverable-preview"
+            src={displaySrc}
+            alt={`Preview ${uploadDescription}`}
+            loading={index === 0 ? 'eager' : 'lazy'}
+            decoding="async"
+            fetchPriority={index === 0 ? 'high' : 'auto'}
+            onLoad={(event) => {
+              const image = event.currentTarget;
+              setLoadedPreviewIds((current) => ({ ...current, [deliverable.id]: true }));
+              if (image.naturalWidth && image.naturalHeight) {
+                setImageResolutions((current) => ({ ...current, [deliverable.id]: `${image.naturalWidth} × ${image.naturalHeight}px` }));
+                setImageRatios((current) => ({ ...current, [deliverable.id]: image.naturalWidth / image.naturalHeight }));
+              }
+            }}
+            onError={() => {
+              if (!hasRetriedRef.current.has(deliverable.id)) {
+                hasRetriedRef.current.add(deliverable.id);
+                void loadDeliverables('silent');
+              } else {
+                setLoadedPreviewIds((current) => ({ ...current, [deliverable.id]: true }));
+              }
+            }}
+          />
         </a>
         <div className="job-deliverable-details job-deliverable-overlay">
           <div className="job-deliverable-info">
@@ -490,13 +587,39 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
             <div className="job-deliverable-meta">
               <time dateTime={deliverable.registeredAt}>{formatDateTime(deliverable.registeredAt)}</time>
               <span className="job-deliverable-resolution">
-                {isPdf ? 'PDF Document' : (imageResolutions[deliverable.id] || 'Loading resolution...')}
+                {imageResolutions[deliverable.id] || (isPdf ? 'Dokumen PDF' : isLoaded ? '' : 'Memuat...')}
               </span>
             </div>
           </div>
           <div className="job-deliverable-buttons">
-            <button type="button" className="job-deliverable-download-button" onClick={() => void handleDownload(deliverable)} title={`Unduh ${deliverable.originalFilename}`} aria-label={`Unduh ${deliverable.originalFilename}, ${formatFileSize(deliverable.sizeBytes)}`}><Download size={15} /><span>{formatFileSize(deliverable.sizeBytes)}</span></button>
-            {canDelete && <button type="button" className="job-deliverable-icon-button is-danger" onClick={() => void handleDelete(deliverable)} disabled={isDeleting} title={`Hapus ${deliverable.originalFilename}`} aria-label={`Hapus ${deliverable.originalFilename}`}>{isDeleting ? <Loader2 size={14} className="spin" /> : <Trash2 size={14} />}</button>}
+            <button
+              type="button"
+              className="job-deliverable-download-button"
+              onClick={(e) => {
+                e.stopPropagation();
+                void handleDownload(deliverable);
+              }}
+              title={`Unduh ${deliverable.originalFilename}`}
+              aria-label={`Unduh ${deliverable.originalFilename}, ${formatFileSize(deliverable.sizeBytes)}`}
+            >
+              <Download size={15} />
+              <span>{formatFileSize(deliverable.sizeBytes)}</span>
+            </button>
+            {canDelete && (
+              <button
+                type="button"
+                className="job-deliverable-icon-button is-danger"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void handleDelete(deliverable);
+                }}
+                disabled={isDeleting}
+                title={`Hapus ${deliverable.originalFilename}`}
+                aria-label={`Hapus ${deliverable.originalFilename}`}
+              >
+                {isDeleting ? <Loader2 size={14} className="spin" /> : <Trash2 size={14} />}
+              </button>
+            )}
           </div>
         </div>
       </article>
@@ -596,13 +719,20 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
           </div>
         ) : (
           <div className={`job-deliverables-gallery ${hasGalleryOverflow ? 'has-bottom-overflow' : ''}`} ref={galleryRef} aria-label="Submitted design previews">
-            <div className="job-deliverables-masonry">
-              {galleryColumns.map((column, columnIndex) => (
-                <div className="job-deliverables-list" key={columnIndex}>
-                  {column.map(({ deliverable, index }) => renderDeliverable(deliverable, index))}
-                </div>
-              ))}
-            </div>
+            {wideDeliverables.length > 0 && (
+              <div className="job-deliverables-wide-list">
+                {wideDeliverables.map(({ deliverable, index }) => renderDeliverable(deliverable, index))}
+              </div>
+            )}
+            {columnDeliverables.length > 0 && (
+              <div className="job-deliverables-masonry">
+                {galleryColumns.map((column, columnIndex) => (
+                  <div className="job-deliverables-list" key={columnIndex}>
+                    {column.map(({ deliverable, index }) => renderDeliverable(deliverable, index))}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </aside>

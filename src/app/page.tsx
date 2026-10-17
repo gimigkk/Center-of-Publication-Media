@@ -19,6 +19,7 @@ import { CursorOverlay } from '@/components/cursors/CursorOverlay';
 import { BoardModals } from '@/components/board/BoardModals';
 import { TopLoader } from '@/components/ui/TopLoader';
 import { SmoothScroll } from '@/components/ui/SmoothScroll';
+import { seedDeliverablesCache } from '@/components/forms/job-detail/JobDeliverablesPanel';
 
 export default function Home() {
   // Primary Workspace state
@@ -119,6 +120,7 @@ export default function Home() {
     setSelectedJobForDetail: modals.setSelectedJobForDetail,
     setIsDetailOpen: modals.setIsDetailOpen,
     setIsPageLoading,
+    setPageEditorsMap,
     allUsers,
   });
 
@@ -138,7 +140,7 @@ export default function Home() {
       ]);
 
       if (!data || !data.currentUser) {
-        window.location.replace('/login');
+        window.location.replace('/login?error=unapproved');
         return;
       }
 
@@ -161,6 +163,9 @@ export default function Home() {
       setPendingUsers(data.pendingUsers || []);
       setDesignerSuggestions(data.designerSuggestions || []);
       setNotifications(data.notifications || []);
+      if (data.initialDeliverables) {
+        seedDeliverablesCache(data.initialDeliverables);
+      }
       if (data.initialPageEditors) {
         setPageEditorsMap(data.initialPageEditors);
       }
@@ -199,20 +204,12 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="figjam-loading-screen">
-        <div className="figjam-loader-container">
-          <div className="figjam-loader-icon-wrapper">
-            <svg
-              className="figjam-spinner-svg"
-              viewBox="0 0 50 50"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <circle className="spinner-track" cx="25" cy="25" r="20" strokeWidth="3.5" />
-              <circle className="spinner-head" cx="25" cy="25" r="20" strokeWidth="3.5" />
-            </svg>
-          </div>
-          <span className="figjam-loader-text">Memuat papan kerja...</span>
+      <div className="figjam-loading-screen" role="status" aria-label="Memuat papan kerja">
+        {/* ponytail: 3-dot pulse; upgrade to custom canvas skeleton if initial render exceeds 2s */}
+        <div className="figjam-jumping-dots">
+          <span />
+          <span />
+          <span />
         </div>
       </div>
     );

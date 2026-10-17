@@ -8,7 +8,7 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  if (process.env.USE_MOCK_DATA === 'true') {
+  if (process.env.NODE_ENV !== 'production' && process.env.USE_MOCK_DATA === 'true') {
     return supabaseResponse;
   }
 
@@ -16,6 +16,9 @@ export async function middleware(request: NextRequest) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
+    if (process.env.NODE_ENV === 'production') {
+      return new NextResponse('Configuration Error: Supabase credentials missing', { status: 500 });
+    }
     return supabaseResponse;
   }
 
@@ -67,6 +70,9 @@ export async function middleware(request: NextRequest) {
 
   // If user is logged in and tries to access /login or /signup
   if (user && (pathname.startsWith('/login') || pathname.startsWith('/signup'))) {
+    if (request.nextUrl.searchParams.has('error') || request.nextUrl.searchParams.has('unapproved')) {
+      return supabaseResponse;
+    }
     return createRedirect('/');
   }
 

@@ -26,6 +26,7 @@ import {
 } from '@/app/actions/divisions';
 import { getPageDesignerSuggestionsAction } from '@/app/actions/page-editors';
 import { getPageBundleAction } from '@/app/actions/page-bundle';
+import { seedDeliverablesCache } from '@/components/forms/job-detail/JobDeliverablesPanel';
 import {
   getAllUsersAction,
   approveUserAction,
@@ -63,6 +64,7 @@ interface UseBoardOperationsParams {
   setSelectedJobForDetail: (job: Job | null) => void;
   setIsDetailOpen: (open: boolean) => void;
   setIsPageLoading?: (loading: boolean) => void;
+  setPageEditorsMap?: React.Dispatch<React.SetStateAction<Record<string, string[]>>>;
   allUsers: Profile[];
 }
 
@@ -86,6 +88,7 @@ export function useBoardOperations({
   setSelectedJobForDetail,
   setIsDetailOpen,
   setIsPageLoading,
+  setPageEditorsMap,
   allUsers,
 }: UseBoardOperationsParams) {
   const router = useRouter();
@@ -102,13 +105,19 @@ export function useBoardOperations({
       setInitialJobs(bundle.jobs);
       setDivisions(bundle.divisions);
       setDesignerSuggestions(bundle.designerSuggestions);
+      if (bundle.deliverablesByJobId) {
+        seedDeliverablesCache(bundle.deliverablesByJobId);
+      }
+      if (setPageEditorsMap && bundle.editorIds) {
+        setPageEditorsMap((prev) => ({ ...prev, [page.id]: bundle.editorIds }));
+      }
       setCurrentPage(page);
     } catch (e) {
       console.error('Failed to switch page:', e);
     } finally {
       setIsPageLoading?.(false);
     }
-  }, [activePageId, allUsers, setCurrentPage, setInitialJobs, setDivisions, setDesignerSuggestions, setIsPageLoading]);
+  }, [activePageId, allUsers, setCurrentPage, setInitialJobs, setDivisions, setDesignerSuggestions, setPageEditorsMap, setIsPageLoading]);
 
   // Move Job Action Handler
   const handleMoveJob = useCallback(
@@ -128,21 +137,30 @@ export function useBoardOperations({
         );
       }
 
-      const res = await moveJobAction(jobId, toStatus, currentUser);
-      if (res.success) {
+      try {
+        const res = await moveJobAction(jobId, toStatus, currentUser);
+        if (res.success) {
+          confirmJobStatusMutation?.(jobId);
+          broadcastBoardChange({
+            jobId,
+            toStatus,
+            releaseWorldX: releasePos?.worldX,
+            releaseWorldY: releasePos?.worldY,
+          });
+        } else {
+          confirmJobStatusMutation?.(jobId);
+          // Revert if error
+          const fresh = await getJobsAction(activePageId);
+          setJobs(fresh);
+          alert(res.error || 'Gagal memindahkan kartu job');
+        }
+      } catch (err) {
         confirmJobStatusMutation?.(jobId);
-        broadcastBoardChange({
-          jobId,
-          toStatus,
-          releaseWorldX: releasePos?.worldX,
-          releaseWorldY: releasePos?.worldY,
-        });
-      } else {
-        confirmJobStatusMutation?.(jobId);
-        // Revert if error
-        const fresh = await getJobsAction(activePageId);
-        setJobs(fresh);
-        alert(res.error || 'Gagal memindahkan kartu job');
+        try {
+          const fresh = await getJobsAction(activePageId);
+          setJobs(fresh);
+        } catch {}
+        alert(err instanceof Error ? err.message : 'Kesalahan jaringan saat memindahkan kartu');
       }
     },
     [currentUser, activePageId, broadcastBoardChange, setJobs, setOptimisticJobStatus, confirmJobStatusMutation]
@@ -183,7 +201,7 @@ export function useBoardOperations({
 
         void Promise.all([
           getJobsAction(activePageId),
-          getDesignerSuggestionsAction(),
+          getPageDesignerSuggestionsAction(activePageId),
         ])
           .then(([fresh, suggestions]) => {
             setJobs(fresh);
@@ -218,21 +236,30 @@ export function useBoardOperations({
         )
       );
 
-      const res = await updateJobDeadlineAction(jobId, deadlineIso, currentUser);
-      if (res.success) {
-        broadcastBoardChange();
-        const fresh = await getJobsAction(activePageId);
-        setJobs(fresh);
-        const updatedJob = fresh.find((j) => j.id === jobId);
-        if (updatedJob) {
-          setSelectedJobForDetail(updatedJob);
+      try {
+        const res = await updateJobDeadlineAction(jobId, deadlineIso, currentUser);
+        if (res.success) {
+          broadcastBoardChange();
+          const fresh = await getJobsAction(activePageId);
+          setJobs(fresh);
+          const updatedJob = fresh.find((j) => j.id === jobId);
+          if (updatedJob) {
+            setSelectedJobForDetail(updatedJob);
+          }
+        } else {
+          const fresh = await getJobsAction(activePageId);
+          setJobs(fresh);
+          alert(res.error || 'Gagal memperbarui deadline');
         }
-      } else {
-        const fresh = await getJobsAction(activePageId);
-        setJobs(fresh);
-        alert(res.error || 'Gagal memperbarui deadline');
+        return res;
+      } catch (err) {
+        try {
+          const fresh = await getJobsAction(activePageId);
+          setJobs(fresh);
+        } catch {}
+        alert(err instanceof Error ? err.message : 'Kesalahan jaringan saat memperbarui deadline');
+        return { success: false, error: 'Kesalahan jaringan' };
       }
-      return res;
     },
     [currentUser, activePageId, broadcastBoardChange, setJobs, setSelectedJobForDetail]
   );
@@ -249,12 +276,19 @@ export function useBoardOperations({
         )
       );
 
-      const res = await archiveJobAction(jobId, currentUser);
-      if (res.success) {
-        broadcastBoardChange();
-      } else {
-        const fresh = await getJobsAction(activePageId);
-        setJobs(fresh);
+      try {
+        const res = await archiveJobAction(jobId, currentUser);
+        if (res.success) {
+          broadcastBoardChange();
+        } else {
+          const fresh = await getJobsAction(activePageId);
+          setJobs(fresh);
+        }
+      } catch {
+        try {
+          const fresh = await getJobsAction(activePageId);
+          setJobs(fresh);
+        } catch {}
       }
     },
     [currentUser, activePageId, broadcastBoardChange, setJobs]
@@ -267,12 +301,19 @@ export function useBoardOperations({
 
       setJobs((prev) => prev.filter((j) => j.id !== jobId));
 
-      const res = await deleteJobAction(jobId, currentUser);
-      if (res.success) {
-        broadcastBoardChange();
-      } else {
-        const fresh = await getJobsAction(activePageId);
-        setJobs(fresh);
+      try {
+        const res = await deleteJobAction(jobId, currentUser);
+        if (res.success) {
+          broadcastBoardChange();
+        } else {
+          const fresh = await getJobsAction(activePageId);
+          setJobs(fresh);
+        }
+      } catch {
+        try {
+          const fresh = await getJobsAction(activePageId);
+          setJobs(fresh);
+        } catch {}
       }
     },
     [currentUser, activePageId, broadcastBoardChange, setJobs]
@@ -289,12 +330,19 @@ export function useBoardOperations({
         )
       );
 
-      const res = await unarchiveJobAction(jobId, currentUser);
-      if (res.success) {
-        broadcastBoardChange();
-      } else {
-        const fresh = await getJobsAction(activePageId);
-        setJobs(fresh);
+      try {
+        const res = await unarchiveJobAction(jobId, currentUser);
+        if (res.success) {
+          broadcastBoardChange();
+        } else {
+          const fresh = await getJobsAction(activePageId);
+          setJobs(fresh);
+        }
+      } catch {
+        try {
+          const fresh = await getJobsAction(activePageId);
+          setJobs(fresh);
+        } catch {}
       }
     },
     [currentUser, activePageId, broadcastBoardChange, setJobs]
@@ -417,12 +465,12 @@ export function useBoardOperations({
         setPendingUsers((prev) => prev.filter((u) => u.id !== userId));
         const users = await getAllUsersAction();
         setAllUsers(users);
-        const suggestions = await getDesignerSuggestionsAction();
+        const suggestions = await getPageDesignerSuggestionsAction(activePageId);
         setDesignerSuggestions(suggestions);
       }
       return res;
     },
-    [setPendingUsers, setAllUsers, setDesignerSuggestions]
+    [activePageId, setPendingUsers, setAllUsers, setDesignerSuggestions]
   );
 
   const handleRejectUser = useCallback(

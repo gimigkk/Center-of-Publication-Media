@@ -50,9 +50,9 @@ export async function getCurrentUserAction(): Promise<Profile | null> {
             fullName: fallbackName,
             phoneNumber: fallbackPhone,
             avatarUrl: fallbackAvatar,
-            role: 'designer',
+            role: 'requestor',
             divisionId: defaultDiv,
-            isApproved: true,
+            isApproved: false,
           })
           .onConflictDoUpdate({
             target: schema.profiles.id,
@@ -183,6 +183,9 @@ export async function updateProfileAction(
 }
 
 export async function getAllUsersAction(): Promise<Profile[]> {
+  const currentUser = await getAuthenticatedUser(false);
+  if (!currentUser) return [];
+
   if (isMockEnabled()) {
     return getMockStore().users;
   }
@@ -349,7 +352,7 @@ export async function signUpUserAction(formData: {
   }
 
   const userRole: UserRole = formData.role || 'designer';
-  const isAutoApproved = true;
+  const isAutoApproved = false;
 
   if (isMockEnabled()) {
     const store = getMockStore();

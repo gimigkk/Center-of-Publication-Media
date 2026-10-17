@@ -109,6 +109,16 @@ export function BoardModals({
   onDeleteDivision,
   onUpdateProfile,
 }: BoardModalsProps) {
+  const filteredDesignerSuggestions = React.useMemo(() => {
+    const targetPageId = selectedJobForDetail?.pageId || currentPage?.id;
+    const assignedIds = targetPageId ? initialPageEditors?.[targetPageId] : undefined;
+    if (!assignedIds || assignedIds.length === 0) {
+      return designerSuggestions;
+    }
+    const assignedSet = new Set(assignedIds);
+    return designerSuggestions.filter((item) => assignedSet.has(item.designer.id));
+  }, [selectedJobForDetail?.pageId, currentPage?.id, initialPageEditors, designerSuggestions]);
+
   return (
     <>
       <JobFormModal
@@ -125,7 +135,7 @@ export function BoardModals({
         onClose={onCloseDetail}
         job={selectedJobForDetail}
         currentUser={currentUser}
-        designersWithWorkload={designerSuggestions}
+        designersWithWorkload={filteredDesignerSuggestions}
         onAssign={onAssignDesigner}
         onUpdateDeadline={onUpdateDeadline}
         onArchive={onArchiveJob}

@@ -73,12 +73,14 @@ export function PageEditorManagerModal({
   // Sync selected page when modal opens
   useEffect(() => {
     if (isOpen) {
-      setSelectedPageId(currentPage.id);
-      if (initialPageEditors[currentPage.id]) {
-        setAssignedEditorIds(initialPageEditors[currentPage.id]);
-      }
-      setError(null);
-      setSuccessMsg(null);
+      queueMicrotask(() => {
+        setSelectedPageId(currentPage.id);
+        if (initialPageEditors[currentPage.id]) {
+          setAssignedEditorIds(initialPageEditors[currentPage.id]);
+        }
+        setError(null);
+        setSuccessMsg(null);
+      });
     }
   }, [isOpen, currentPage.id, initialPageEditors]);
 
@@ -88,15 +90,19 @@ export function PageEditorManagerModal({
 
     // Fast-path: use cached assignments instantly if available
     if (initialPageEditors[selectedPageId]) {
-      setAssignedEditorIds(initialPageEditors[selectedPageId]);
-      setIsLoading(false);
+      queueMicrotask(() => {
+        setAssignedEditorIds(initialPageEditors[selectedPageId]);
+        setIsLoading(false);
+      });
       return;
     }
 
     let isCancelled = false;
-    setIsLoading(true);
-    setError(null);
-    setSuccessMsg(null);
+    queueMicrotask(() => {
+      setIsLoading(true);
+      setError(null);
+      setSuccessMsg(null);
+    });
 
     getPageEditorsAction(selectedPageId)
       .then((editorIds) => {
@@ -159,6 +165,13 @@ export function PageEditorManagerModal({
       setSuccessMsg('Penugasan editor berhasil disimpan!');
 
       const freshSuggestions = await getPageDesignerSuggestionsAction(selectedPageId);
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        try {
+          const bc = new BroadcastChannel('copm-workspace-sync');
+          bc.postMessage({ type: 'sync-page-editors', pageId: selectedPageId });
+          bc.close();
+        } catch {}
+      }
       if (onAssignmentsUpdated) {
         onAssignmentsUpdated(selectedPageId, freshSuggestions, assignedEditorIds);
       }

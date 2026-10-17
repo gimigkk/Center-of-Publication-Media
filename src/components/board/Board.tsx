@@ -456,9 +456,9 @@ export const Board = memo(function Board({
               ref={kanbanBoardRef}
               className="kanban-board"
               style={{
-                height: boardHeight ? `${boardHeight}px` : undefined,
-                transition: isMountedRef.current ? 'height 340ms cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
-                willChange: 'height',
+                height: !isMobile && boardHeight ? `${boardHeight}px` : undefined,
+                transition: !isMobile && isMountedRef.current ? 'height 340ms cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
+                willChange: !isMobile ? 'height' : undefined,
               }}
             >
               {COLUMNS.map((col, index) => (

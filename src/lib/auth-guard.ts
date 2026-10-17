@@ -3,6 +3,15 @@ import { db, schema } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { Profile } from '@/types';
 import { isMockEnabled, getMockStore } from '@/lib/mock-store';
+import { cookies } from 'next/headers';
+
+type CachedSession = {
+  profile: Profile;
+  expiresAt: number;
+};
+
+const sessionCache = new Map<string, CachedSession>();
+const SESSION_CACHE_TTL_MS = 30 * 1000;
 
 /**
  * Validates the caller's session from request cookies and returns the active approved Profile.
@@ -14,6 +23,21 @@ export async function getAuthenticatedUser(includeDivision = true): Promise<Prof
   }
 
   if (!db) return null;
+
+  let sessionKey = '';
+  try {
+    const cookieStore = await cookies();
+    const tokenCookie = cookieStore.getAll().find((c) => c.name.includes('-auth-token'));
+    if (tokenCookie) {
+      sessionKey = `${tokenCookie.value}:${includeDivision}`;
+      const cached = sessionCache.get(sessionKey);
+      if (cached && Date.now() < cached.expiresAt) {
+        return cached.profile;
+      }
+    }
+  } catch {
+    // Outside of request context
+  }
 
   try {
     const supabase = await createServerSupabaseClient();
@@ -51,9 +75,9 @@ export async function getAuthenticatedUser(includeDivision = true): Promise<Prof
             fullName: fallbackName,
             phoneNumber: fallbackPhone,
             avatarUrl: fallbackAvatar,
-            role: 'designer',
+            role: 'requestor',
             divisionId: defaultDiv,
-            isApproved: true,
+            isApproved: false,
           })
           .onConflictDoUpdate({
             target: schema.profiles.id,
@@ -77,7 +101,7 @@ export async function getAuthenticatedUser(includeDivision = true): Promise<Prof
       divisionName = division?.name;
     }
 
-    return {
+    const resultProfile: Profile = {
       id: profile.id,
       email: profile.email,
       fullName: profile.fullName,
@@ -90,6 +114,16 @@ export async function getAuthenticatedUser(includeDivision = true): Promise<Prof
       createdAt: profile.createdAt.toISOString(),
       updatedAt: profile.updatedAt.toISOString(),
     };
+
+    if (sessionKey) {
+      if (sessionCache.size > 200) sessionCache.clear();
+      sessionCache.set(sessionKey, {
+        profile: resultProfile,
+        expiresAt: Date.now() + SESSION_CACHE_TTL_MS,
+      });
+    }
+
+    return resultProfile;
   } catch {
     return null;
   }

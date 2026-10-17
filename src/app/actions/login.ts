@@ -136,9 +136,9 @@ export async function loginAction(
             fullName: fallbackName,
             phoneNumber: fallbackPhone,
             avatarUrl: fallbackAvatar,
-            role: 'designer',
+            role: 'requestor',
             divisionId: defaultDiv,
-            isApproved: true,
+            isApproved: false,
           })
           .onConflictDoUpdate({
             target: schema.profiles.id,

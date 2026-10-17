@@ -1,11 +1,12 @@
 'use server';
 
 import { db, schema } from '@/lib/db';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { AppNotification, NotificationType } from '@/types';
 import { isMockEnabled, getMockStore } from '@/lib/mock-store';
 import { sendWebPushNotificationToUser } from '@/lib/web-push';
+import { getAuthenticatedUser } from '@/lib/auth-guard';
 
 export async function getNotificationsAction(userId?: string): Promise<AppNotification[]> {
   if (isMockEnabled()) {
@@ -13,21 +14,22 @@ export async function getNotificationsAction(userId?: string): Promise<AppNotifi
     return userId ? store.notifications.filter((n) => n.userId === userId) : store.notifications;
   }
 
+  const currentUser = await getAuthenticatedUser();
+  if (!currentUser) return [];
+
   if (!db) return [];
 
-  try {
-    const query = userId
-      ? db
-          .select()
-          .from(schema.notifications)
-          .where(eq(schema.notifications.userId, userId))
-          .orderBy(desc(schema.notifications.createdAt))
-      : db
-          .select()
-          .from(schema.notifications)
-          .orderBy(desc(schema.notifications.createdAt));
+  // Non-admins can strictly only fetch their own notifications
+  const targetUserId = currentUser.role === 'admin' && userId ? userId : currentUser.id;
 
-    const records = await query;
+  try {
+    const records = await db
+      .select()
+      .from(schema.notifications)
+      .where(eq(schema.notifications.userId, targetUserId))
+      .orderBy(desc(schema.notifications.createdAt))
+      .limit(50);
+
     return records.map((r) => ({
       id: r.id,
       userId: r.userId,
@@ -154,13 +156,18 @@ export async function markAsReadAction(notificationId: string): Promise<{ succes
     return { success: true };
   }
 
-  if (!db) return { success: false };
+  const currentUser = await getAuthenticatedUser();
+  if (!currentUser || !db) return { success: false };
 
   try {
+    const condition = currentUser.role === 'admin'
+      ? eq(schema.notifications.id, notificationId)
+      : and(eq(schema.notifications.id, notificationId), eq(schema.notifications.userId, currentUser.id));
+
     await db
       .update(schema.notifications)
       .set({ isRead: true })
-      .where(eq(schema.notifications.id, notificationId));
+      .where(condition);
 
     revalidatePath('/');
     return { success: true };
@@ -178,13 +185,16 @@ export async function markAllAsReadAction(userId?: string): Promise<{ success: b
     return { success: true };
   }
 
-  if (!db || !userId) return { success: false };
+  const currentUser = await getAuthenticatedUser();
+  if (!currentUser || !db) return { success: false };
+
+  const targetUserId = currentUser.role === 'admin' && userId ? userId : currentUser.id;
 
   try {
     await db
       .update(schema.notifications)
       .set({ isRead: true })
-      .where(eq(schema.notifications.userId, userId));
+      .where(eq(schema.notifications.userId, targetUserId));
 
     revalidatePath('/');
     return { success: true };
@@ -204,10 +214,13 @@ export async function clearNotificationsAction(userId?: string): Promise<{ succe
     return { success: true };
   }
 
-  if (!db || !userId) return { success: false };
+  const currentUser = await getAuthenticatedUser();
+  if (!currentUser || !db) return { success: false };
+
+  const targetUserId = currentUser.role === 'admin' && userId ? userId : currentUser.id;
 
   try {
-    await db.delete(schema.notifications).where(eq(schema.notifications.userId, userId));
+    await db.delete(schema.notifications).where(eq(schema.notifications.userId, targetUserId));
     revalidatePath('/');
     return { success: true };
   } catch {

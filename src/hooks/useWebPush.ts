@@ -3,9 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { savePushSubscriptionAction } from '@/app/actions/web-push';
 
-const VAPID_PUBLIC_KEY =
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-  'BP5wOj9BecHre-ZJvflww2WU8Z3gjE0rrBgjSLV4pur2iUaTtd8P3SCyOy5pQsVeNb1q3APuu1Z7O9CDhDRUtGk';
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -26,18 +24,19 @@ export function useWebPush(userId?: string) {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window) {
-      setIsSupported(true);
       const currentPerm = Notification.permission;
-      setPermission(currentPerm);
-
-      if (currentPerm === 'granted') {
-        setIsSubscribed(true);
-      }
+      queueMicrotask(() => {
+        setIsSupported(true);
+        setPermission(currentPerm);
+        if (currentPerm === 'granted') {
+          setIsSubscribed(true);
+        }
+      });
 
       navigator.serviceWorker.register('/sw.js').then(async (registration) => {
         try {
           let sub = await registration.pushManager.getSubscription();
-          if (!sub && currentPerm === 'granted') {
+          if (!sub && currentPerm === 'granted' && VAPID_PUBLIC_KEY) {
             sub = await registration.pushManager.subscribe({
               userVisibleOnly: true,
               applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
@@ -73,6 +72,12 @@ export function useWebPush(userId?: string) {
       const perm = await Notification.requestPermission();
       setPermission(perm);
       if (perm !== 'granted') {
+        setLoading(false);
+        return false;
+      }
+
+      if (!VAPID_PUBLIC_KEY) {
+        console.warn('VAPID public key not configured');
         setLoading(false);
         return false;
       }

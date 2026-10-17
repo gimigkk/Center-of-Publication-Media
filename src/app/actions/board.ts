@@ -1,9 +1,9 @@
 'use server';
 
-import { db, schema } from '@/lib/db';
-import { eq, sql } from 'drizzle-orm';
-import { Profile, Page, Division, Job, AppNotification, NotificationType } from '@/types';
+import { db, schema, sqlClient } from '@/lib/db';
+import { Profile, Page, Division, Job, AppNotification, NotificationType, Deliverable } from '@/types';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createDeliverablePreviewUrl } from '@/lib/r2';
 
 import { isMockEnabled, getMockStore } from '@/lib/mock-store';
 
@@ -18,6 +18,102 @@ export interface InitialBoardData {
   designerSuggestions: { designer: Profile; activeWipCount: number }[];
   notifications: AppNotification[];
   initialPageEditors?: Record<string, string[]>;
+  initialDeliverables?: Record<string, Deliverable[]>;
+}
+
+interface DbProfileRow {
+  id: string;
+  email: string;
+  full_name: string;
+  phone_number?: string | null;
+  avatar_url?: string | null;
+  role: Profile['role'];
+  division_id?: string | null;
+  is_approved: boolean;
+  created_at: string | Date;
+  updated_at: string | Date;
+}
+
+interface DbDivisionRow {
+  id: string;
+  page_id: string;
+  name: string;
+  created_at: string | Date;
+  updated_at: string | Date;
+}
+
+interface DbPageRow {
+  id: string;
+  name: string;
+  description?: string | null;
+  created_by?: string | null;
+  created_at: string | Date;
+  updated_at: string | Date;
+}
+
+interface DbNotificationRow {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type: string;
+  job_id?: string | null;
+  job_title?: string | null;
+  actor_id?: string | null;
+  actor_name?: string | null;
+  actor_avatar?: string | null;
+  note?: string | null;
+  is_read: boolean;
+  created_at: string | Date;
+}
+
+interface DbJobRow {
+  id: string;
+  page_id: string;
+  title: string;
+  description?: string | null;
+  brief_link?: string | null;
+  brief_title?: string | null;
+  division_id: string;
+  publication_media?: string | null;
+  deadline: string | Date;
+  status: Job['status'];
+  kanban_order: number;
+  requestor_id: string;
+  designer_id?: string | null;
+  is_archived?: boolean | null;
+  archived_at?: string | Date | null;
+  created_at: string | Date;
+  updated_at: string | Date;
+}
+
+interface DbJobDesignerRow {
+  job_id: string;
+  designer_id: string;
+}
+
+interface DbPageEditorRow {
+  page_id: string;
+  editor_id: string;
+}
+
+interface DbWorkloadRow {
+  designer_id: string;
+  active_wip_count: number;
+}
+
+interface DbDeliverableRow {
+  id: string;
+  job_id: string;
+  original_filename: string;
+  mime_type: string;
+  size_bytes: number;
+  uploaded_by: string;
+  uploader_name?: string | null;
+  storage_key: string;
+  preview_storage_key?: string | null;
+  registered_at?: string | Date | null;
+  created_at: string | Date;
 }
 
 export async function getInitialBoardDataAction(): Promise<InitialBoardData | null> {
@@ -27,7 +123,23 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
     const initialJobs = currentPage ? store.jobs.filter((j) => j.pageId === currentPage.id) : store.jobs;
     const initialDivisions = currentPage ? store.divisions.filter((d) => d.pageId === currentPage.id) : store.divisions;
     const pendingUsers = store.users.filter((u) => !u.isApproved);
-    const designers = store.users.filter((u) => u.isApproved && (u.role === 'designer' || u.role === 'admin'));
+    const mockStorePe = (store as unknown as { pageEditors?: { pageId: string; editorId: string }[] }).pageEditors;
+    const initialPageEditors: Record<string, string[]> = {};
+    if (mockStorePe) {
+      for (const pe of mockStorePe) {
+        if (!initialPageEditors[pe.pageId]) initialPageEditors[pe.pageId] = [];
+        initialPageEditors[pe.pageId].push(pe.editorId);
+      }
+    }
+    const assignedEditorIds = new Set(
+      currentPage ? (initialPageEditors[currentPage.id] || []) : []
+    );
+    const designers = store.users.filter(
+      (u) =>
+        u.isApproved &&
+        (u.role === 'designer' || u.role === 'admin') &&
+        (assignedEditorIds.size === 0 || assignedEditorIds.has(u.id))
+    );
     const designerSuggestions = designers
       .map((d) => ({
         designer: d,
@@ -50,6 +162,7 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
       pendingUsers,
       designerSuggestions,
       notifications: store.notifications,
+      initialPageEditors,
     };
   }
 
@@ -65,33 +178,81 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
     if (!user) return null;
 
 
-    // Load workspace metadata first; jobs are scoped after the active page is known.
-    const [profilesRecords, divisionsRecords, pagesRecords, notificationsRecords] = await Promise.all([
-      db.select().from(schema.profiles),
-      db.select().from(schema.divisions),
-      db.select().from(schema.pages),
-      db
-        .select()
-        .from(schema.notifications)
-        .where(eq(schema.notifications.userId, user.id))
-        .orderBy(schema.notifications.createdAt)
-        .limit(50),
-    ]);
+    // Single unified SQL round-trip for ALL initial board metadata
+    const [row] = await sqlClient!`
+      WITH first_page AS (
+        SELECT id, name, description, created_by, created_at, updated_at
+        FROM pages
+        ORDER BY created_at ASC
+        LIMIT 1
+      )
+      SELECT
+        (SELECT json_agg(p.*) FROM profiles p) as profiles,
+        (SELECT json_agg(d.*) FROM divisions d) as all_divisions,
+        (SELECT json_agg(pg.* ORDER BY pg.created_at ASC) FROM pages pg) as pages,
+        (SELECT json_agg(n.*) FROM (
+          SELECT * FROM notifications WHERE user_id = ${user.id}::uuid ORDER BY created_at DESC LIMIT 50
+        ) n) as notifications,
+        (SELECT json_agg(j.* ORDER BY j.kanban_order, j.id) FROM jobs j WHERE j.page_id = (SELECT id FROM first_page)) as jobs,
+        (SELECT json_agg(jd.*) FROM job_designers jd) as job_designers,
+        (SELECT json_agg(pe.*) FROM page_editors pe) as page_editors,
+        (
+          WITH active_jobs AS (
+            SELECT id, designer_id FROM jobs
+            WHERE is_archived = false AND status IN ('wip', 'revisions')
+          ), normalized_assignments AS (
+            SELECT ajd.designer_id FROM active_jobs aj
+            INNER JOIN job_designers ajd ON ajd.job_id = aj.id
+            UNION ALL
+            SELECT aj.designer_id FROM active_jobs aj
+            WHERE aj.designer_id IS NOT NULL AND NOT EXISTS (
+              SELECT 1 FROM job_designers legacy_check
+              WHERE legacy_check.job_id = aj.id AND legacy_check.designer_id = aj.designer_id
+            )
+          )
+          SELECT json_agg(w.*) FROM (
+            SELECT designer_id, count(*)::int as active_wip_count
+            FROM normalized_assignments
+            WHERE designer_id IS NOT NULL
+            GROUP BY designer_id
+          ) w
+        ) as workload,
+        (
+          SELECT json_agg(deliv.*) FROM (
+            SELECT d.*, p.full_name as uploader_name
+            FROM deliverables d
+            LEFT JOIN profiles p ON p.id = d.uploaded_by
+            INNER JOIN jobs j ON j.id = d.job_id
+            WHERE j.page_id = (SELECT id FROM first_page) AND d.status = 'ready'
+            ORDER BY d.registered_at DESC NULLS LAST, d.created_at DESC
+          ) deliv
+        ) as deliverables
+    `;
 
-    const divMap = new Map(divisionsRecords.map((d) => [d.id, d.name]));
+    const profilesRecords = (row?.profiles || []) as DbProfileRow[];
+    const allDivisionsRecords = (row?.all_divisions || []) as DbDivisionRow[];
+    const pagesRecords = (row?.pages || []) as DbPageRow[];
+    const notificationsRecords = (row?.notifications || []) as DbNotificationRow[];
+    const pageJobsRecords = (row?.jobs || []) as DbJobRow[];
+    const allJobDesignersRecords = (row?.job_designers || []) as DbJobDesignerRow[];
+    const allPageEditorRecords = (row?.page_editors || []) as DbPageEditorRow[];
+    const workloadRows = (row?.workload || []) as DbWorkloadRow[];
+    const rawDeliverables = (row?.deliverables || []) as DbDeliverableRow[];
+
+    const divMap = new Map(allDivisionsRecords.map((d) => [d.id, d.name]));
 
     const allUsers: Profile[] = profilesRecords.map((r) => ({
       id: r.id,
       email: r.email,
-      fullName: r.fullName,
-      phoneNumber: r.phoneNumber,
-      avatarUrl: r.avatarUrl,
+      fullName: r.full_name,
+      phoneNumber: r.phone_number || undefined,
+      avatarUrl: r.avatar_url || undefined,
       role: r.role,
-      divisionId: r.divisionId,
-      divisionName: r.divisionId ? divMap.get(r.divisionId) : undefined,
-      isApproved: r.isApproved,
-      createdAt: r.createdAt.toISOString(),
-      updatedAt: r.updatedAt.toISOString(),
+      divisionId: r.division_id ?? null,
+      divisionName: r.division_id ? divMap.get(r.division_id) : undefined,
+      isApproved: r.is_approved,
+      createdAt: new Date(r.created_at).toISOString(),
+      updatedAt: new Date(r.updated_at).toISOString(),
     }));
 
     const userMap = new Map(allUsers.map((u) => [u.id, u]));
@@ -108,8 +269,8 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
       const fallbackName = meta.full_name || meta.name || user.email?.split('@')[0] || 'User';
       const fallbackAvatar = meta.avatar_url || null;
       const fallbackPhone = meta.phone_number || user.phone || null;
-      const creativeDiv = divisionsRecords.find((d) => d.name === 'Creative & Marketing');
-      const defaultDiv = creativeDiv?.id || divisionsRecords[0]?.id || null;
+      const creativeDiv = allDivisionsRecords.find((d) => d.name === 'Creative & Marketing');
+      const defaultDiv = creativeDiv?.id || allDivisionsRecords[0]?.id || null;
 
       try {
         const [newProfile] = await db
@@ -120,9 +281,9 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
             fullName: fallbackName,
             phoneNumber: fallbackPhone,
             avatarUrl: fallbackAvatar,
-            role: 'designer',
+            role: 'requestor',
             divisionId: defaultDiv,
-            isApproved: true,
+            isApproved: false,
           })
           .onConflictDoUpdate({
             target: schema.profiles.id,
@@ -156,98 +317,70 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
     const pages: Page[] = pagesRecords.map((r) => ({
       id: r.id,
       name: r.name,
-      description: r.description,
-      createdBy: r.createdBy,
-      createdAt: r.createdAt.toISOString(),
-      updatedAt: r.updatedAt.toISOString(),
+      description: r.description ?? null,
+      createdBy: r.created_by || '',
+      createdAt: new Date(r.created_at).toISOString(),
+      updatedAt: new Date(r.updated_at).toISOString(),
     }));
 
     const currentPage = pages[0] || null;
 
-    const divisions: Division[] = divisionsRecords
-      .filter((d) => (currentPage ? d.pageId === currentPage.id : true))
+    const divisions: Division[] = allDivisionsRecords
+      .filter((d) => (currentPage ? d.page_id === currentPage.id : true))
       .map((d) => ({
         id: d.id,
-        pageId: d.pageId,
+        pageId: d.page_id,
         name: d.name,
-        createdAt: d.createdAt.toISOString(),
-        updatedAt: d.updatedAt.toISOString(),
+        createdAt: new Date(d.created_at).toISOString(),
+        updatedAt: new Date(d.updated_at).toISOString(),
       }))
       .sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
-
-    const [pageJobsRecords, workloadRows, allJobDesignersRecords, allPageEditorRecords] = await Promise.all([
-      currentPage
-        ? db.select().from(schema.jobs).where(eq(schema.jobs.pageId, currentPage.id)).orderBy(schema.jobs.kanbanOrder, schema.jobs.id)
-        : Promise.resolve([]),
-      db.execute(sql`
-        WITH active_jobs AS (
-          SELECT id, designer_id
-          FROM ${schema.jobs}
-          WHERE is_archived = false AND status IN ('wip', 'revisions')
-        ), normalized_assignments AS (
-          SELECT ajd.designer_id FROM active_jobs aj
-          INNER JOIN ${schema.jobDesigners} ajd ON ajd.job_id = aj.id
-          UNION ALL
-          SELECT aj.designer_id FROM active_jobs aj
-          WHERE aj.designer_id IS NOT NULL AND NOT EXISTS (
-            SELECT 1 FROM ${schema.jobDesigners} legacy_check
-            WHERE legacy_check.job_id = aj.id AND legacy_check.designer_id = aj.designer_id
-          )
-        )
-        SELECT designer_id, COUNT(*)::int AS active_wip_count
-        FROM normalized_assignments GROUP BY designer_id
-      `),
-      db.select().from(schema.jobDesigners),
-      db.select({ pageId: schema.pageEditors.pageId, editorId: schema.pageEditors.editorId }).from(schema.pageEditors),
-    ]);
 
     // Build pageEditors map for instant client access
     const initialPageEditors: Record<string, string[]> = {};
     for (const r of allPageEditorRecords) {
-      if (!initialPageEditors[r.pageId]) initialPageEditors[r.pageId] = [];
-      initialPageEditors[r.pageId].push(r.editorId);
+      if (!initialPageEditors[r.page_id]) initialPageEditors[r.page_id] = [];
+      initialPageEditors[r.page_id].push(r.editor_id);
     }
 
     // Build map of job designer assignments in memory.
     const jobDesignersMap = new Map<string, string[]>();
     allJobDesignersRecords.forEach((da) => {
-      const existing = jobDesignersMap.get(da.jobId) || [];
-      existing.push(da.designerId);
-      jobDesignersMap.set(da.jobId, existing);
+      const existing = jobDesignersMap.get(da.job_id) || [];
+      existing.push(da.designer_id);
+      jobDesignersMap.set(da.job_id, existing);
     });
-
-    // Jobs are already scoped to the current active page above.
 
     const initialJobs: Job[] = pageJobsRecords.map((r) => {
       let rawIds = jobDesignersMap.get(r.id) || [];
-      if (rawIds.length === 0 && r.designerId) {
-        rawIds = [r.designerId];
+      if (rawIds.length === 0 && r.designer_id) {
+        rawIds = [r.designer_id];
       }
       const designersList = rawIds.map((id) => userMap.get(id)).filter(Boolean) as Profile[];
 
       return {
         id: r.id,
-        pageId: r.pageId,
+        pageId: r.page_id,
         title: r.title,
-        description: r.description,
-        briefLink: r.briefLink,
-        briefTitle: r.briefTitle || null,
-        divisionId: r.divisionId,
-        divisionName: divMap.get(r.divisionId) || 'Umum',
-        publicationMedia: r.publicationMedia,
-        deadline: r.deadline.toISOString(),
+        description: r.description ?? null,
+        briefLink: r.brief_link || '',
+        briefTitle: r.brief_title || null,
+        divisionId: r.division_id,
+        divisionName: divMap.get(r.division_id) || 'Umum',
+        publicationMedia: r.publication_media || 'Instagram',
+        deadline: new Date(r.deadline).toISOString(),
         status: r.status,
-        kanbanOrder: r.kanbanOrder,
-        requestorId: r.requestorId,
-        requestor: userMap.get(r.requestorId),
-        designerId: rawIds[0] || r.designerId || null,
-        designer: designersList[0] || (r.designerId ? userMap.get(r.designerId) : null) || null,
+        kanbanOrder: r.kanban_order,
+        requestorId: r.requestor_id,
+        requestor: userMap.get(r.requestor_id),
+        designerId: rawIds[0] || r.designer_id || null,
+        designer: designersList[0] || (r.designer_id ? userMap.get(r.designer_id) : null) || null,
         designerIds: rawIds,
         designers: designersList,
-        isArchived: r.isArchived || false,
-        archivedAt: r.archivedAt ? r.archivedAt.toISOString() : null,
-        createdAt: r.createdAt.toISOString(),
-        updatedAt: r.updatedAt.toISOString(),
+        isArchived: r.is_archived || false,
+        archivedAt: r.archived_at ? new Date(r.archived_at).toISOString() : null,
+        createdAt: new Date(r.created_at).toISOString(),
+        updatedAt: new Date(r.updated_at).toISOString(),
       };
     });
 
@@ -273,9 +406,6 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
       if (!wipCountMap.has(d.id)) wipCountMap.set(d.id, 0);
     });
 
-    // Counts are computed by the database; assignment rows above remain needed
-    // to hydrate the initial job DTOs.
-
     const designerSuggestions = designers.map((d) => ({
       designer: d,
       activeWipCount: wipCountMap.get(d.id) || 0,
@@ -284,19 +414,46 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
 
     const notifications: AppNotification[] = notificationsRecords.map((r) => ({
       id: r.id,
-      userId: r.userId,
+      userId: r.user_id,
       title: r.title,
       message: r.message,
       type: r.type as NotificationType,
-      jobId: r.jobId,
-      jobTitle: r.jobTitle,
-      actorId: r.actorId,
-      actorName: r.actorName,
-      actorAvatar: r.actorAvatar,
+      jobId: r.job_id,
+      jobTitle: r.job_title,
+      actorId: r.actor_id,
+      actorName: r.actor_name,
+      actorAvatar: r.actor_avatar,
       note: r.note,
-      isRead: r.isRead,
-      createdAt: r.createdAt.toISOString(),
+      isRead: r.is_read,
+      createdAt: new Date(r.created_at).toISOString(),
     }));
+
+    // Pre-seed deliverables for all active page jobs so modals open with 0ms delay
+    const initialDeliverables: Record<string, Deliverable[]> = {};
+    if (rawDeliverables.length > 0) {
+      await Promise.all(
+        rawDeliverables.map(async (d) => {
+          const previewKey = d.preview_storage_key || d.storage_key;
+          const previewUrl = await createDeliverablePreviewUrl(previewKey);
+          const item: Deliverable = {
+            id: d.id,
+            jobId: d.job_id,
+            originalFilename: d.original_filename,
+            mimeType: d.mime_type,
+            sizeBytes: d.size_bytes,
+            uploadedBy: d.uploaded_by,
+            uploaderName: d.uploader_name || undefined,
+            createdAt: new Date(d.created_at).toISOString(),
+            registeredAt: d.registered_at ? new Date(d.registered_at).toISOString() : new Date(d.created_at).toISOString(),
+            previewUrl,
+          };
+          if (!initialDeliverables[d.job_id]) {
+            initialDeliverables[d.job_id] = [];
+          }
+          initialDeliverables[d.job_id].push(item);
+        })
+      );
+    }
 
     return {
       currentUser,
@@ -309,6 +466,7 @@ export async function getInitialBoardDataAction(): Promise<InitialBoardData | nu
       designerSuggestions,
       notifications,
       initialPageEditors,
+      initialDeliverables,
     };
   } catch (e) {
     console.error('Failed to get initial board data:', e);

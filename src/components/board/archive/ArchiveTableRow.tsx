@@ -120,7 +120,7 @@ export const ArchiveTableRow = React.memo(function ArchiveTableRow({
 
       {/* Brief Link */}
       <td
-        className="archive-td"
+        className="archive-td archive-td--brief"
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       >

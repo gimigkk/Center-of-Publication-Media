@@ -181,9 +181,11 @@
     display: flex;
     gap: 12px;
     overflow-x: auto;
+    overflow-y: hidden;
     width: 100%;
     scroll-snap-type: x mandatory;
-    padding: 4px 2px 14px 2px;
+    scroll-padding: 0;
+    padding: 4px 0 14px 0;
     -webkit-overflow-scrolling: touch;
   }
 
@@ -192,12 +194,19 @@
     min-width: 272px;
     max-width: 272px;
     flex-shrink: 0;
+    scroll-snap-align: center;
+  }
+
+  .kanban-column:first-of-type {
     scroll-snap-align: start;
   }
 
+  .kanban-column:last-of-type {
+    scroll-snap-align: end;
+  }
+
   .pipeline-connector {
-    min-width: 14px;
-    flex-shrink: 0;
+    display: none;
   }
 }
 

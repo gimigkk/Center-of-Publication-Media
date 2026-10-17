@@ -3,12 +3,13 @@
 import { db, schema } from '@/lib/db';
 import { eq, and } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { Profile } from '@/types';
+import { JobStatus, Profile } from '@/types';
 import { isMockEnabled, getMockStore } from '@/lib/mock-store';
+import { getAuthenticatedUser } from '@/lib/auth-guard';
 
 export async function archiveJobAction(
   jobId: string,
-  actor: Profile
+  actor?: Profile | null
 ): Promise<{ success: boolean; error?: string }> {
   if (isMockEnabled()) {
     const store = getMockStore();
@@ -21,6 +22,9 @@ export async function archiveJobAction(
     }
     return { success: false, error: 'Job tidak ditemukan' };
   }
+
+  const sessionUser = await getAuthenticatedUser();
+  if (!sessionUser) return { success: false, error: 'Akses ditolak: Anda harus login.' };
 
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
@@ -40,7 +44,7 @@ export async function archiveJobAction(
 
       await tx.insert(schema.jobActivity).values({
         jobId,
-        actorId: actor.id,
+        actorId: sessionUser.id,
         fromStatus: currentJob.status,
         toStatus: currentJob.status,
         note: 'Diarsipkan ke tabel arsip platform',
@@ -56,7 +60,7 @@ export async function archiveJobAction(
 
 export async function unarchiveJobAction(
   jobId: string,
-  actor: Profile
+  actor?: Profile | null
 ): Promise<{ success: boolean; error?: string }> {
   if (isMockEnabled()) {
     const store = getMockStore();
@@ -69,6 +73,9 @@ export async function unarchiveJobAction(
     }
     return { success: false, error: 'Job tidak ditemukan' };
   }
+
+  const sessionUser = await getAuthenticatedUser();
+  if (!sessionUser) return { success: false, error: 'Akses ditolak: Anda harus login.' };
 
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
@@ -88,7 +95,7 @@ export async function unarchiveJobAction(
 
       await tx.insert(schema.jobActivity).values({
         jobId,
-        actorId: actor.id,
+        actorId: sessionUser.id,
         fromStatus: currentJob.status,
         toStatus: currentJob.status,
         note: 'Dipulihkan dari arsip kembali ke papan Kanban aktif',
@@ -102,9 +109,67 @@ export async function unarchiveJobAction(
   }
 }
 
+/**
+ * Atomic Restore + Move to Column: restores archived card directly to specified target stage in one transaction.
+ */
+export async function restoreAndMoveJobAction(
+  jobId: string,
+  toStatus: JobStatus,
+  actor?: Profile | null,
+  note?: string
+): Promise<{ success: boolean; error?: string }> {
+  if (isMockEnabled()) {
+    const store = getMockStore();
+    const target = store.jobs.find((j) => j.id === jobId);
+    if (target) {
+      target.isArchived = false;
+      target.archivedAt = null;
+      target.status = toStatus;
+      target.updatedAt = new Date().toISOString();
+      return { success: true };
+    }
+    return { success: false, error: 'Job tidak ditemukan' };
+  }
+
+  const sessionUser = await getAuthenticatedUser();
+  if (!sessionUser) return { success: false, error: 'Akses ditolak: Anda harus login.' };
+
+  if (!db) return { success: false, error: 'Database belum terhubung' };
+
+  try {
+    await db.transaction(async (tx) => {
+      const [currentJob] = await tx.select().from(schema.jobs).where(eq(schema.jobs.id, jobId)).for('update');
+      if (!currentJob) throw new Error('Job tidak ditemukan');
+
+      await tx
+        .update(schema.jobs)
+        .set({
+          isArchived: false,
+          archivedAt: null,
+          status: toStatus,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.jobs.id, jobId));
+
+      await tx.insert(schema.jobActivity).values({
+        jobId,
+        actorId: sessionUser.id,
+        fromStatus: currentJob.status,
+        toStatus,
+        note: note || `Dipulihkan dari arsip ke status ${toStatus}`,
+      });
+    });
+
+    revalidatePath('/');
+    return { success: true };
+  } catch (e: unknown) {
+    return { success: false, error: e instanceof Error ? e.message : 'Gagal memulihkan dan memindahkan kartu' };
+  }
+}
+
 export async function archiveAllDoneJobsAction(
   pageId: string,
-  _actor?: Profile
+  _actor?: Profile | null
 ): Promise<{ success: boolean; archivedCount?: number; error?: string }> {
   if (isMockEnabled()) {
     const store = getMockStore();
@@ -118,6 +183,11 @@ export async function archiveAllDoneJobsAction(
       }
     });
     return { success: true, archivedCount: count };
+  }
+
+  const sessionUser = await getAuthenticatedUser();
+  if (!sessionUser || sessionUser.role !== 'admin') {
+    return { success: false, error: 'Hanya admin yang dapat mengarsipkan semua pekerjaan selesai.' };
   }
 
   if (!db) return { success: false, error: 'Database belum terhubung' };

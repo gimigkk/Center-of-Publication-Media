@@ -168,26 +168,23 @@ export function useCursors(
 
     const supabase = createClient();
     try {
-      const existingChannel = supabase.getChannels().find((c) => c.topic === `realtime:${channelName}`);
+      const existingChannel = supabase.getChannels().find((c: { topic: string }) => c.topic === `realtime:${channelName}`);
       if (existingChannel) {
         channelRef.current = existingChannel;
       } else {
         const channel = supabase.channel(channelName, {
           config: { broadcast: { self: false } },
         });
+        channelRef.current = channel;
 
         channel
-          .on('broadcast', { event: 'cursor-pos' }, ({ payload }) => {
-            handleIncomingCursor(payload);
+          .on('broadcast', { event: 'cursor-pos' }, ({ payload }: { payload: unknown }) => {
+            handleIncomingCursor(payload as Parameters<typeof handleIncomingCursor>[0]);
           })
-          .on('broadcast', { event: 'cursor-leave' }, ({ payload }) => {
-            handleIncomingCursorLeave(payload);
+          .on('broadcast', { event: 'cursor-leave' }, ({ payload }: { payload: unknown }) => {
+            handleIncomingCursorLeave(payload as { userId: string });
           })
-          .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-              channelRef.current = channel;
-            }
-          });
+          .subscribe();
       }
     } catch (e) {
       console.warn('Supabase Realtime channel error:', e);
@@ -204,7 +201,7 @@ export function useCursors(
       lastPointerPos.current = { clientX, clientY };
 
       const now = Date.now();
-      if (!force && now - lastBroadcastTime.current < 50) return;
+      if (!force && now - lastBroadcastTime.current < 80) return;
       lastBroadcastTime.current = now;
 
       // Reuse the rect updated by the resize/scroll observer above.

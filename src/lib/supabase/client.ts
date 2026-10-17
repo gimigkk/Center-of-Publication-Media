@@ -1,9 +1,20 @@
 import { createBrowserClient } from '@supabase/ssr';
 
-export function createClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+let browserClient: ReturnType<typeof createBrowserClient> | null = null;
 
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+export function createClient() {
+  if (typeof window === 'undefined') {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    return createBrowserClient(supabaseUrl, supabaseAnonKey);
+  }
+
+  if (!browserClient) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
+  }
+
+  return browserClient;
 }
 

@@ -6,6 +6,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { GoogleDocsIcon } from '@/components/ui/GoogleDocsIcon';
 import { Clock, UserPlus, Archive } from 'lucide-react';
 import { CardDropEvent } from '@/hooks/useRealtimeBoard';
+import { prefetchDeliverables } from '@/components/forms/job-detail/JobDeliverablesPanel';
 
 interface JobCardProps {
   job: Job;
@@ -129,6 +130,7 @@ export const JobCard = memo(function JobCard({
       {...(isDraggable ? listeners : {})}
       className={`job-card ${isDraggingEffective ? 'is-dragging is-remotely-dragged' : ''}`}
       onClick={() => onCardClick(job)}
+      onPointerEnter={() => prefetchDeliverables(job.id)}
     >
       {/* 1. Title */}
       <h4 className="job-card-title">{job.title}</h4>

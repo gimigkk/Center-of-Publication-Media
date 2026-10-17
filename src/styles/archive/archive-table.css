@@ -4,23 +4,32 @@
 
 /* Main Table Container Card — Zero Internal Scrolling */
 .archive-card {
+  width: 100%;
+  box-sizing: border-box;
   background-color: var(--bg-surface);
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   overflow-x: auto;
-  overflow-y: visible;
+  overflow-y: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.archive-card-inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 
 /* Table element */
 .archive-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   text-align: left;
   font-size: 12px;
-  min-width: 820px;
+  min-width: 860px;
 }
 
 /* Table Header */
@@ -77,12 +86,19 @@
   vertical-align: middle;
 }
 
+.archive-td--brief {
+  text-align: center;
+  padding: 10px 8px;
+  white-space: nowrap;
+}
+
 /* Task Title cell */
 .archive-task-title-group {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-width: 320px;
+  min-width: 0;
+  width: 100%;
 }
 
 .archive-task-title {
@@ -91,6 +107,9 @@
   color: var(--text-primary);
   line-height: 1.35;
   letter-spacing: -0.1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .archive-task-desc {
@@ -108,7 +127,7 @@
   align-items: center;
   gap: 4px;
   flex-wrap: wrap;
-  max-width: 260px;
+  max-width: 100%;
 }
 
 .archive-person-chip {
@@ -121,6 +140,13 @@
   font-size: 11px;
   font-weight: 500;
   color: var(--text-primary);
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.archive-person-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -136,6 +162,9 @@
   border-radius: var(--radius-xs);
   border: 1px solid rgba(0, 0, 0, 0.04);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* Due Date */
@@ -216,6 +245,64 @@
   border-top: 1px solid rgba(0, 0, 0, 0.06);
   font-size: 11px;
   color: var(--text-secondary);
+}
+
+.archive-footer-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 3.5px;
+}
+
+.archive-footer-row-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: transparent;
+  border: none;
+  padding: 1.5px 4.5px;
+  border-radius: var(--radius-xs, 4px);
+  font-size: 11px;
+  font-weight: 600;
+  color: #0d99ff;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+  user-select: none;
+  outline: none;
+  line-height: 1;
+}
+
+.archive-footer-row-btn:hover {
+  background-color: rgba(13, 153, 255, 0.08);
+  color: #0076db;
+}
+
+.archive-footer-row-btn:focus-visible {
+  outline: 1.5px solid #0d99ff;
+  outline-offset: 1px;
+}
+
+.archive-footer-row-number {
+  color: inherit;
+  font-weight: 600;
+}
+
+.archive-footer-pencil {
+  color: inherit;
+  opacity: 0.85;
+  flex-shrink: 0;
+  transition: transform 140ms ease, opacity 140ms ease;
+}
+
+.archive-footer-row-btn:hover .archive-footer-pencil {
+  opacity: 1;
+  transform: rotate(-10deg);
+}
+
+.archive-footer-page-info {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  user-select: none;
 }
 
 /* Column Quick Archive Button in DONE Column */

@@ -12,6 +12,25 @@ export function compareJobsByDeadline(
   a: { deadline: string; title: string; id: string },
   b: { deadline: string; title: string; id: string }
 ): number {
+  const deadlineA = new Date(a.deadline).getTime();
+  const deadlineB = new Date(b.deadline).getTime();
+  const validA = Number.isFinite(deadlineA);
+  const validB = Number.isFinite(deadlineB);
+
+  if (validA && !validB) return -1;
+  if (!validA && validB) return 1;
+  if (validA && validB) {
+    if (deadlineA !== deadlineB) return deadlineA - deadlineB;
+  }
+
+  const titleComparison = a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
+  return titleComparison || a.id.localeCompare(b.id);
+}
+
+export function compareArchiveJobsByDeadline(
+  a: { deadline: string; title: string; id: string },
+  b: { deadline: string; title: string; id: string }
+): number {
   const now = Date.now();
   const deadlineA = new Date(a.deadline).getTime();
   const deadlineB = new Date(b.deadline).getTime();
@@ -24,8 +43,6 @@ export function compareJobsByDeadline(
     const overdueA = deadlineA < now;
     const overdueB = deadlineB < now;
 
-    // Upcoming deadlines come first; among overdue jobs, the most recent
-    // deadline is closest to the present.
     if (overdueA !== overdueB) return overdueA ? 1 : -1;
     if (deadlineA !== deadlineB) return overdueA ? deadlineB - deadlineA : deadlineA - deadlineB;
   }

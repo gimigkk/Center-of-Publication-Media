@@ -15,8 +15,10 @@ export function TopLoader({ isLoading }: TopLoaderProps) {
     let hideTimer: NodeJS.Timeout;
 
     if (isLoading) {
-      setVisible(true);
-      setProgress(25);
+      queueMicrotask(() => {
+        setVisible(true);
+        setProgress(25);
+      });
 
       // Trickle progress naturally across single pass: 25% -> 60% -> 85%
       trickleTimer = setTimeout(() => {
@@ -27,7 +29,9 @@ export function TopLoader({ isLoading }: TopLoaderProps) {
       }, 150);
     } else if (visible) {
       // Finish line to 100%
-      setProgress(100);
+      queueMicrotask(() => {
+        setProgress(100);
+      });
       hideTimer = setTimeout(() => {
         setVisible(false);
         setProgress(0);

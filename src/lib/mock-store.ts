@@ -734,5 +734,5 @@ export function resetMockStore(): MockStore {
 }
 
 export function isMockEnabled(): boolean {
-  return process.env.USE_MOCK_DATA === 'true';
+  return process.env.NODE_ENV !== 'production' && process.env.USE_MOCK_DATA === 'true';
 }

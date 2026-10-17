@@ -16,6 +16,7 @@ import {
   assignDesignerAction as _assignDesignerAction,
   setJobDesignersAction as _setJobDesignersAction,
   getDesignerWorkloadsAction as _getDesignerWorkloadsAction,
+  getDesignerSuggestionsAction as _getDesignerSuggestionsAction,
 } from './jobs/designers';
 
 import {
@@ -74,8 +75,8 @@ export async function getDesignerWorkloadsAction() {
   return _getDesignerWorkloadsAction();
 }
 
-export async function getDesignerSuggestionsAction() {
-  return _getDesignerWorkloadsAction();
+export async function getDesignerSuggestionsAction(pageId?: string) {
+  return _getDesignerSuggestionsAction(pageId);
 }
 
 export async function archiveJobAction(

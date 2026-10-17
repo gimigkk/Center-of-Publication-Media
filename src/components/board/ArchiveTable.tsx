@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
 import { Job, Profile, Division } from '@/types';
-import { Search, Layers } from 'lucide-react';
+import { Search, Layers, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Pencil } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
-import { SimpleSelect } from '@/components/ui/Select';
+import * as SelectPrimitive from '@radix-ui/react-select';
+import { Select, SelectContent, SelectItem, SimpleSelect } from '@/components/ui/Select';
 import {
   ArchiveTableHeader,
   SortField,
@@ -13,7 +14,7 @@ import {
 import { ArchiveTableRow } from './archive/ArchiveTableRow';
 import { ArchiveMobileCard } from './archive/ArchiveMobileCard';
 import { ARCHIVE_DROP_ZONE_ID } from './Board';
-import { compareJobsByDeadline } from '@/lib/utils';
+import { compareArchiveJobsByDeadline } from '@/lib/utils';
 
 interface ArchiveTableProps {
   archivedJobs: Job[];
@@ -39,8 +40,18 @@ export const ArchiveTable = React.memo(function ArchiveTable({
   const [selectedDivision, setSelectedDivision] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('deadline');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [cardHeight, setCardHeight] = useState<number | undefined>(undefined);
+  const innerRef = useRef<HTMLDivElement | null>(null);
+  const isMountedRef = useRef(false);
 
   const { setNodeRef } = useDroppable({ id: ARCHIVE_DROP_ZONE_ID });
+
+  // Reset page when filter, search, or pageSize changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedDivision, pageSize]);
 
   const sortedDivisions = useMemo(() => {
     return [...divisions].sort((a, b) =>
@@ -83,7 +94,7 @@ export const ArchiveTable = React.memo(function ArchiveTable({
   const sortedJobs = useMemo(() => {
     return [...filteredJobs].sort((a, b) => {
       if (sortField === 'deadline') {
-        const comparison = compareJobsByDeadline(a, b);
+        const comparison = compareArchiveJobsByDeadline(a, b);
         return sortOrder === 'asc' ? comparison : -comparison;
       }
 
@@ -115,6 +126,30 @@ export const ArchiveTable = React.memo(function ArchiveTable({
       setSortOrder('asc');
     }
   };
+
+  const totalPages = Math.max(1, Math.ceil(sortedJobs.length / pageSize));
+  const validCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedJobs = useMemo(() => {
+    const start = (validCurrentPage - 1) * pageSize;
+    return sortedJobs.slice(start, start + pageSize);
+  }, [sortedJobs, validCurrentPage, pageSize]);
+
+  // Calculate inner content height so the card smoothly lerps height
+  useLayoutEffect(() => {
+    const el = innerRef.current;
+    if (!el) return;
+
+    const measuredH = el.offsetHeight || el.scrollHeight;
+    if (measuredH > 0) {
+      setCardHeight(measuredH);
+    }
+
+    const timer = setTimeout(() => {
+      isMountedRef.current = true;
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [paginatedJobs, pageSize, selectedDivision, searchQuery]);
 
   return (
     <section
@@ -152,70 +187,140 @@ export const ArchiveTable = React.memo(function ArchiveTable({
               ...sortedDivisions.map((d) => ({ value: d.id, label: d.name })),
             ]}
           />
+
+          <div className="archive-pagination-actions">
+            <button
+              type="button"
+              className="archive-page-btn"
+              onClick={() => setCurrentPage(1)}
+              disabled={validCurrentPage <= 1}
+              title="Halaman pertama"
+            >
+              <ChevronsLeft size={14} strokeWidth={2.4} />
+            </button>
+            <button
+              type="button"
+              className="archive-page-btn"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={validCurrentPage <= 1}
+              title="Halaman sebelumnya"
+            >
+              <ChevronLeft size={14} strokeWidth={2.4} />
+            </button>
+            <button
+              type="button"
+              className="archive-page-btn"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={validCurrentPage >= totalPages}
+              title="Halaman berikutnya"
+            >
+              <ChevronRight size={14} strokeWidth={2.4} />
+            </button>
+            <button
+              type="button"
+              className="archive-page-btn"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={validCurrentPage >= totalPages}
+              title="Halaman terakhir"
+            >
+              <ChevronsRight size={14} strokeWidth={2.4} />
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Main Table Container Card */}
-      <div className="archive-card no-scrollbar">
-        {/* Desktop View: Multi-column Table */}
-        <div className="archive-table-desktop">
-          <table className="archive-table">
-            <ArchiveTableHeader sortField={sortField} onSort={handleSort} />
-            <tbody>
-              {sortedJobs.map((job, idx) => (
-                <ArchiveTableRow
-                  key={job.id}
-                  job={job}
-                  index={idx}
-                  onCardClick={onCardClick}
-                  isDraggable={isDraggable}
-                />
-              ))}
+      <div
+        className="archive-card no-scrollbar"
+        style={{
+          height: cardHeight ? `${cardHeight}px` : undefined,
+          transition: isMountedRef.current ? 'height 240ms cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
+          willChange: 'height',
+        }}
+      >
+        <div ref={innerRef} className="archive-card-inner">
+          {/* Desktop View: Multi-column Table */}
+          <div className="archive-table-desktop">
+            <table className="archive-table">
+              <ArchiveTableHeader sortField={sortField} onSort={handleSort} />
+              <tbody>
+                {paginatedJobs.map((job, idx) => (
+                  <ArchiveTableRow
+                    key={job.id}
+                    job={job}
+                    index={(validCurrentPage - 1) * pageSize + idx}
+                    onCardClick={onCardClick}
+                    isDraggable={isDraggable}
+                  />
+                ))}
 
-              {sortedJobs.length === 0 && (
-                <tr>
-                  <td colSpan={7}>
-                    <div className="archive-empty-state">
-                      <span className="archive-empty-text">Tidak ada request yang diarsipkan</span>
-                      <span className="archive-empty-subtext">
-                        {searchQuery || selectedDivision !== 'all'
-                          ? 'Coba bersihkan pencarian atau filter divisi Anda'
-                          : 'Request yang selesai dan diarsipkan dari board akan muncul di sini'}
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                {sortedJobs.length === 0 && (
+                  <tr>
+                    <td colSpan={7}>
+                      <div className="archive-empty-state">
+                        <span className="archive-empty-text">Tidak ada request yang diarsipkan</span>
+                        <span className="archive-empty-subtext">
+                          {searchQuery || selectedDivision !== 'all'
+                            ? 'Coba bersihkan pencarian atau filter divisi Anda'
+                            : 'Request yang selesai dan diarsipkan dari board akan muncul di sini'}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
 
-        {/* Mobile / Tablet Responsive View: Vertical Card Table */}
-        <div className="archive-cards-mobile">
-          {sortedJobs.map((job) => (
-            <ArchiveMobileCard key={job.id} job={job} onCardClick={onCardClick} />
-          ))}
+          {/* Mobile / Tablet Responsive View: Vertical Card Table */}
+          <div className="archive-cards-mobile">
+            {paginatedJobs.map((job) => (
+              <ArchiveMobileCard key={job.id} job={job} onCardClick={onCardClick} />
+            ))}
 
-          {sortedJobs.length === 0 && (
-            <div className="archive-empty-state">
-              <span className="archive-empty-text">Tidak ada request yang diarsipkan</span>
-              <span className="archive-empty-subtext">
-                {searchQuery || selectedDivision !== 'all'
-                  ? 'Coba bersihkan pencarian atau filter divisi Anda'
-                  : 'Request yang selesai dan diarsipkan dari board akan muncul di sini'}
-              </span>
+            {sortedJobs.length === 0 && (
+              <div className="archive-empty-state">
+                <span className="archive-empty-text">Tidak ada request yang diarsipkan</span>
+                <span className="archive-empty-subtext">
+                  {searchQuery || selectedDivision !== 'all'
+                    ? 'Coba bersihkan pencarian atau filter divisi Anda'
+                    : 'Request yang selesai dan diarsipkan dari board akan muncul di sini'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Footer info bar */}
+          <div className="archive-footer-bar">
+            <div className="archive-footer-info">
+              <span>Menampilkan</span>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(val) => setPageSize(Number(val))}
+              >
+                <SelectPrimitive.Trigger
+                  className="archive-footer-row-btn"
+                  title="Klik untuk mengubah jumlah baris"
+                >
+                  <span className="archive-footer-row-number">
+                    {sortedJobs.length === 0 ? 0 : (validCurrentPage - 1) * pageSize + 1}–{Math.min(validCurrentPage * pageSize, sortedJobs.length)}
+                  </span>
+                  <Pencil size={11} className="archive-footer-pencil" />
+                </SelectPrimitive.Trigger>
+                <SelectContent>
+                  <SelectItem value="5">5 baris per halaman</SelectItem>
+                  <SelectItem value="10">10 baris per halaman</SelectItem>
+                  <SelectItem value="20">20 baris per halaman</SelectItem>
+                  <SelectItem value="50">50 baris per halaman</SelectItem>
+                </SelectContent>
+              </Select>
+              <span>dari {sortedJobs.length} data arsip</span>
             </div>
-          )}
-        </div>
 
-        {/* Footer info bar */}
-        <div className="archive-footer-bar">
-          <span>
-            Menampilkan {sortedJobs.length} dari {archivedJobs.length} data arsip
-          </span>
-          <span style={{ color: 'var(--text-tertiary)' }}>
-            Seret baris ke atas untuk memindahkan ke board · Klik untuk detail
-          </span>
+            <span className="archive-footer-page-info">
+              Halaman {validCurrentPage} dari {totalPages}
+            </span>
+          </div>
         </div>
       </div>
     </section>

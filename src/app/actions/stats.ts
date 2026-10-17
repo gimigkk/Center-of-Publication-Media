@@ -3,6 +3,7 @@
 import { db, schema } from '@/lib/db';
 import { eq, and, inArray, desc } from 'drizzle-orm';
 import { isMockEnabled, getMockStore } from '@/lib/mock-store';
+import { getAuthenticatedUser } from '@/lib/auth-guard';
 import { getAllUsersAction } from './auth';
 import { getDivisionsAction } from './divisions';
 import { getAvatarColor } from '@/lib/utils';
@@ -25,6 +26,9 @@ export interface JobCompletionStatItem {
 export async function getJobCompletionStatsAction(
   pageId?: string
 ): Promise<JobCompletionStatItem[]> {
+  const currentUser = await getAuthenticatedUser(false);
+  if (!currentUser) return [];
+
   // 1. Mock Mode Handler
   if (isMockEnabled()) {
     const store = getMockStore();

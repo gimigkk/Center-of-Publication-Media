@@ -25,9 +25,12 @@ END $$;
 CREATE TABLE IF NOT EXISTS public.divisions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT UNIQUE NOT NULL,
+    page_id UUID REFERENCES public.pages(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
+
+ALTER TABLE public.divisions ADD COLUMN IF NOT EXISTS page_id UUID REFERENCES public.pages(id) ON DELETE CASCADE;
 
 -- 3. Profiles Table (Mirrors Supabase auth.users)
 CREATE TABLE IF NOT EXISTS public.profiles (
@@ -148,11 +151,55 @@ CREATE TABLE IF NOT EXISTS public.job_activity (
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 
--- 9. Realtime Enablement
+-- 9. Page Editors Table
+CREATE TABLE IF NOT EXISTS public.page_editors (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    page_id UUID REFERENCES public.pages(id) ON DELETE CASCADE NOT NULL,
+    editor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    assigned_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    UNIQUE (page_id, editor_id)
+);
+CREATE INDEX IF NOT EXISTS page_editors_page_id_idx ON public.page_editors (page_id);
+CREATE INDEX IF NOT EXISTS page_editors_editor_id_idx ON public.page_editors (editor_id);
+
+-- 10. Notifications Table
+CREATE TABLE IF NOT EXISTS public.notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    type TEXT NOT NULL,
+    job_id UUID REFERENCES public.jobs(id) ON DELETE CASCADE,
+    job_title TEXT,
+    actor_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    actor_name TEXT,
+    actor_avatar TEXT,
+    note TEXT,
+    is_read BOOLEAN DEFAULT false NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS notifications_user_created_at_idx ON public.notifications (user_id, created_at DESC);
+
+-- 11. Push Subscriptions Table
+CREATE TABLE IF NOT EXISTS public.push_subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    endpoint TEXT UNIQUE NOT NULL,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS push_subscriptions_user_id_idx ON public.push_subscriptions (user_id);
+
+-- 12. Realtime Enablement
 ALTER PUBLICATION supabase_realtime ADD TABLE public.jobs;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.deliverables;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.pages;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.divisions;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.job_designers;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.page_editors;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
 
 -- 10. Storage bucket for required Avatars
 INSERT INTO storage.buckets (id, name, public)

@@ -105,7 +105,7 @@ function ResetPasswordForm() {
       }
     }
 
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event: string, session: unknown) => {
       if (mounted && (event === 'PASSWORD_RECOVERY' || (session && !ready))) {
         setReady(true);
         setMessage(null);

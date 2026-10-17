@@ -405,33 +405,12 @@ textarea:focus:not(:focus-visible) {
 /* ==========================================================================
    Authentic Figma / FigJam Loading Screen
    ========================================================================== */
-@keyframes figmaRotate {
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes figmaDash {
-  0% {
-    stroke-dasharray: 1, 150;
-    stroke-dashoffset: 0;
-  }
-  50% {
-    stroke-dasharray: 90, 150;
-    stroke-dashoffset: -35;
-  }
-  100% {
-    stroke-dasharray: 90, 150;
-    stroke-dashoffset: -124;
-  }
-}
-
-@keyframes figmaPulse {
+@keyframes figjamDotJump {
   0%, 100% {
-    opacity: 0.6;
+    transform: translateY(0);
   }
   50% {
-    opacity: 1;
+    transform: translateY(-7px);
   }
 }
 
@@ -445,33 +424,36 @@ textarea:focus:not(:focus-visible) {
   align-items: center;
   justify-content: center;
   background-color: var(--bg-canvas);
-  background-image: radial-gradient(rgba(0, 0, 0, 0.13) 1px, transparent 1.6px);
-  background-size: 20px 20px;
   z-index: 9999;
   user-select: none;
 }
 
-.figjam-loader-container {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-}
-
-.figjam-loader-icon-wrapper {
-  position: relative;
-  width: 16px;
-  height: 16px;
+.figjam-jumping-dots {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  gap: 6px;
 }
 
-.figjam-spinner-svg {
-  animation: figmaRotate 1.4s linear infinite;
-  width: 16px;
-  height: 16px;
+.figjam-jumping-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--text-primary);
+  will-change: transform;
+  animation: figjamDotJump 0.9s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+.figjam-jumping-dots span:nth-child(1) {
+  animation-delay: -0.3s;
+}
+
+.figjam-jumping-dots span:nth-child(2) {
+  animation-delay: -0.15s;
+}
+
+.figjam-jumping-dots span:nth-child(3) {
+  animation-delay: 0s;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -479,16 +461,16 @@ textarea:focus:not(:focus-visible) {
     animation: none;
     will-change: auto;
   }
+  .figjam-jumping-dots span {
+    animation: none;
+  }
 }
 
-.figjam-spinner-svg .spinner-track {
-  stroke: rgba(0, 0, 0, 0.08);
-}
-
-.figjam-spinner-svg .spinner-head {
-  stroke: #0d99ff; /* Figma Blue */
-  stroke-linecap: round;
-  animation: figmaDash 1.4s ease-in-out infinite;
+.figjam-loader-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
 }
 
 .figjam-loader-text {

@@ -1,7 +1,6 @@
 'use server';
 
 import { randomUUID } from 'node:crypto';
-import { unstable_cache } from 'next/cache';
 import { and, desc, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -15,10 +14,12 @@ import {
   createDeliverablePreviewUrl,
   createDeliverableUploadUrl,
   deleteDeliverableObject,
+  getDeliverableObjectBytes,
   inspectDeliverable,
   isDeliverableKeyForJob,
+  uploadDeliverablePreviewBuffer,
 } from '@/lib/r2';
-import { Deliverable } from '@/types';
+import { Deliverable, Profile } from '@/types';
 import { isMockEnabled } from '@/lib/mock-store';
 
 const MAX_DELIVERABLE_SIZE = 15 * 1024 * 1024;
@@ -33,13 +34,6 @@ type ActionResult<T = undefined> = {
   data?: T;
   error?: string;
 };
-
-// Reuse the same signed URL so repeat opens do not spend time signing every preview again.
-const getCachedDeliverablePreviewUrl = unstable_cache(
-  async (storageKey: string) => createDeliverablePreviewUrl(storageKey),
-  ['deliverable-preview-url'],
-  { revalidate: 240 }
-);
 
 type DeliverableReadTimings = {
   authenticationMs?: number;
@@ -64,7 +58,21 @@ function unavailableInMock<T>(): ActionResult<T> {
   return { success: false, error: 'Upload deliverable tersedia setelah koneksi penyimpanan aktif' };
 }
 
-async function getAuthorizedJob(jobId: string, mode: 'read' | 'upload', timings?: DeliverableReadTimings) {
+type AuthorizedJobRecord = {
+  id: string;
+  requestorId: string;
+  designerId: string | null;
+  status: typeof schema.jobs.$inferSelect['status'];
+  isArchived: boolean;
+  title: string;
+};
+
+async function getAuthorizedJob(jobId: string, mode: 'read', timings?: DeliverableReadTimings): Promise<{ user: Profile } | { error: string }>;
+async function getAuthorizedJob(jobId: string, mode: 'upload', timings?: DeliverableReadTimings): Promise<{ user: Profile; job: AuthorizedJobRecord; isAssignedDesigner: boolean } | { error: string }>;
+async function getAuthorizedJob(jobId: string, mode: 'read' | 'upload', timings?: DeliverableReadTimings): Promise<
+  | { user: Profile; job?: AuthorizedJobRecord; isAssignedDesigner?: boolean }
+  | { error: string }
+> {
   const authenticationStartedAt = performance.now();
   const user = await getAuthenticatedUser(false);
   if (timings) timings.authenticationMs = elapsedMs(authenticationStartedAt);
@@ -73,6 +81,11 @@ async function getAuthorizedJob(jobId: string, mode: 'read' | 'upload', timings?
   const database = db;
 
   const authorizationStartedAt = performance.now();
+  if (mode === 'read') {
+    if (timings) timings.authorizationMs = elapsedMs(authorizationStartedAt);
+    return { user } as const;
+  }
+
   const [jobs, assignments] = await Promise.all([
     database
       .select({
@@ -101,21 +114,24 @@ async function getAuthorizedJob(jobId: string, mode: 'read' | 'upload', timings?
   const isAssignedDesigner =
     user.role === 'designer' &&
     (job.designerId === user.id || assignments.length > 0);
-  const canRead = true; // Any authenticated user can view and download deliverables
   const canUpload =
     (user.role === 'admin' || isAssignedDesigner) &&
     !job.isArchived &&
     (job.status === 'wip' || job.status === 'revisions');
 
-  if (mode === 'read' && !canRead) return { error: 'Anda tidak memiliki akses ke deliverable ini' } as const;
-  if (mode === 'upload' && !canUpload) {
+  if (!canUpload) {
     return { error: 'Hanya editor yang ditugaskan atau admin yang dapat mengunggah hasil desain saat job aktif' } as const;
   }
 
-  return { user, job } as const;
+  return { user, job, isAssignedDesigner } as const;
 }
 
-function toDeliverable(record: typeof schema.deliverables.$inferSelect, uploaderName: string | null, previewUrl: string): Deliverable {
+function toDeliverable(
+  record: typeof schema.deliverables.$inferSelect,
+  uploaderName: string | null,
+  previewUrl: string,
+  fileUrl?: string
+): Deliverable {
   return {
     id: record.id,
     jobId: record.jobId,
@@ -127,6 +143,7 @@ function toDeliverable(record: typeof schema.deliverables.$inferSelect, uploader
     createdAt: record.createdAt.toISOString(),
     registeredAt: (record.registeredAt || record.createdAt).toISOString(),
     previewUrl,
+    fileUrl: fileUrl || previewUrl,
   };
 }
 
@@ -182,13 +199,11 @@ export async function getDeliverablesAction(jobId: string): Promise<ActionResult
 
     const previewStartedAt = performance.now();
     const data = await Promise.all(
-      records.map(async ({ deliverable, uploaderName }) =>
-        toDeliverable(
-          deliverable,
-          uploaderName,
-          await getCachedDeliverablePreviewUrl(deliverable.previewStorageKey || deliverable.storageKey)
-        )
-      )
+      records.map(async ({ deliverable, uploaderName }) => {
+        const previewKey = deliverable.previewStorageKey || deliverable.storageKey;
+        const previewUrl = await createDeliverablePreviewUrl(previewKey);
+        return toDeliverable(deliverable, uploaderName, previewUrl);
+      })
     );
     timings.previewUrlsMs = elapsedMs(previewStartedAt);
     logDeliverableReadTimings(timings, startedAt, data.length);
@@ -217,13 +232,12 @@ export async function initiateDeliverableUploadAction(
   const uploadId = randomUUID();
   const fileExt = parsed.data.filename.split('.').pop() || '';
   const storageKey = createDeliverableKey(jobId, uploadId, fileExt);
-  const isPdf = parsed.data.mimeType === 'application/pdf';
   try {
     await database.insert(schema.deliverables).values({
       id: uploadId,
       jobId,
       storageKey,
-      previewStorageKey: isPdf ? null : createDeliverablePreviewKey(storageKey),
+      previewStorageKey: createDeliverablePreviewKey(storageKey),
       originalFilename: parsed.data.filename,
       mimeType: parsed.data.mimeType,
       sizeBytes: parsed.data.sizeBytes,
@@ -232,7 +246,7 @@ export async function initiateDeliverableUploadAction(
     });
     const [uploadUrl, previewUploadUrl] = await Promise.all([
       createDeliverableUploadUrl(storageKey, parsed.data.mimeType),
-      isPdf ? Promise.resolve('') : createDeliverablePreviewUploadUrl(storageKey),
+      createDeliverablePreviewUploadUrl(storageKey),
     ]);
     return {
       success: true,
@@ -268,12 +282,15 @@ export async function completeDeliverableUploadAction(uploadId: string): Promise
       const auth = await getAuthorizedJob(record.jobId, 'read');
       if ('error' in auth) return { success: false, error: auth.error };
       const [uploader] = await db.select({ fullName: schema.profiles.fullName }).from(schema.profiles).where(eq(schema.profiles.id, record.uploadedBy));
+      const previewUrl = await createDeliverablePreviewUrl(record.previewStorageKey || record.storageKey);
+      const fileUrl = record.previewStorageKey ? await createDeliverablePreviewUrl(record.storageKey) : previewUrl;
       return {
         success: true,
         data: toDeliverable(
           record,
           uploader?.fullName || null,
-          await getCachedDeliverablePreviewUrl(record.previewStorageKey || record.storageKey)
+          previewUrl,
+          fileUrl
         ),
       };
     }
@@ -310,7 +327,7 @@ export async function completeDeliverableUploadAction(uploadId: string): Promise
           status: 'ready',
           sizeBytes: inspected.sizeBytes,
           mimeType: resolvedMimeType,
-          previewStorageKey: inspected.isPdf ? null : createDeliverablePreviewKey(record.storageKey),
+          previewStorageKey: createDeliverablePreviewKey(record.storageKey),
           registeredAt,
         })
         .where(and(eq(schema.deliverables.id, uploadId), eq(schema.deliverables.status, 'pending')))
@@ -351,23 +368,29 @@ export async function completeDeliverableUploadAction(uploadId: string): Promise
         .select({ fullName: schema.profiles.fullName })
         .from(schema.profiles)
         .where(eq(schema.profiles.id, readyRecord.uploadedBy));
+      const previewUrl = await createDeliverablePreviewUrl(readyRecord.previewStorageKey || readyRecord.storageKey);
+      const fileUrl = readyRecord.previewStorageKey ? await createDeliverablePreviewUrl(readyRecord.storageKey) : previewUrl;
       return {
         success: true,
         data: toDeliverable(
           readyRecord,
           uploader?.fullName || null,
-          await getCachedDeliverablePreviewUrl(readyRecord.previewStorageKey || readyRecord.storageKey)
+          previewUrl,
+          fileUrl
         ),
       };
     }
 
     revalidatePath('/');
+    const previewUrl = await createDeliverablePreviewUrl(updated.previewStorageKey || updated.storageKey);
+    const fileUrl = updated.previewStorageKey ? await createDeliverablePreviewUrl(updated.storageKey) : previewUrl;
     return {
       success: true,
       data: toDeliverable(
         updated,
         user.fullName,
-        await getCachedDeliverablePreviewUrl(updated.previewStorageKey || updated.storageKey)
+        previewUrl,
+        fileUrl
       ),
     };
   } catch (error) {
@@ -438,10 +461,6 @@ export async function getDeliverableDownloadUrlAction(deliverableId: string): Pr
 export async function deleteDeliverableAction(deliverableId: string): Promise<ActionResult> {
   if (isMockEnabled()) return { success: false, error: 'Hapus deliverable belum tersedia dalam mode demo' };
 
-  const user = await getAuthenticatedUser();
-  if (!user || (user.role !== 'admin' && user.role !== 'designer')) {
-    return { success: false, error: 'Hanya editor atau admin yang dapat menghapus deliverable' };
-  }
   if (!db) return { success: false, error: 'Database belum terhubung' };
 
   try {
@@ -450,20 +469,92 @@ export async function deleteDeliverableAction(deliverableId: string): Promise<Ac
       .from(schema.deliverables)
       .where(eq(schema.deliverables.id, deliverableId));
     if (!record) return { success: true };
-    const auth = await getAuthorizedJob(record.jobId, 'read');
-    if ('error' in auth || (auth.user.role !== 'admin' && auth.user.role !== 'designer')) {
-      return { success: false, error: 'Anda tidak memiliki akses ke deliverable ini' };
+
+    const auth = await getAuthorizedJob(record.jobId, 'upload');
+    if ('error' in auth) {
+      return { success: false, error: auth.error };
     }
+
+    // Only admin or the uploader/assigned designer can delete
+    const isOwnerOrAdmin = auth.user.role === 'admin' || record.uploadedBy === auth.user.id || auth.isAssignedDesigner;
+    if (!isOwnerOrAdmin) {
+      return { success: false, error: 'Hanya admin atau desainer yang mengunggah yang dapat menghapus deliverable ini' };
+    }
+
     if (!isDeliverableKeyForJob(record.storageKey, record.jobId)) {
       return { success: false, error: 'Kunci penyimpanan tidak valid' };
     }
 
-    await deleteDeliverableObject(record.storageKey);
+    // Clean up R2 objects
+    await Promise.allSettled([
+      deleteDeliverableObject(record.storageKey),
+      record.previewStorageKey ? deleteDeliverableObject(record.previewStorageKey) : Promise.resolve(),
+    ]);
+
     await db.delete(schema.deliverables).where(eq(schema.deliverables.id, deliverableId));
     revalidatePath('/');
     return { success: true };
   } catch (error) {
     console.error('Failed to delete deliverable:', error);
     return { success: false, error: 'Gagal menghapus deliverable' };
+  }
+}
+
+export async function getDeliverablePdfDataAction(deliverableId: string): Promise<ActionResult<{ base64: string }>> {
+  if (isMockEnabled()) return { success: false, error: 'Deliverable belum tersedia dalam mode demo' };
+  const user = await getAuthenticatedUser();
+  if (!user || !db) return { success: false, error: 'Sesi pengguna tidak valid' };
+
+  try {
+    const [record] = await db.select().from(schema.deliverables).where(eq(schema.deliverables.id, deliverableId));
+    if (!record || record.status !== 'ready') return { success: false, error: 'Deliverable tidak ditemukan' };
+    const auth = await getAuthorizedJob(record.jobId, 'read');
+    if ('error' in auth) return { success: false, error: auth.error };
+
+    const bytes = await getDeliverableObjectBytes(record.storageKey);
+    if (!bytes) return { success: false, error: 'File tidak ditemukan' };
+
+    return {
+      success: true,
+      data: {
+        base64: Buffer.from(bytes).toString('base64'),
+      },
+    };
+  } catch (error) {
+    console.error('Failed to get deliverable PDF data:', error);
+    return { success: false, error: 'Gagal mengambil file PDF' };
+  }
+}
+
+export async function saveDeliverablePreviewAction(
+  deliverableId: string,
+  base64Jpeg: string
+): Promise<ActionResult<{ previewUrl: string }>> {
+  if (isMockEnabled()) return { success: false, error: 'Mode demo' };
+  if (!db) return { success: false, error: 'Database belum terhubung' };
+
+  try {
+    const [record] = await db.select().from(schema.deliverables).where(eq(schema.deliverables.id, deliverableId));
+    if (!record || record.status !== 'ready') return { success: false, error: 'Deliverable tidak ditemukan' };
+
+    const auth = await getAuthorizedJob(record.jobId, 'upload');
+    if ('error' in auth) {
+      return { success: false, error: auth.error };
+    }
+
+    const rawBase64 = base64Jpeg.replace(/^data:image\/[a-z]+;base64,/, '');
+    const buffer = Buffer.from(rawBase64, 'base64');
+    const previewStorageKey = await uploadDeliverablePreviewBuffer(record.storageKey, buffer);
+
+    await db
+      .update(schema.deliverables)
+      .set({ previewStorageKey })
+      .where(eq(schema.deliverables.id, deliverableId));
+
+    const previewUrl = await createDeliverablePreviewUrl(previewStorageKey);
+    return { success: true, data: { previewUrl } };
+  } catch (error) {
+    console.error('Failed to save deliverable preview:', error);
+    return { success: false, error: 'Gagal menyimpan preview' };
   }
 }

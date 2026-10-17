@@ -3,16 +3,17 @@
 import { db, schema } from '@/lib/db';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { Profile } from '@/types';
+import { Profile, JobStatus } from '@/types';
 import { sendJobStatusEmail } from '@/lib/email';
 import { getAllUsersAction } from '../auth';
 import { createNotificationAction } from '../notifications';
 import { isMockEnabled, getMockStore } from '@/lib/mock-store';
+import { requireAdmin } from '@/lib/auth-guard';
 
 export async function assignDesignerAction(
   jobId: string,
   designerId: string,
-  actor: Profile
+  actor?: Profile | null
 ): Promise<{ success: boolean; error?: string }> {
   const ids = designerId ? designerId.split(',').filter(Boolean) : [];
   return await setJobDesignersAction(jobId, ids, actor);
@@ -21,24 +22,29 @@ export async function assignDesignerAction(
 export async function setJobDesignersAction(
   jobId: string,
   designerIds: string[],
-  actor: Profile
+  actor?: Profile | null
 ): Promise<{ success: boolean; error?: string }> {
-  if (actor.role !== 'admin') {
+  let verifiedAdmin: Profile;
+  try {
+    verifiedAdmin = await requireAdmin();
+  } catch {
     return { success: false, error: 'Hanya admin yang dapat menugaskan desainer' };
   }
+
+  const uniqueDesignerIds = Array.from(new Set(designerIds.map((id) => id.trim()).filter(Boolean)));
 
   if (isMockEnabled()) {
     const store = getMockStore();
     const target = store.jobs.find((j) => j.id === jobId);
     if (target) {
-      const designersList = designerIds
+      const designersList = uniqueDesignerIds
         .map((id) => store.users.find((u) => u.id === id))
         .filter(Boolean) as Profile[];
-      target.designerIds = designerIds;
-      target.designerId = designerIds[0] || null;
+      target.designerIds = uniqueDesignerIds;
+      target.designerId = uniqueDesignerIds[0] || null;
       target.designers = designersList;
       target.designer = designersList[0] || null;
-      if (target.status === 'in_queue' && designerIds.length > 0) {
+      if (target.status === 'in_queue' && uniqueDesignerIds.length > 0) {
         target.status = 'wip';
       }
       target.updatedAt = new Date().toISOString();
@@ -54,7 +60,7 @@ export async function setJobDesignersAction(
     return { success: false, error: 'Job tidak ditemukan' };
   }
 
-  const userIds = Array.from(new Set([currentJob.requestorId, actor.id, ...designerIds]));
+  const userIds = Array.from(new Set([currentJob.requestorId, verifiedAdmin.id, ...uniqueDesignerIds]));
   const userRecords = await db
     .select()
     .from(schema.profiles)
@@ -77,27 +83,37 @@ export async function setJobDesignersAction(
     ])
   );
 
-  const primaryDesignerId = designerIds[0] || null;
-  const designersList = designerIds.map((id) => profileMap.get(id)).filter(Boolean) as Profile[];
-  const newStatus = designerIds.length === 0
-    ? 'in_queue'
-    : (currentJob.status === 'in_queue' ? 'wip' : currentJob.status);
+  const primaryDesignerId = uniqueDesignerIds[0] || null;
+  const designersList = uniqueDesignerIds.map((id) => profileMap.get(id)).filter(Boolean) as Profile[];
+  let finalStatus: JobStatus = currentJob.status;
 
   try {
     await db.transaction(async (tx) => {
+      const [jobToUpdate] = await tx
+        .select({ status: schema.jobs.status })
+        .from(schema.jobs)
+        .where(eq(schema.jobs.id, jobId))
+        .for('update');
+
+      if (!jobToUpdate) throw new Error('Job tidak ditemukan');
+
+      finalStatus = uniqueDesignerIds.length === 0
+        ? 'in_queue'
+        : (jobToUpdate.status === 'in_queue' ? 'wip' : jobToUpdate.status);
+
       await tx
         .update(schema.jobs)
         .set({
           designerId: primaryDesignerId,
-          status: newStatus,
+          status: finalStatus,
           updatedAt: new Date(),
         })
         .where(eq(schema.jobs.id, jobId));
 
       await tx.delete(schema.jobDesigners).where(eq(schema.jobDesigners.jobId, jobId));
-      if (designerIds.length > 0) {
+      if (uniqueDesignerIds.length > 0) {
         await tx.insert(schema.jobDesigners).values(
-          designerIds.map((dId) => ({
+          uniqueDesignerIds.map((dId) => ({
             jobId,
             designerId: dId,
           }))
@@ -107,9 +123,9 @@ export async function setJobDesignersAction(
       const designerNames = designersList.map((d) => d.fullName).join(', ');
       await tx.insert(schema.jobActivity).values({
         jobId,
-        actorId: actor.id,
-        fromStatus: currentJob.status,
-        toStatus: newStatus,
+        actorId: verifiedAdmin.id,
+        fromStatus: jobToUpdate.status,
+        toStatus: finalStatus,
         note: designersList.length > 0 ? `Ditugaskan kepada: ${designerNames}` : 'Menghapus semua editor yang ditugaskan',
       });
     });
@@ -128,9 +144,9 @@ export async function setJobDesignersAction(
       jobTitle: currentJob.title,
       briefLink: currentJob.briefLink,
       fromStatus: currentJob.status,
-      toStatus: newStatus,
-      actorName: actor.fullName,
-      actorEmail: actor.email,
+      toStatus: finalStatus,
+      actorName: verifiedAdmin.fullName,
+      actorEmail: verifiedAdmin.email,
       recipients,
       note: `Ditugaskan kepada editor: ${designerNames}`,
     }).catch((err) => console.error('Failed to send assignment email:', err));
@@ -138,18 +154,18 @@ export async function setJobDesignersAction(
     // Dispatch in-app notifications in parallel
     Promise.all(
       designersList
-        .filter((d) => d.id !== actor.id)
+        .filter((d) => d.id !== verifiedAdmin.id)
         .map((d) =>
           createNotificationAction({
             userId: d.id,
             title: 'Penugasan Job Baru',
-            message: `${actor.fullName} menugaskan Anda ke job: "${currentJob.title}"`,
+            message: `${verifiedAdmin.fullName} menugaskan Anda ke job: "${currentJob.title}"`,
             type: 'job_assigned',
             jobId: currentJob.id,
             jobTitle: currentJob.title,
-            actorId: actor.id,
-            actorName: actor.fullName,
-            actorAvatar: actor.avatarUrl,
+            actorId: verifiedAdmin.id,
+            actorName: verifiedAdmin.fullName,
+            actorAvatar: verifiedAdmin.avatarUrl,
           })
         )
     ).catch((err) => console.error('Failed to create in-app notifications:', err));
@@ -231,4 +247,13 @@ export async function getDesignerWorkloadsAction(): Promise<{ designer: Profile;
   }
 }
 
-export const getDesignerSuggestionsAction = getDesignerWorkloadsAction;
+import { getPageDesignerSuggestionsAction } from '../page-editors';
+
+export async function getDesignerSuggestionsAction(
+  pageId?: string
+): Promise<{ designer: Profile; activeWipCount: number }[]> {
+  if (pageId) {
+    return getPageDesignerSuggestionsAction(pageId);
+  }
+  return getDesignerWorkloadsAction();
+}

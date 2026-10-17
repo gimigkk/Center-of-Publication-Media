@@ -166,7 +166,7 @@ export function usePresence(currentPage: Page | null, currentUser: Profile | nul
     };
 
     try {
-      const existingChannel = supabase.getChannels().find((c) => c.topic === `realtime:${channelName}`);
+      const existingChannel = supabase.getChannels().find((c: { topic: string }) => c.topic === `realtime:${channelName}`);
       if (existingChannel) {
         channelRef.current = existingChannel;
       } else {
@@ -178,21 +178,22 @@ export function usePresence(currentPage: Page | null, currentUser: Profile | nul
           },
         });
 
+        channelRef.current = channel;
+
         channel
           .on('presence', { event: 'sync' }, () => {
-            syncSupabaseState(channel.presenceState<OnlineUser>());
+            syncSupabaseState(channel.presenceState() as Record<string, OnlineUser[]>);
           })
           .on('presence', { event: 'join' }, () => {
-            syncSupabaseState(channel.presenceState<OnlineUser>());
+            syncSupabaseState(channel.presenceState() as Record<string, OnlineUser[]>);
           })
           .on('presence', { event: 'leave' }, () => {
-            syncSupabaseState(channel.presenceState<OnlineUser>());
+            syncSupabaseState(channel.presenceState() as Record<string, OnlineUser[]>);
           })
-          .subscribe(async (status) => {
+          .subscribe(async (status: string) => {
             if (status === 'SUBSCRIBED') {
-              channelRef.current = channel;
               await channel.track(myUser);
-              syncSupabaseState(channel.presenceState<OnlineUser>());
+              syncSupabaseState(channel.presenceState() as Record<string, OnlineUser[]>);
             }
           });
       }

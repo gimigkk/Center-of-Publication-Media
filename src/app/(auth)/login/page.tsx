@@ -14,7 +14,18 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState(() => searchParams.get('email') || '');
   const [password, setPassword] = useState('');
-  const [diagnostic, setDiagnostic] = useState<LoginDiagnostic | null>(null);
+  const [diagnostic, setDiagnostic] = useState<LoginDiagnostic | null>(() => {
+    if (searchParams.get('error') === 'unapproved') {
+      return {
+        correlationId: 'APPROVAL_PENDING',
+        stage: 'approval_check',
+        status: 'failed',
+        code: 'USER_UNAPPROVED',
+        message: 'Akun Anda sedang menunggu persetujuan dari Admin. Silakan hubungi koordinator.',
+      };
+    }
+    return null;
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [resetStatus, setResetStatus] = useState<{ success: boolean; message: string } | null>(null);

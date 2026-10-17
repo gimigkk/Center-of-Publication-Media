@@ -16,30 +16,36 @@ export const ArchiveTableHeader = React.memo(function ArchiveTableHeader({
   return (
     <thead>
       <tr>
-        <th className="archive-th" style={{ width: '40px', textAlign: 'center' }}>
+        <th className="archive-th" style={{ width: '44px', textAlign: 'center' }}>
           #
         </th>
-        <th className="archive-th sortable" onClick={() => onSort('title')}>
+        <th className="archive-th sortable" onClick={() => onSort('title')} style={{ width: '30%' }}>
           <div className="archive-th-inner">
             <span>Tugas</span>
             <ArrowUpDown size={11} style={{ opacity: sortField === 'title' ? 1 : 0.4 }} />
           </div>
         </th>
-        <th className="archive-th">Penanggung Jawab</th>
-        <th className="archive-th">Requester</th>
-        <th className="archive-th sortable" onClick={() => onSort('division')}>
+        <th className="archive-th" style={{ width: '18%' }}>
+          Penanggung Jawab
+        </th>
+        <th className="archive-th" style={{ width: '14%' }}>
+          Requester
+        </th>
+        <th className="archive-th sortable" onClick={() => onSort('division')} style={{ width: '16%' }}>
           <div className="archive-th-inner">
             <span>Dari / Divisi</span>
             <ArrowUpDown size={11} style={{ opacity: sortField === 'division' ? 1 : 0.4 }} />
           </div>
         </th>
-        <th className="archive-th sortable" onClick={() => onSort('deadline')}>
+        <th className="archive-th sortable" onClick={() => onSort('deadline')} style={{ width: '12%' }}>
           <div className="archive-th-inner">
             <span>Deadline</span>
             <ArrowUpDown size={11} style={{ opacity: sortField === 'deadline' ? 1 : 0.4 }} />
           </div>
         </th>
-        <th className="archive-th">Brief</th>
+        <th className="archive-th" style={{ width: '100px', textAlign: 'center' }}>
+          Brief
+        </th>
       </tr>
     </thead>
   );

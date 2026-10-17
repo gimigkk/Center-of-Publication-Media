@@ -2,22 +2,17 @@ import webpush from 'web-push';
 import { db, schema } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 
-// Default VAPID keys for COPM notifications
-const VAPID_PUBLIC_KEY =
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-  'BP5wOj9BecHre-ZJvflww2WU8Z3gjE0rrBgjSLV4pur2iUaTtd8P3SCyOy5pQsVeNb1q3APuu1Z7O9CDhDRUtGk';
+// VAPID keys for COPM notifications sourced strictly from environment
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:notifications@copm.app';
 
-const VAPID_PRIVATE_KEY =
-  process.env.VAPID_PRIVATE_KEY ||
-  'ZaXiXUv4g0rM4CbSQsnh0Ms4qj1MdEAMF0insz-kDzo';
-
-const VAPID_SUBJECT =
-  process.env.VAPID_SUBJECT || 'mailto:notifications@copm.app';
-
-try {
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-} catch (e) {
-  console.warn('Failed to initialize web-push VAPID:', e);
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  try {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  } catch (e) {
+    console.warn('Failed to initialize web-push VAPID:', e);
+  }
 }
 
 export async function sendWebPushNotificationToUser({
@@ -33,7 +28,7 @@ export async function sendWebPushNotificationToUser({
   url?: string;
   jobId?: string;
 }) {
-  if (!db) return;
+  if (!db || !VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
 
   try {
     const subscriptions = await db

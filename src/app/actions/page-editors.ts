@@ -4,7 +4,7 @@ import { db, schema } from '@/lib/db';
 import { eq, inArray, and, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { Profile } from '@/types';
-import { requireAdmin } from '@/lib/auth-guard';
+import { requireAdmin, getAuthenticatedUser } from '@/lib/auth-guard';
 import { isMockEnabled, getMockStore } from '@/lib/mock-store';
 
 export async function getPageEditorsAction(pageId: string): Promise<string[]> {
@@ -31,6 +31,9 @@ export async function getPageEditorsAction(pageId: string): Promise<string[]> {
 export async function getPageDesignerSuggestionsAction(
   pageId: string
 ): Promise<{ designer: Profile; activeWipCount: number }[]> {
+  const currentUser = await getAuthenticatedUser(false);
+  if (!currentUser) return [];
+
   if (isMockEnabled()) {
     const store = getMockStore();
     const mockStorePe = (store as unknown as { pageEditors?: { pageId: string; editorId: string }[] }).pageEditors;
@@ -79,15 +82,28 @@ export async function getPageDesignerSuggestionsAction(
         })
         .from(schema.profiles),
       db.execute(sql`
-        SELECT designer_id, count(*)::int AS active_wip_count
-        FROM (
-          SELECT designer_id FROM jobs
-          WHERE status IN ('wip', 'revisions') AND is_archived = false AND designer_id IS NOT NULL
+        WITH active_jobs AS (
+          SELECT id, designer_id
+          FROM ${schema.jobs}
+          WHERE is_archived = false
+            AND status IN ('wip', 'revisions')
+        ), normalized_assignments AS (
+          SELECT ajd.designer_id
+          FROM active_jobs aj
+          INNER JOIN ${schema.jobDesigners} ajd ON ajd.job_id = aj.id
           UNION ALL
-          SELECT jd.designer_id FROM job_designers jd
-          JOIN jobs j ON j.id = jd.job_id
-          WHERE j.status IN ('wip', 'revisions') AND j.is_archived = false
-        ) combined_designers
+          SELECT aj.designer_id
+          FROM active_jobs aj
+          WHERE aj.designer_id IS NOT NULL
+            AND NOT EXISTS (
+              SELECT 1
+              FROM ${schema.jobDesigners} legacy_check
+              WHERE legacy_check.job_id = aj.id
+                AND legacy_check.designer_id = aj.designer_id
+            )
+        )
+        SELECT designer_id, COUNT(*)::int AS active_wip_count
+        FROM normalized_assignments
         GROUP BY designer_id;
       `),
     ]);

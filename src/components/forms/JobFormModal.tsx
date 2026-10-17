@@ -94,15 +94,13 @@ export function JobFormModal({
         fetchGoogleDocTitleAction(briefLink.trim()).then((docTitle) => {
           if (docTitle) {
             setBriefTitle(docTitle);
-            if (!title) {
-              setTitle(docTitle);
-            }
+            setTitle((prev) => (prev ? prev : docTitle));
           }
         });
       }, 400);
       return () => clearTimeout(timer);
     }
-  }, [briefLink, isGoogleDoc, title]);
+  }, [briefLink, isGoogleDoc]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

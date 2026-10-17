@@ -82,6 +82,7 @@ export interface Deliverable {
   createdAt: string;
   registeredAt: string;
   previewUrl: string;
+  fileUrl?: string;
 }
 
 export interface RemoteCursor {

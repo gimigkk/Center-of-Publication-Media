@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Page, Profile, Job, Division, AppNotification } from '@/types';
 import { getAllUsersAction } from '@/app/actions/auth';
-import { getDesignerSuggestionsAction } from '@/app/actions/jobs/designers';
+import { getPageDesignerSuggestionsAction } from '@/app/actions/page-editors';
 import { getJobsAction } from '@/app/actions/jobs';
 import { getDivisionsAction } from '@/app/actions/divisions';
 import { getPagesAction } from '@/app/actions/pages';
@@ -54,11 +54,13 @@ export function useRealtimeWorkspaceSync({
   const syncJobs = useCallback(async () => {
     if (requestBoardRefresh) {
       requestBoardRefresh('realtime');
-      try {
-        const suggestions = await getDesignerSuggestionsAction();
-        setDesignerSuggestions(suggestions);
-      } catch (err) {
-        console.error('Failed to sync designer suggestions:', err);
+      if (activePageIdRef.current) {
+        try {
+          const suggestions = await getPageDesignerSuggestionsAction(activePageIdRef.current);
+          setDesignerSuggestions(suggestions);
+        } catch (err) {
+          console.error('Failed to sync designer suggestions:', err);
+        }
       }
       return;
     }
@@ -66,7 +68,7 @@ export function useRealtimeWorkspaceSync({
     try {
       const freshJobs = await getJobsAction(activePageIdRef.current);
       setJobs(freshJobs);
-      const suggestions = await getDesignerSuggestionsAction();
+      const suggestions = await getPageDesignerSuggestionsAction(activePageIdRef.current);
       setDesignerSuggestions(suggestions);
     } catch (err) {
       console.error('Failed to sync jobs:', err);
@@ -84,8 +86,10 @@ export function useRealtimeWorkspaceSync({
         if (me) setCurrentUser(me);
       }
 
-      const suggestions = await getDesignerSuggestionsAction();
-      setDesignerSuggestions(suggestions);
+      if (activePageIdRef.current) {
+        const suggestions = await getPageDesignerSuggestionsAction(activePageIdRef.current);
+        setDesignerSuggestions(suggestions);
+      }
       if (requestBoardRefresh) requestBoardRefresh('realtime');
     } catch (err) {
       console.error('Failed to sync users:', err);
@@ -123,6 +127,20 @@ export function useRealtimeWorkspaceSync({
     }
   }, [setNotifications]);
 
+  const syncJobsRef = useRef(syncJobs);
+  const syncUsersRef = useRef(syncUsers);
+  const syncDivisionsRef = useRef(syncDivisions);
+  const syncPagesRef = useRef(syncPages);
+  const syncNotificationsRef = useRef(syncNotifications);
+
+  useEffect(() => {
+    syncJobsRef.current = syncJobs;
+    syncUsersRef.current = syncUsers;
+    syncDivisionsRef.current = syncDivisions;
+    syncPagesRef.current = syncPages;
+    syncNotificationsRef.current = syncNotifications;
+  });
+
   useEffect(() => {
     // 1. BroadcastChannel for instant local tab sync
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -130,11 +148,18 @@ export function useRealtimeWorkspaceSync({
         const bc = new BroadcastChannel('copm-workspace-sync');
         bc.onmessage = (event) => {
           const type = event.data?.type;
-          if (type === 'sync-users') syncUsers();
-          else if (type === 'sync-jobs') syncJobs();
-          else if (type === 'sync-divisions') syncDivisions();
-          else if (type === 'sync-pages') syncPages();
-          else if (type === 'sync-notifications') syncNotifications();
+          if (type === 'sync-users') syncUsersRef.current();
+          else if (type === 'sync-jobs') syncJobsRef.current();
+          else if (type === 'sync-divisions') syncDivisionsRef.current();
+          else if (type === 'sync-pages') syncPagesRef.current();
+          else if (type === 'sync-notifications') syncNotificationsRef.current();
+          else if (type === 'sync-page-editors') {
+            if (activePageIdRef.current) {
+              void getPageDesignerSuggestionsAction(activePageIdRef.current).then((suggs) => {
+                setDesignerSuggestions(suggs);
+              });
+            }
+          }
         };
         bcRef.current = bc;
       } catch (e) {
@@ -146,7 +171,7 @@ export function useRealtimeWorkspaceSync({
     const supabase = createClient();
     const channelName = 'copm-workspace-realtime-sync';
 
-    const existing = supabase.getChannels().find((c) => c.topic === `realtime:${channelName}`);
+    const existing = supabase.getChannels().find((c: { topic: string }) => c.topic === `realtime:${channelName}`);
     if (existing) {
       supabase.removeChannel(existing);
     }
@@ -158,7 +183,7 @@ export function useRealtimeWorkspaceSync({
       'postgres_changes',
       { event: '*', schema: 'public', table: 'profiles' },
       () => {
-        syncUsers();
+        syncUsersRef.current();
       }
     );
 
@@ -168,8 +193,20 @@ export function useRealtimeWorkspaceSync({
       'postgres_changes',
       { event: '*', schema: 'public', table: 'job_designers' },
       () => {
-        if (requestBoardRefresh) requestBoardRefresh('realtime');
-        else syncJobs();
+        syncJobsRef.current();
+      }
+    );
+
+    // Page Editors table
+    channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'page_editors' },
+      () => {
+        if (activePageIdRef.current) {
+          void getPageDesignerSuggestionsAction(activePageIdRef.current).then((suggs) => {
+            setDesignerSuggestions(suggs);
+          });
+        }
       }
     );
 
@@ -182,7 +219,7 @@ export function useRealtimeWorkspaceSync({
       'postgres_changes',
       { event: '*', schema: 'public', table: 'divisions' },
       () => {
-        syncDivisions();
+        syncDivisionsRef.current();
       }
     );
 
@@ -191,7 +228,7 @@ export function useRealtimeWorkspaceSync({
       'postgres_changes',
       { event: '*', schema: 'public', table: 'pages' },
       () => {
-        syncPages();
+        syncPagesRef.current();
       }
     );
 
@@ -199,8 +236,11 @@ export function useRealtimeWorkspaceSync({
     channel.on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'notifications' },
-      () => {
-        syncNotifications();
+      (payload: { new?: Record<string, unknown>; old?: Record<string, unknown> }) => {
+        const row = (payload.new || payload.old) as { user_id?: string } | undefined;
+        if (!row?.user_id || row.user_id === currentUserIdRef.current) {
+          syncNotificationsRef.current();
+        }
       }
     );
 
