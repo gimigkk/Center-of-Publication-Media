@@ -23,6 +23,7 @@ export function NotificationRequirementModal({ userId }: NotificationRequirement
     <Modal
       isOpen={true}
       onClose={() => {}}
+      disableBackNavigation={true}
       title={isBlocked ? 'Izin Notifikasi Diblokir' : 'Aktifkan Notifikasi'}
       subtitle="Pemberitahuan perubahan status dan penugasan job secara real-time"
       maxWidth={480}

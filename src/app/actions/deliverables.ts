@@ -19,6 +19,7 @@ import {
   isDeliverableKeyForJob,
   uploadDeliverablePreviewBuffer,
 } from '@/lib/r2';
+import { computePreviewMeta } from '@/lib/deliverable-meta';
 import { Deliverable, Profile } from '@/types';
 import { isMockEnabled } from '@/lib/mock-store';
 
@@ -140,6 +141,9 @@ function toDeliverable(
     sizeBytes: record.sizeBytes,
     uploadedBy: record.uploadedBy,
     uploaderName,
+    blurDataUrl: record.blurDataUrl,
+    width: record.width,
+    height: record.height,
     createdAt: record.createdAt.toISOString(),
     registeredAt: (record.registeredAt || record.createdAt).toISOString(),
     previewUrl,
@@ -211,7 +215,7 @@ export async function getDeliverablesAction(jobId: string): Promise<ActionResult
   } catch (error) {
     logDeliverableReadTimings(timings, startedAt);
     console.error('Failed to get deliverables:', error);
-    return { success: false, error: 'Gagal memuat deliverable' };
+    return { success: false, error: error instanceof Error ? error.message : 'Gagal memuat deliverable' };
   }
 }
 
@@ -317,6 +321,11 @@ export async function completeDeliverableUploadAction(uploadId: string): Promise
         ? 'image/png'
         : 'image/jpeg';
 
+    const previewKey = createDeliverablePreviewKey(record.storageKey);
+    const previewBytes = await getDeliverableObjectBytes(previewKey).catch(() => null)
+      ?? (inspected.isPdf ? null : await getDeliverableObjectBytes(record.storageKey).catch(() => null));
+    const meta = previewBytes ? await computePreviewMeta(previewBytes) : null;
+
     const registeredAt = new Date();
     const updated = await db.transaction(async (tx) => {
       const [readyRecord] = await tx
@@ -325,7 +334,10 @@ export async function completeDeliverableUploadAction(uploadId: string): Promise
           status: 'ready',
           sizeBytes: inspected.sizeBytes,
           mimeType: resolvedMimeType,
-          previewStorageKey: createDeliverablePreviewKey(record.storageKey),
+          previewStorageKey: previewKey,
+          blurDataUrl: meta?.blurDataUrl ?? null,
+          width: meta?.width ?? null,
+          height: meta?.height ?? null,
           registeredAt,
         })
         .where(and(eq(schema.deliverables.id, uploadId), eq(schema.deliverables.status, 'pending')))
@@ -538,11 +550,13 @@ export async function saveDeliverablePreviewAction(
 
     const rawBase64 = base64Jpeg.replace(/^data:image\/[a-z]+;base64,/, '');
     const buffer = Buffer.from(rawBase64, 'base64');
+    const meta = await computePreviewMeta(buffer);
+    if (!meta) return { success: false, error: 'Preview tidak valid' };
     const previewStorageKey = await uploadDeliverablePreviewBuffer(record.storageKey, buffer);
 
     await db
       .update(schema.deliverables)
-      .set({ previewStorageKey })
+      .set({ previewStorageKey, ...meta })
       .where(eq(schema.deliverables.id, deliverableId));
 
     const previewUrl = await createDeliverablePreviewUrl(previewStorageKey);

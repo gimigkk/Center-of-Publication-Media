@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
+import { useModalBack } from '@/hooks/useModalBack';
 
 interface ModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface ModalProps {
   maxWidth?: number | string;
   showHeader?: boolean;
   showCloseButton?: boolean;
+  disableBackNavigation?: boolean;
 }
 
 export function Modal({
@@ -32,8 +34,10 @@ export function Modal({
   maxWidth,
   showHeader = true,
   showCloseButton = true,
+  disableBackNavigation = false,
 }: ModalProps) {
   const { shouldRender, isClosing } = useAnimatePresence(isOpen, 140);
+  useModalBack({ isOpen, onClose, disabled: disableBackNavigation });
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

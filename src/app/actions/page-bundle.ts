@@ -75,6 +75,9 @@ interface DbDeliverableRow {
   uploader_name?: string | null;
   storage_key: string;
   preview_storage_key?: string | null;
+  blur_data_url?: string | null;
+  width?: number | null;
+  height?: number | null;
   registered_at?: string | Date | null;
   created_at: string | Date;
 }
@@ -286,6 +289,9 @@ export async function getPageBundleAction(
             sizeBytes: d.size_bytes,
             uploadedBy: d.uploaded_by,
             uploaderName: d.uploader_name || undefined,
+            blurDataUrl: d.blur_data_url,
+            width: d.width,
+            height: d.height,
             createdAt: new Date(d.created_at).toISOString(),
             registeredAt: d.registered_at ? new Date(d.registered_at).toISOString() : new Date(d.created_at).toISOString(),
             previewUrl,

@@ -178,7 +178,10 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
         setDeliverables((current) => {
           const isSameList =
             current.length === nextDeliverables.length &&
-            current.every((item, i) => item.id === nextDeliverables[i]?.id);
+            current.every((item, i) =>
+              item.id === nextDeliverables[i]?.id &&
+              item.blurDataUrl === nextDeliverables[i]?.blurDataUrl &&
+              item.width === nextDeliverables[i]?.width);
 
           if (isSameList) {
             // Keep existing previewUrls so <img> doesn't reload and flicker!
@@ -535,7 +538,9 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
 
   const isDeliverableWide = (deliverable: Deliverable) => {
     if (deliverables.length === 1) return true;
-    const ratio = imageRatios[deliverable.id];
+    const ratio = deliverable.width && deliverable.height
+      ? deliverable.width / deliverable.height
+      : imageRatios[deliverable.id];
     if (ratio !== undefined) return ratio > 1.25;
     return false;
   };
@@ -562,7 +567,8 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
     const isDeleting = deletingIds.has(deliverable.id);
     const displaySrc = pdfThumbnails[deliverable.id] || deliverable.previewUrl;
     const isLoaded = Boolean(loadedPreviewIds[deliverable.id]);
-    const ratio = imageRatios[deliverable.id] || (isPdf ? 0.75 : undefined);
+    const serverRatio = deliverable.width && deliverable.height ? deliverable.width / deliverable.height : undefined;
+    const ratio = serverRatio || imageRatios[deliverable.id] || (isPdf ? 0.75 : undefined);
 
     const targetUrl = `/api/deliverables/${deliverable.id}/view`;
 
@@ -590,11 +596,17 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
           aria-label={`Buka preview ${uploadDescription}`}
           style={ratio ? { aspectRatio: `${ratio}` } : undefined}
         >
-          {!isLoaded && !ratio && (
-            <span className="deliverables-loading-dots preview-loading-dots" aria-label="Loading preview">
-              <i /><i /><i />
-            </span>
+          {deliverable.blurDataUrl && (
+            <img
+              className="job-deliverable-blur"
+              src={deliverable.blurDataUrl}
+              alt=""
+              aria-hidden="true"
+            />
           )}
+          <span className="deliverables-loading-dots preview-loading-dots" aria-label="Loading preview">
+            <i /><i /><i />
+          </span>
           <img
             className="job-deliverable-preview"
             src={displaySrc}
@@ -604,7 +616,6 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
             fetchPriority={index === 0 ? 'high' : 'auto'}
             onLoad={(event) => {
               const image = event.currentTarget;
-              setLoadedPreviewIds((current) => ({ ...current, [deliverable.id]: true }));
               if (image.naturalWidth && image.naturalHeight) {
                 const imgRatio = image.naturalWidth / image.naturalHeight;
                 const imgResolution = `${image.naturalWidth} × ${image.naturalHeight}px`;
@@ -612,6 +623,10 @@ export function JobDeliverablesPanel({ job, currentUser, isOpen }: JobDeliverabl
                 setImageResolutions((current) => ({ ...current, [deliverable.id]: imgResolution }));
                 setImageRatios((current) => ({ ...current, [deliverable.id]: imgRatio }));
               }
+              // Delay loaded flag by one frame so aspect-ratio settles before fade-in
+              requestAnimationFrame(() => {
+                setLoadedPreviewIds((current) => ({ ...current, [deliverable.id]: true }));
+              });
             }}
             onError={() => {
               if (!hasRetriedRef.current.has(deliverable.id)) {

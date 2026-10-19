@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Job, JobStatus, Profile } from '@/types';
 import { AssignDesignerDropdown } from '@/components/forms/AssignDesignerDropdown';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
+import { useModalBack } from '@/hooks/useModalBack';
 import { fetchGoogleDocTitleAction } from '@/app/actions/jobs';
 import { JobDetailProperties } from './job-detail/JobDetailProperties';
 import { JobDetailBriefBox } from './job-detail/JobDetailBriefBox';
@@ -47,6 +48,7 @@ export const JobDetailModal = React.memo(function JobDetailModal({
   }
 
   const { shouldRender, isClosing } = useAnimatePresence(isOpen, 140);
+  useModalBack({ isOpen, onClose });
   const activeJob = job || cachedJob;
   const briefLink = activeJob?.briefLink;
   const briefTitle = activeJob?.briefTitle;

@@ -10,6 +10,7 @@ import { SimpleSelect } from '@/components/ui/Select';
 import { fetchGoogleDocTitleAction } from '@/app/actions/jobs';
 import { AlertCircle, Check, CheckCircle2, CornerDownRight, ExternalLink, X } from 'lucide-react';
 import { useAnimatePresence } from '@/hooks/useAnimatePresence';
+import { useModalBack } from '@/hooks/useModalBack';
 
 interface JobFormModalProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export function JobFormModal({
   onSubmitJob,
 }: JobFormModalProps) {
   const { shouldRender, isClosing } = useAnimatePresence(isOpen, 140);
+  useModalBack({ isOpen, onClose });
 
   // Default deadline set to 7 days in the future (H-7 minimum rule).
   // Snapshot once at mount so the value stays stable across re-renders.

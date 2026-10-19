@@ -79,6 +79,9 @@ export interface Deliverable {
   sizeBytes: number;
   uploadedBy: string;
   uploaderName?: string | null;
+  blurDataUrl?: string | null;
+  width?: number | null;
+  height?: number | null;
   createdAt: string;
   registeredAt: string;
   previewUrl: string;
